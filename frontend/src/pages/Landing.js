@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/App";
 import { MapPin, Eye, Wine, MessageCircle, Shield, Sparkles } from "lucide-react";
+import { Logo, LogoIcon } from "../components/Logo";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -56,10 +57,8 @@ const Landing = () => {
           {/* Logo */}
           <div className="flex items-center justify-center mb-16">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-pink-500 flex items-center justify-center">
-                <Sparkles className="w-7 h-7 text-white" />
-              </div>
-              <span className="text-2xl font-bold text-white tracking-tight">Midnight Social</span>
+              <LogoIcon className="w-12 h-12" />
+              <Logo size="large" />
             </div>
           </div>
 
@@ -166,7 +165,7 @@ const Landing = () => {
             onClick={() => navigate("/register")}
             className="h-14 px-12 rounded-full bg-gradient-to-r from-indigo-500 to-pink-500 text-white font-bold text-lg hover:opacity-90 transition-all active:scale-95 shadow-[0_0_30px_rgba(99,102,241,0.3)]"
           >
-            Join Midnight Social
+            Join Here & Now
           </Button>
         </div>
       </div>
@@ -175,8 +174,8 @@ const Landing = () => {
       <footer className="border-t border-white/5 py-8 px-4">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-indigo-400" />
-            <span className="text-slate-400 font-medium">Midnight Social</span>
+            <LogoIcon className="w-6 h-6" />
+            <span className="text-slate-400 font-medium">Here & Now</span>
           </div>
           <p className="text-slate-500 text-sm">Connect responsibly. Stay safe.</p>
         </div>

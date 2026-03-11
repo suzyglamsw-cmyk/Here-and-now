@@ -1,8 +1,9 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { MapPin, Users, Bell, Settings, Sparkles } from "lucide-react";
+import { MapPin, Users, Bell, Settings } from "lucide-react";
 import { useAuth, API } from "@/App";
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { Logo, LogoIcon } from "./Logo";
 
 const Layout = ({ children, hideNav = false }) => {
   const navigate = useNavigate();
@@ -46,10 +47,10 @@ const Layout = ({ children, hideNav = false }) => {
             onClick={() => navigate("/venues")}
             data-testid="logo-btn"
           >
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-pink-500 flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-white" />
+            <LogoIcon className="w-8 h-8" />
+            <div className="hidden sm:block">
+              <Logo size="default" />
             </div>
-            <span className="text-lg font-bold text-white hidden sm:block">Midnight Social</span>
           </div>
 
           {user && (

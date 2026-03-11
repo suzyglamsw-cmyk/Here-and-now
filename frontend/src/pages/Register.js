@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { useAuth, API } from "@/App";
 import { toast } from "sonner";
 import axios from "axios";
-import { Sparkles, ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { Logo, LogoIcon } from "../components/Logo";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -59,10 +60,8 @@ const Register = () => {
           {/* Logo */}
           <div className="flex items-center justify-center mb-10">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-pink-500 flex items-center justify-center">
-                <Sparkles className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-xl font-bold text-white">Midnight Social</span>
+              <LogoIcon className="w-10 h-10" />
+              <Logo size="default" />
             </div>
           </div>
 
