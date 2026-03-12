@@ -112,8 +112,11 @@ class UserProfile(BaseModel):
     bio: Optional[str] = ""
     avatar_url: Optional[str] = ""
     interests: List[str] = []
-    age_range: Optional[str] = ""
-    looking_for: Optional[str] = ""
+    age: Optional[int] = None
+    gender: Optional[str] = ""
+    orientation: Optional[str] = ""
+    relationship_status: Optional[str] = ""
+    seeking: Optional[str] = ""
 
 class UserResponse(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -123,8 +126,11 @@ class UserResponse(BaseModel):
     bio: str = ""
     avatar_url: str = ""
     interests: List[str] = []
-    age_range: str = ""
-    looking_for: str = ""
+    age: Optional[int] = None
+    gender: str = ""
+    orientation: str = ""
+    relationship_status: str = ""
+    seeking: str = ""
     created_at: str
     is_visible: bool = True
     is_premium: bool = False
@@ -304,8 +310,11 @@ async def register(data: UserCreate):
         "bio": "",
         "avatar_url": "",
         "interests": [],
-        "age_range": "",
-        "looking_for": "",
+        "age": None,
+        "gender": "",
+        "orientation": "",
+        "relationship_status": "",
+        "seeking": "",
         "is_visible": True,
         "is_premium": False,
         "premium_expires_at": None,
@@ -329,8 +338,11 @@ async def register(data: UserCreate):
             "bio": "",
             "avatar_url": "",
             "interests": [],
-            "age_range": "",
-            "looking_for": "",
+            "age": None,
+            "gender": "",
+            "orientation": "",
+            "relationship_status": "",
+            "seeking": "",
             "is_visible": True,
             "is_premium": False,
             "premium_expires_at": None,
@@ -383,8 +395,11 @@ async def login(data: UserLogin):
             "bio": user.get("bio", ""),
             "avatar_url": user.get("avatar_url", ""),
             "interests": user.get("interests", []),
-            "age_range": user.get("age_range", ""),
-            "looking_for": user.get("looking_for", ""),
+            "age": user.get("age"),
+            "gender": user.get("gender", ""),
+            "orientation": user.get("orientation", ""),
+            "relationship_status": user.get("relationship_status", ""),
+            "seeking": user.get("seeking", ""),
             "is_visible": user.get("is_visible", True),
             "is_premium": user.get("is_premium", False),
             "premium_expires_at": user.get("premium_expires_at"),

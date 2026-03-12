@@ -4,10 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAuth, API } from "@/App";
 import { toast } from "sonner";
 import axios from "axios";
-import { Loader2, Camera, X, Check } from "lucide-react";
+import { Loader2, Check } from "lucide-react";
 
 const AVATAR_OPTIONS = [
   "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&h=200&fit=crop",
@@ -19,20 +26,24 @@ const AVATAR_OPTIONS = [
 ];
 
 const INTERESTS = [
-  "Music", "Dancing", "Cocktails", "Wine", "Coffee", "Art",
-  "Photography", "Travel", "Food", "Sports", "Movies", "Reading",
-  "Tech", "Fashion", "Fitness", "Gaming", "Hiking", "Yoga"
+  "Music", "Fitness", "Food", "Travel", "Art", 
+  "Outdoors", "Gaming", "Nightlife", "Coffee", "Reading"
 ];
 
-const AGE_RANGES = ["21-25", "26-30", "31-35", "36-40", "41-45", "46+"];
+const GENDER_OPTIONS = [
+  "Woman", "Man", "Non-binary", "Trans woman", "Trans man", "Prefer not to say", "Other"
+];
 
-const LOOKING_FOR = [
-  "New friends",
-  "Networking",
-  "Good conversation",
-  "Dancing partner",
-  "Activity buddy",
-  "Just vibes"
+const ORIENTATION_OPTIONS = [
+  "Straight", "Gay", "Lesbian", "Bisexual", "Pansexual", "Queer", "Asexual", "Prefer not to say"
+];
+
+const RELATIONSHIP_STATUS_OPTIONS = [
+  "Single", "Seeing someone", "In a relationship", "It's complicated", "Prefer not to say"
+];
+
+const SEEKING_OPTIONS = [
+  "Friends only", "Dating", "Both", "Prefer not to say"
 ];
 
 const ProfileSetup = () => {
@@ -45,8 +56,11 @@ const ProfileSetup = () => {
     bio: user?.bio || "",
     avatar_url: user?.avatar_url || "",
     interests: user?.interests || [],
-    age_range: user?.age_range || "",
-    looking_for: user?.looking_for || "",
+    age: user?.age || "",
+    gender: user?.gender || "",
+    orientation: user?.orientation || "",
+    relationship_status: user?.relationship_status || "",
+    seeking: user?.seeking || "",
   });
 
   const toggleInterest = (interest) => {
@@ -168,15 +182,121 @@ const ProfileSetup = () => {
             </div>
           )}
 
-          {/* Step 2: Interests */}
+          {/* Step 2: About You */}
           {step === 2 && (
+            <div className="space-y-6">
+              <div className="text-center">
+                <h1 className="text-2xl font-bold text-white mb-2">About You</h1>
+                <p className="text-slate-400">Help others get to know you</p>
+              </div>
+
+              {/* Age */}
+              <div className="space-y-2">
+                <Label htmlFor="age" className="text-slate-300">Age</Label>
+                <Input
+                  data-testid="age-input"
+                  id="age"
+                  type="number"
+                  min="18"
+                  max="99"
+                  placeholder="Your age"
+                  value={formData.age}
+                  onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                  className="h-12 bg-white/5 border-transparent focus:border-indigo-500 rounded-xl text-white placeholder:text-slate-500"
+                />
+              </div>
+
+              {/* Gender */}
+              <div className="space-y-2">
+                <Label className="text-slate-300">Gender</Label>
+                <Select
+                  value={formData.gender}
+                  onValueChange={(value) => setFormData({ ...formData, gender: value })}
+                >
+                  <SelectTrigger className="h-12 bg-white/5 border-transparent focus:border-indigo-500 rounded-xl text-white" data-testid="gender-select">
+                    <SelectValue placeholder="Select gender" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-900 border-white/10">
+                    {GENDER_OPTIONS.map((option) => (
+                      <SelectItem key={option} value={option} className="text-white focus:bg-white/10">
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Orientation */}
+              <div className="space-y-2">
+                <Label className="text-slate-300">Orientation</Label>
+                <Select
+                  value={formData.orientation}
+                  onValueChange={(value) => setFormData({ ...formData, orientation: value })}
+                >
+                  <SelectTrigger className="h-12 bg-white/5 border-transparent focus:border-indigo-500 rounded-xl text-white" data-testid="orientation-select">
+                    <SelectValue placeholder="Select orientation" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-900 border-white/10">
+                    {ORIENTATION_OPTIONS.map((option) => (
+                      <SelectItem key={option} value={option} className="text-white focus:bg-white/10">
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Relationship Status */}
+              <div className="space-y-2">
+                <Label className="text-slate-300">Relationship Status</Label>
+                <Select
+                  value={formData.relationship_status}
+                  onValueChange={(value) => setFormData({ ...formData, relationship_status: value })}
+                >
+                  <SelectTrigger className="h-12 bg-white/5 border-transparent focus:border-indigo-500 rounded-xl text-white" data-testid="relationship-select">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-900 border-white/10">
+                    {RELATIONSHIP_STATUS_OPTIONS.map((option) => (
+                      <SelectItem key={option} value={option} className="text-white focus:bg-white/10">
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Seeking */}
+              <div className="space-y-2">
+                <Label className="text-slate-300">Seeking</Label>
+                <Select
+                  value={formData.seeking}
+                  onValueChange={(value) => setFormData({ ...formData, seeking: value })}
+                >
+                  <SelectTrigger className="h-12 bg-white/5 border-transparent focus:border-indigo-500 rounded-xl text-white" data-testid="seeking-select">
+                    <SelectValue placeholder="What are you looking for?" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-900 border-white/10">
+                    {SEEKING_OPTIONS.map((option) => (
+                      <SelectItem key={option} value={option} className="text-white focus:bg-white/10">
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Interests */}
+          {step === 3 && (
             <div className="space-y-8">
               <div className="text-center">
-                <h1 className="text-2xl font-bold text-white mb-2">What are you into?</h1>
+                <h1 className="text-2xl font-bold text-white mb-2">Your Interests</h1>
                 <p className="text-slate-400">Select up to 5 interests</p>
               </div>
 
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 justify-center">
                 {INTERESTS.map((interest) => (
                   <button
                     key={interest}
@@ -196,58 +316,6 @@ const ProfileSetup = () => {
               <p className="text-center text-slate-400 text-sm">
                 {formData.interests.length}/5 selected
               </p>
-            </div>
-          )}
-
-          {/* Step 3: Preferences */}
-          {step === 3 && (
-            <div className="space-y-8">
-              <div className="text-center">
-                <h1 className="text-2xl font-bold text-white mb-2">Almost done!</h1>
-                <p className="text-slate-400">A few more details (optional)</p>
-              </div>
-
-              {/* Age Range */}
-              <div className="space-y-3">
-                <Label className="text-slate-300">Age Range</Label>
-                <div className="flex flex-wrap gap-2">
-                  {AGE_RANGES.map((range) => (
-                    <button
-                      key={range}
-                      data-testid={`age-${range}`}
-                      onClick={() => setFormData({ ...formData, age_range: range })}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                        formData.age_range === range
-                          ? "bg-indigo-500 text-white"
-                          : "bg-white/5 text-slate-300 hover:bg-white/10"
-                      }`}
-                    >
-                      {range}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Looking For */}
-              <div className="space-y-3">
-                <Label className="text-slate-300">What brings you here?</Label>
-                <div className="flex flex-wrap gap-2">
-                  {LOOKING_FOR.map((option) => (
-                    <button
-                      key={option}
-                      data-testid={`looking-for-${option.toLowerCase().replace(/\s+/g, '-')}`}
-                      onClick={() => setFormData({ ...formData, looking_for: option })}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                        formData.looking_for === option
-                          ? "bg-indigo-500 text-white"
-                          : "bg-white/5 text-slate-300 hover:bg-white/10"
-                      }`}
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
           )}
 
