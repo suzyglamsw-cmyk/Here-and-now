@@ -20,7 +20,7 @@ import { useAuth, API } from "@/App";
 import { toast } from "sonner";
 import axios from "axios";
 import Layout from "../components/Layout";
-import { Loader2, LogOut, Trash2, Eye, EyeOff, User, Shield } from "lucide-react";
+import { Loader2, LogOut, Trash2, Eye, EyeOff, User, Shield, Crown, Coins, ChevronRight, FileText } from "lucide-react";
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -198,6 +198,70 @@ const Settings = () => {
               onCheckedChange={handleToggleVisibility}
             />
           </div>
+        </div>
+
+        {/* Premium & Tokens Section */}
+        <div className="glass rounded-2xl p-6 mb-6">
+          <h2 className="text-xl font-semibold text-white mb-4">Upgrades</h2>
+          <div className="space-y-3">
+            <button
+              data-testid="premium-link"
+              onClick={() => navigate("/premium")}
+              className="w-full flex items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                  <Crown className="w-5 h-5 text-amber-400" />
+                </div>
+                <div className="text-left">
+                  <p className="text-white font-medium">Premium</p>
+                  <p className="text-slate-400 text-sm">
+                    {user?.is_premium ? "Active" : "Unlock extra features"}
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-slate-400" />
+            </button>
+
+            <button
+              data-testid="tokens-link"
+              onClick={() => navigate("/tokens")}
+              className="w-full flex items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-yellow-500/20 flex items-center justify-center">
+                  <Coins className="w-5 h-5 text-yellow-400" />
+                </div>
+                <div className="text-left">
+                  <p className="text-white font-medium">Tokens</p>
+                  <p className="text-slate-400 text-sm">
+                    Balance: {user?.token_balance || 0}
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-slate-400" />
+            </button>
+          </div>
+        </div>
+
+        {/* Legal Section */}
+        <div className="glass rounded-2xl p-6 mb-6">
+          <button
+            data-testid="legal-link"
+            onClick={() => navigate("/legal")}
+            className="w-full flex items-center justify-between"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-slate-500/20 flex items-center justify-center">
+                <FileText className="w-5 h-5 text-slate-400" />
+              </div>
+              <div className="text-left">
+                <p className="text-white font-medium">Legal</p>
+                <p className="text-slate-400 text-sm">Terms, Privacy, Safety</p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-slate-400" />
+          </button>
         </div>
 
         {/* Account Actions */}

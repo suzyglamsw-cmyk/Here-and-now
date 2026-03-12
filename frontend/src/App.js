@@ -15,6 +15,9 @@ import Connections from "./pages/Connections";
 import Chat from "./pages/Chat";
 import Settings from "./pages/Settings";
 import Notifications from "./pages/Notifications";
+import Premium from "./pages/Premium";
+import Tokens from "./pages/Tokens";
+import Legal from "./pages/Legal";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
@@ -156,6 +159,46 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Settings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/premium"
+              element={
+                <ProtectedRoute>
+                  <Premium />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/premium/success"
+              element={
+                <ProtectedRoute>
+                  <Premium />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/tokens"
+              element={
+                <ProtectedRoute>
+                  <Tokens />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/tokens/success"
+              element={
+                <ProtectedRoute>
+                  <Tokens />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/legal"
+              element={
+                <ProtectedRoute>
+                  <Legal />
                 </ProtectedRoute>
               }
             />

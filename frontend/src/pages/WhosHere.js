@@ -16,6 +16,9 @@ import {
   Beer,
   Coffee,
   GlassWater,
+  MoreVertical,
+  Ban,
+  Flag,
 } from "lucide-react";
 import {
   Dialog,
@@ -23,6 +26,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const DRINK_TYPES = [
   { id: "cocktail", name: "Cocktail", icon: Wine, color: "text-pink-400" },
@@ -41,13 +50,17 @@ const WhosHere = () => {
   const [loading, setLoading] = useState(true);
   const [glancing, setGlancing] = useState(null);
   const [showDrinkModal, setShowDrinkModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState(null);
   const [sendingDrink, setSendingDrink] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [glancesRemaining, setGlancesRemaining] = useState(5);
   const wsRef = useRef(null);
 
   useEffect(() => {
     fetchVenue();
     fetchPeople();
+    fetchGlancesRemaining();
     connectWebSocket();
 
     return () => {
@@ -133,13 +146,28 @@ const WhosHere = () => {
     }
   };
 
+  const fetchGlancesRemaining = async () => {
+    try {
+      const response = await axios.get(`${API}/glances/remaining`);
+      setGlancesRemaining(response.data.remaining);
+    } catch (error) {
+      console.error("Failed to fetch glances remaining");
+    }
+  };
+
   const handleGlance = async (personId) => {
+    if (glancesRemaining <= 0) {
+      toast.error("No glances remaining today. Upgrade to Premium for more!");
+      return;
+    }
     setGlancing(personId);
     try {
       const response = await axios.post(`${API}/glance`, {
         to_user_id: personId,
         venue_id: venueId,
       });
+      
+      setGlancesRemaining(prev => prev - 1);
       
       if (response.data.is_mutual) {
         toast.success("It's a match! You can now connect.", {
@@ -150,9 +178,36 @@ const WhosHere = () => {
       }
       fetchPeople();
     } catch (error) {
-      toast.error("Failed to send glance");
+      toast.error(error.response?.data?.detail || "Failed to send glance");
     } finally {
       setGlancing(null);
+    }
+  };
+
+  const handleBlockUser = async (personId) => {
+    try {
+      await axios.post(`${API}/users/block`, { user_id: personId });
+      toast.success("User blocked");
+      fetchPeople();
+    } catch (error) {
+      toast.error("Failed to block user");
+    }
+  };
+
+  const handleReportUser = async () => {
+    if (!selectedPerson || !reportReason) return;
+    try {
+      await axios.post(`${API}/users/report`, { 
+        user_id: selectedPerson.id,
+        reason: reportReason
+      });
+      toast.success("Report submitted. User has been blocked.");
+      setShowReportModal(false);
+      setReportReason("");
+      setSelectedPerson(null);
+      fetchPeople();
+    } catch (error) {
+      toast.error("Failed to submit report");
     }
   };
 
@@ -334,6 +389,40 @@ const WhosHere = () => {
                         <MessageCircle className="w-4 h-4" />
                       </Button>
                     )}
+                    {/* Block/Report Menu */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-9 w-9 rounded-xl hover:bg-white/10"
+                          data-testid={`more-btn-${person.id}`}
+                        >
+                          <MoreVertical className="w-4 h-4 text-slate-400" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="bg-slate-900 border-white/10">
+                        <DropdownMenuItem 
+                          onClick={() => handleBlockUser(person.id)}
+                          className="text-slate-300 focus:text-white focus:bg-white/10"
+                          data-testid={`block-btn-${person.id}`}
+                        >
+                          <Ban className="w-4 h-4 mr-2" />
+                          Block
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => {
+                            setSelectedPerson(person);
+                            setShowReportModal(true);
+                          }}
+                          className="text-red-400 focus:text-red-300 focus:bg-red-500/10"
+                          data-testid={`report-btn-${person.id}`}
+                        >
+                          <Flag className="w-4 h-4 mr-2" />
+                          Report
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               ))}
@@ -362,6 +451,43 @@ const WhosHere = () => {
                   <span className="text-sm font-medium text-white">{drink.name}</span>
                 </Button>
               ))}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Report Modal */}
+        <Dialog open={showReportModal} onOpenChange={setShowReportModal}>
+          <DialogContent className="bg-slate-900 border-white/10 max-w-sm" data-testid="report-modal">
+            <DialogHeader>
+              <DialogTitle className="text-white">Report User</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              <p className="text-slate-400 text-sm">
+                Please select a reason for reporting this user. They will be blocked automatically.
+              </p>
+              <div className="space-y-2">
+                {["Harassment", "Inappropriate behavior", "Spam", "Fake profile", "Other"].map((reason) => (
+                  <button
+                    key={reason}
+                    onClick={() => setReportReason(reason)}
+                    className={`w-full p-3 rounded-xl text-left transition-colors ${
+                      reportReason === reason 
+                        ? "bg-red-500/20 border border-red-500/30 text-red-300"
+                        : "bg-white/5 border border-transparent text-slate-300 hover:bg-white/10"
+                    }`}
+                  >
+                    {reason}
+                  </button>
+                ))}
+              </div>
+              <Button
+                onClick={handleReportUser}
+                disabled={!reportReason}
+                className="w-full rounded-xl bg-red-500 hover:bg-red-600 text-white"
+                data-testid="submit-report-btn"
+              >
+                Submit Report
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
