@@ -6,6 +6,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -22,6 +29,27 @@ import axios from "axios";
 import Layout from "../components/Layout";
 import { Loader2, LogOut, Trash2, Eye, EyeOff, User, Shield, Crown, Coins, ChevronRight, FileText } from "lucide-react";
 
+const INTERESTS = [
+  "Music", "Fitness", "Food", "Travel", "Art", 
+  "Outdoors", "Gaming", "Nightlife", "Coffee", "Reading"
+];
+
+const GENDER_OPTIONS = [
+  "Woman", "Man", "Non-binary", "Trans woman", "Trans man", "Prefer not to say", "Other"
+];
+
+const ORIENTATION_OPTIONS = [
+  "Straight", "Gay", "Lesbian", "Bisexual", "Pansexual", "Queer", "Asexual", "Prefer not to say"
+];
+
+const RELATIONSHIP_STATUS_OPTIONS = [
+  "Single", "Seeing someone", "In a relationship", "It's complicated", "Prefer not to say"
+];
+
+const SEEKING_OPTIONS = [
+  "Friends only", "Dating", "Both", "Prefer not to say"
+];
+
 const Settings = () => {
   const navigate = useNavigate();
   const { user, logout, updateUser } = useAuth();
@@ -30,7 +58,22 @@ const Settings = () => {
   const [formData, setFormData] = useState({
     display_name: user?.display_name || "",
     bio: user?.bio || "",
+    age: user?.age || "",
+    gender: user?.gender || "",
+    orientation: user?.orientation || "",
+    relationship_status: user?.relationship_status || "",
+    seeking: user?.seeking || "",
+    interests: user?.interests || [],
   });
+
+  const toggleInterest = (interest) => {
+    setFormData((prev) => ({
+      ...prev,
+      interests: prev.interests.includes(interest)
+        ? prev.interests.filter((i) => i !== interest)
+        : [...prev.interests, interest].slice(0, 5),
+    }));
+  };
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
@@ -147,6 +190,125 @@ const Settings = () => {
                 rows={3}
               />
               <p className="text-xs text-slate-500 text-right">{formData.bio.length}/150</p>
+            </div>
+
+            {/* Age */}
+            <div className="space-y-2">
+              <Label htmlFor="age" className="text-slate-300">Age</Label>
+              <Input
+                data-testid="age-input"
+                id="age"
+                type="number"
+                min="18"
+                max="99"
+                placeholder="Your age"
+                value={formData.age}
+                onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                className="h-12 bg-white/5 border-transparent focus:border-indigo-500 rounded-xl text-white placeholder:text-slate-500"
+              />
+            </div>
+
+            {/* Gender */}
+            <div className="space-y-2">
+              <Label className="text-slate-300">Gender</Label>
+              <Select
+                value={formData.gender}
+                onValueChange={(value) => setFormData({ ...formData, gender: value })}
+              >
+                <SelectTrigger className="h-12 bg-white/5 border-transparent focus:border-indigo-500 rounded-xl text-white" data-testid="gender-select">
+                  <SelectValue placeholder="Select gender" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-900 border-white/10">
+                  {GENDER_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option} className="text-white focus:bg-white/10">
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Orientation */}
+            <div className="space-y-2">
+              <Label className="text-slate-300">Orientation</Label>
+              <Select
+                value={formData.orientation}
+                onValueChange={(value) => setFormData({ ...formData, orientation: value })}
+              >
+                <SelectTrigger className="h-12 bg-white/5 border-transparent focus:border-indigo-500 rounded-xl text-white" data-testid="orientation-select">
+                  <SelectValue placeholder="Select orientation" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-900 border-white/10">
+                  {ORIENTATION_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option} className="text-white focus:bg-white/10">
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Relationship Status */}
+            <div className="space-y-2">
+              <Label className="text-slate-300">Relationship Status</Label>
+              <Select
+                value={formData.relationship_status}
+                onValueChange={(value) => setFormData({ ...formData, relationship_status: value })}
+              >
+                <SelectTrigger className="h-12 bg-white/5 border-transparent focus:border-indigo-500 rounded-xl text-white" data-testid="relationship-select">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-900 border-white/10">
+                  {RELATIONSHIP_STATUS_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option} className="text-white focus:bg-white/10">
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Seeking */}
+            <div className="space-y-2">
+              <Label className="text-slate-300">Seeking</Label>
+              <Select
+                value={formData.seeking}
+                onValueChange={(value) => setFormData({ ...formData, seeking: value })}
+              >
+                <SelectTrigger className="h-12 bg-white/5 border-transparent focus:border-indigo-500 rounded-xl text-white" data-testid="seeking-select">
+                  <SelectValue placeholder="What are you looking for?" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-900 border-white/10">
+                  {SEEKING_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option} className="text-white focus:bg-white/10">
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Interests */}
+            <div className="space-y-3">
+              <Label className="text-slate-300">Interests (up to 5)</Label>
+              <div className="flex flex-wrap gap-2">
+                {INTERESTS.map((interest) => (
+                  <button
+                    key={interest}
+                    type="button"
+                    data-testid={`interest-${interest.toLowerCase()}`}
+                    onClick={() => toggleInterest(interest)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                      formData.interests.includes(interest)
+                        ? "bg-indigo-500 text-white"
+                        : "bg-white/5 text-slate-300 hover:bg-white/10"
+                    }`}
+                  >
+                    {interest}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-slate-500">{formData.interests.length}/5 selected</p>
             </div>
 
             <Button
