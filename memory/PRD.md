@@ -5,9 +5,6 @@ Real-time, Location-based, Low-pressure, Spontaneous, Venue-focused, Privacy-saf
 Users check in, see who's around, send drink tokens, glance, reveal, and connect — all in the moment.
 Account deletion feature required. Playful but grown up design. No AI integration.
 
-## Update (Jan 2026) - Feature Additions
-Added: Google Places API, Open-area check-in, Auto-checkout (30min), Block/Report users, Premium system with Stripe, Token purchase system, Live clock on home screen, Legal pages.
-
 ## User Personas
 - **Urban Social Seeker (25-45)**: Professional looking for spontaneous connections at bars/cafes
 - **Event Goer**: Person attending venues who wants to see who else is there
@@ -77,16 +74,27 @@ Added: Google Places API, Open-area check-in, Auto-checkout (30min), Block/Repor
   - Accept/Decline with predefined messages
   - Chat unlock mechanism
 - [x] **Admin Features:**
-  - Reports inbox (/api/admin/reports)
+  - Admin Reports page (/admin/reports)
   - User blocking from admin
+  - Report status (Pending/Resolved)
+  - Ban User and Dismiss actions
+- [x] **Test Mode Features:**
+  - Test Tools page (/test-tools)
+  - TEST MODE ACTIVE banner
+  - Generate fake glances, drinks, messages
+  - Fake users list (Sophie, Liam, Mia, Alex)
+  - IS_TEST_BUILD flag support
 - [x] **Premium Features:**
   - Profile viewers list
   - Second reveal after 7 days
   - Glance viewed notification
-- [x] **Test Mode APIs:**
-  - Fake users list
-  - Generate test glance/drink/message
-  - IS_TEST_BUILD flag support
+- [x] **Enhanced Notifications:**
+  - Activity tab (glances, drink tokens, matches)
+  - Requests tab (pending chat requests)
+  - Accept/Decline with predefined responses
+- [x] **Settings Developer Section:**
+  - Test Tools link
+  - Admin Inbox link
 
 ## Privacy & Safety Rules Implemented
 - Users only visible while checked in
@@ -102,6 +110,27 @@ Added: Google Places API, Open-area check-in, Auto-checkout (30min), Block/Repor
 - Payments: Stripe (with mock mode for testing)
 - Location: Google Places API (fallback to seeded venues)
 - Real-time: WebSocket
+
+## Frontend Pages
+| Route | Page | Description |
+|-------|------|-------------|
+| / | Landing | Marketing landing page |
+| /login | Login | User authentication |
+| /register | Register | New user registration |
+| /forgot-password | ForgotPassword | Password reset request |
+| /profile-setup | ProfileSetup | Initial profile configuration |
+| /venues | Venues | Venue discovery & check-in |
+| /venue/:id | WhosHere | People at current venue |
+| /connections | Connections | Your matches list |
+| /chat/:userId | Chat | Direct messaging |
+| /notifications | Notifications | Activity & Requests tabs |
+| /settings | Settings | Profile, privacy, account |
+| /premium | Premium | Subscription upgrade |
+| /tokens | Tokens | Token purchase |
+| /friends | Friends | Friends list & requests |
+| /legal | Legal | Terms, Privacy, Safety |
+| /test-tools | TestTools | Developer test tools |
+| /admin/reports | AdminReports | User report management |
 
 ## Prioritized Backlog
 
@@ -145,6 +174,8 @@ All core features implemented
 - POST /api/chat-request
 - GET /api/chat-requests/inbox
 - POST /api/chat-request/{request_id}/respond
+- GET /api/chat-requests/decline-messages
+- GET /api/chat-requests/accept-messages
 - GET /api/chat/status/{user_id}
 
 ### Venue
@@ -174,6 +205,7 @@ All core features implemented
 ### Admin
 - GET /api/admin/reports
 - POST /api/admin/block-user/{user_id}
+- GET /api/report/reasons
 
 ### Test Mode
 - GET /api/test/status
@@ -181,6 +213,20 @@ All core features implemented
 - POST /api/test/generate-glance
 - POST /api/test/generate-drink
 - POST /api/test/generate-message
+
+## Environment Configuration
+```
+# Backend (.env)
+MONGO_URL=mongodb://localhost:27017
+DB_NAME=test_database
+JWT_SECRET=your-secret-key
+STRIPE_API_KEY=sk_test_xxx
+GOOGLE_PLACES_API_KEY=xxx
+IS_TEST_BUILD=true  # Enable test mode
+
+# Frontend (.env)
+REACT_APP_BACKEND_URL=https://your-domain.com
+```
 
 ## Next Tasks
 1. Production Google Places API key
