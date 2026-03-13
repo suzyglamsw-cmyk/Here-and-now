@@ -118,6 +118,16 @@ const Login = () => {
               </Button>
             </form>
 
+            <div className="text-center mt-4">
+              <Link
+                to="/forgot-password"
+                data-testid="forgot-password-link"
+                className="text-slate-400 hover:text-indigo-400 text-sm"
+              >
+                Forgot password?
+              </Link>
+            </div>
+
             <p className="text-center text-slate-400 mt-6">
               Don't have an account?{" "}
               <Link

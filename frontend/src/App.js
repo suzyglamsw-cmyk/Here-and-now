@@ -8,6 +8,7 @@ import axios from "axios";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
 import ProfileSetup from "./pages/ProfileSetup";
 import Venues from "./pages/Venues";
 import WhosHere from "./pages/WhosHere";
@@ -18,6 +19,7 @@ import Notifications from "./pages/Notifications";
 import Premium from "./pages/Premium";
 import Tokens from "./pages/Tokens";
 import Legal from "./pages/Legal";
+import Friends from "./pages/Friends";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
@@ -106,6 +108,7 @@ function App() {
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route
               path="/profile-setup"
               element={
@@ -199,6 +202,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Legal />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/friends"
+              element={
+                <ProtectedRoute>
+                  <Friends />
                 </ProtectedRoute>
               }
             />
