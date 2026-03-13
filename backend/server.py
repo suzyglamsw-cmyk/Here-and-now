@@ -17,6 +17,7 @@ import json
 import httpx
 import base64
 import io
+from pywebpush import webpush, WebPushException
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -1880,24 +1881,77 @@ async def send_push_notification(user_id: str, title: str, body: str, data: Dict
     if not subscription:
         return False
     
-    # Store notification in queue for delivery
+    # Get VAPID config
+    vapid_private_key_file = os.environ.get("VAPID_PRIVATE_KEY_FILE")
+    vapid_claims_email = os.environ.get("VAPID_CLAIMS_EMAIL", "mailto:hello@hereandnow.app")
+    
+    # Prepare notification payload
+    notification_payload = json.dumps({
+        "title": title,
+        "body": body,
+        "icon": "/logo192.png",
+        "badge": "/logo192.png",
+        "data": data or {},
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+    
+    # Store notification in queue
+    notification_id = str(uuid.uuid4())
     notification = {
-        "id": str(uuid.uuid4()),
+        "id": notification_id,
         "user_id": user_id,
         "title": title,
         "body": body,
         "data": data or {},
-        "endpoint": subscription["endpoint"],
-        "keys": subscription["keys"],
         "created_at": datetime.now(timezone.utc).isoformat(),
         "status": "pending"
     }
     await db.push_queue.insert_one(notification)
     
-    # In a production environment, this would be processed by a background worker
-    # that actually sends the push using the Web Push protocol
-    
-    return True
+    # Try to send the actual push notification
+    if vapid_private_key_file and os.path.exists(vapid_private_key_file):
+        try:
+            subscription_info = {
+                "endpoint": subscription["endpoint"],
+                "keys": subscription["keys"]
+            }
+            
+            webpush(
+                subscription_info=subscription_info,
+                data=notification_payload,
+                vapid_private_key=vapid_private_key_file,
+                vapid_claims={"sub": vapid_claims_email}
+            )
+            
+            # Mark as sent
+            await db.push_queue.update_one(
+                {"id": notification_id},
+                {"$set": {"status": "sent"}}
+            )
+            logger.info(f"Push notification sent to user {user_id}")
+            return True
+            
+        except WebPushException as e:
+            logger.error(f"WebPush error for user {user_id}: {e}")
+            # If subscription is invalid (410 Gone), remove it
+            if e.response and e.response.status_code == 410:
+                await db.push_subscriptions.delete_one({"user_id": user_id})
+                logger.info(f"Removed invalid subscription for user {user_id}")
+            await db.push_queue.update_one(
+                {"id": notification_id},
+                {"$set": {"status": "failed", "error": str(e)}}
+            )
+            return False
+        except Exception as e:
+            logger.error(f"Push notification error for user {user_id}: {e}")
+            await db.push_queue.update_one(
+                {"id": notification_id},
+                {"$set": {"status": "failed", "error": str(e)}}
+            )
+            return False
+    else:
+        logger.warning("VAPID keys not configured, push notification queued only")
+        return True
 
 @api_router.get("/push/pending")
 async def get_pending_push_notifications(current_user: dict = Depends(get_current_user)):

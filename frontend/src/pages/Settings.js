@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import axios from "axios";
 import Layout from "../components/Layout";
 import { Loader2, LogOut, Trash2, Eye, EyeOff, User, Shield, Crown, Coins, ChevronRight, FileText, Camera, Users, Wrench, AlertTriangle, Bell } from "lucide-react";
+import { subscribeToPush, unsubscribeFromPush, isPushSupported, isSubscribedToPush } from "../utils/pushNotifications";
 
 const INTERESTS = [
   "Music", "Fitness", "Food", "Travel", "Art", 
@@ -76,12 +77,20 @@ const Settings = () => {
     matches: true
   });
   const [pushSupported, setPushSupported] = useState(false);
+  const [pushSubscribed, setPushSubscribed] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
 
   useEffect(() => {
     // Check if push notifications are supported
-    setPushSupported('Notification' in window && 'serviceWorker' in navigator);
+    setPushSupported(isPushSupported());
     fetchPushSettings();
+    checkPushSubscription();
   }, []);
+
+  const checkPushSubscription = async () => {
+    const subscribed = await isSubscribedToPush();
+    setPushSubscribed(subscribed);
+  };
 
   const fetchPushSettings = async () => {
     try {
@@ -98,8 +107,12 @@ const Settings = () => {
     
     try {
       await axios.put(`${API}/push/settings`, newSettings);
+      
+      // If enabling push, subscribe to push notifications
       if (key === "enabled" && value) {
-        await requestPushPermission();
+        await handleEnablePush();
+      } else if (key === "enabled" && !value) {
+        await handleDisablePush();
       }
     } catch (error) {
       toast.error("Failed to update notification settings");
@@ -107,17 +120,41 @@ const Settings = () => {
     }
   };
 
-  const requestPushPermission = async () => {
-    if (!('Notification' in window)) {
+  const handleEnablePush = async () => {
+    if (!pushSupported) {
       toast.error("Push notifications not supported in this browser");
       return;
     }
 
-    const permission = await Notification.requestPermission();
-    if (permission === 'granted') {
+    setPushLoading(true);
+    try {
+      await subscribeToPush(API);
+      setPushSubscribed(true);
       toast.success("Push notifications enabled!");
-    } else if (permission === 'denied') {
-      toast.error("Push notifications blocked. Please enable in browser settings.");
+    } catch (error) {
+      console.error("Push subscription error:", error);
+      if (error.message.includes('permission denied')) {
+        toast.error("Push notifications blocked. Please enable in browser settings.");
+      } else {
+        toast.error("Failed to enable push notifications");
+      }
+      // Revert the toggle
+      setPushSettings(prev => ({ ...prev, enabled: false }));
+    } finally {
+      setPushLoading(false);
+    }
+  };
+
+  const handleDisablePush = async () => {
+    setPushLoading(true);
+    try {
+      await unsubscribeFromPush(API);
+      setPushSubscribed(false);
+      toast.success("Push notifications disabled");
+    } catch (error) {
+      console.error("Push unsubscribe error:", error);
+    } finally {
+      setPushLoading(false);
     }
   };
 
@@ -546,13 +583,22 @@ const Settings = () => {
               <div className="flex items-center justify-between p-4 rounded-xl bg-white/5">
                 <div>
                   <p className="text-white font-medium">Enable Push Notifications</p>
-                  <p className="text-slate-400 text-sm">Get notified when the app is closed</p>
+                  <p className="text-slate-400 text-sm">
+                    {pushSubscribed 
+                      ? "You'll receive notifications when the app is closed" 
+                      : "Get notified when the app is closed"}
+                  </p>
                 </div>
-                <Switch
-                  data-testid="push-enabled-toggle"
-                  checked={pushSettings.enabled}
-                  onCheckedChange={(checked) => handlePushSettingChange("enabled", checked)}
-                />
+                {pushLoading ? (
+                  <Loader2 className="w-5 h-5 text-indigo-400 animate-spin" />
+                ) : (
+                  <Switch
+                    data-testid="push-enabled-toggle"
+                    checked={pushSettings.enabled}
+                    onCheckedChange={(checked) => handlePushSettingChange("enabled", checked)}
+                    disabled={pushLoading}
+                  />
+                )}
               </div>
 
               {pushSettings.enabled && (
