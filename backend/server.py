@@ -1301,13 +1301,49 @@ async def generate_test_glance(current_user: dict = Depends(get_current_user)):
     import random
     fake_user = random.choice(FAKE_TEST_USERS)
     
+    # Create a proper glance record in the database
+    glance_id = str(uuid.uuid4())
+    glance = {
+        "id": glance_id,
+        "from_user_id": fake_user["id"],
+        "to_user_id": current_user["id"],
+        "venue_id": "test_venue",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "is_test": True
+    }
+    await db.glances.insert_one(glance)
+    
+    # Create notification record
+    notification = {
+        "id": str(uuid.uuid4()),
+        "user_id": current_user["id"],
+        "type": "glance",
+        "message": "Someone glanced at you!",
+        "from_user_id": fake_user["id"],
+        "from_user_name": fake_user["display_name"],
+        "from_user_avatar": fake_user.get("avatar_url", ""),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "is_read": False,
+        "is_test": True
+    }
+    await db.notifications.insert_one(notification)
+    
+    # Send WebSocket notification
     await manager.send_to_user(current_user["id"], {
         "type": "new_glance",
         "message": "Someone glanced at you!",
         "from_user": fake_user
     })
     
-    return {"message": "Fake glance generated", "from": fake_user["display_name"]}
+    # Send push notification
+    await send_push_notification(
+        current_user["id"],
+        "Someone noticed you 👀",
+        "Someone at your venue glanced at you!",
+        {"type": "glance", "glance_id": glance_id}
+    )
+    
+    return {"message": "Fake glance generated", "from": fake_user["display_name"], "glance_id": glance_id}
 
 @api_router.post("/test/generate-drink")
 async def generate_test_drink(current_user: dict = Depends(get_current_user)):
@@ -1317,14 +1353,62 @@ async def generate_test_drink(current_user: dict = Depends(get_current_user)):
     
     import random
     fake_user = random.choice(FAKE_TEST_USERS)
+    drink_types = ["cocktail", "beer", "wine", "coffee", "mocktail"]
+    drink_type = random.choice(drink_types)
     
+    # Create a proper drink token record in the database
+    token_id = str(uuid.uuid4())
+    drink_token = {
+        "id": token_id,
+        "from_user_id": fake_user["id"],
+        "to_user_id": current_user["id"],
+        "venue_id": "test_venue",
+        "drink_type": drink_type,
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "is_test": True
+    }
+    await db.drink_tokens.insert_one(drink_token)
+    
+    # Create notification record
+    notification = {
+        "id": str(uuid.uuid4()),
+        "user_id": current_user["id"],
+        "type": "drink_token",
+        "message": f"{fake_user['display_name']} sent you a {drink_type}!",
+        "from_user_id": fake_user["id"],
+        "from_user_name": fake_user["display_name"],
+        "from_user_avatar": fake_user.get("avatar_url", ""),
+        "drink_type": drink_type,
+        "token_id": token_id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "is_read": False,
+        "is_test": True
+    }
+    await db.notifications.insert_one(notification)
+    
+    # Send WebSocket notification
     await manager.send_to_user(current_user["id"], {
-        "type": "drink_offer",
-        "message": f"{fake_user['display_name']} offered you a drink.",
-        "from_user": fake_user
+        "type": "drink_token_received",
+        "from_user": {
+            "id": fake_user["id"],
+            "display_name": fake_user["display_name"],
+            "avatar_url": fake_user.get("avatar_url", "")
+        },
+        "drink_type": drink_type,
+        "token_id": token_id
     })
     
-    return {"message": "Fake drink offer generated", "from": fake_user["display_name"]}
+    # Send push notification
+    drink_emoji = {"cocktail": "🍸", "beer": "🍺", "wine": "🍷", "coffee": "☕", "mocktail": "🍹"}.get(drink_type, "🥂")
+    await send_push_notification(
+        current_user["id"],
+        f"Someone sent you a drink! {drink_emoji}",
+        f"{fake_user['display_name']} sent you a {drink_type}",
+        {"type": "drink", "from_user_id": fake_user["id"], "drink_type": drink_type, "token_id": token_id}
+    )
+    
+    return {"message": "Fake drink offer generated", "from": fake_user["display_name"], "drink_type": drink_type, "token_id": token_id}
 
 @api_router.post("/test/generate-message")
 async def generate_test_message(current_user: dict = Depends(get_current_user)):
@@ -1334,19 +1418,145 @@ async def generate_test_message(current_user: dict = Depends(get_current_user)):
     
     import random
     fake_user = random.choice(FAKE_TEST_USERS)
-    messages = FAKE_USER_MESSAGES.get(fake_user["id"], ["Hello!"])
-    message = random.choice(messages)
+    messages_list = FAKE_USER_MESSAGES.get(fake_user["id"], ["Hello!"])
+    message_content = random.choice(messages_list)
     
+    # Create a proper message record in the database
+    message_id = str(uuid.uuid4())
+    message = {
+        "id": message_id,
+        "from_user_id": fake_user["id"],
+        "to_user_id": current_user["id"],
+        "content": message_content,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "is_read": False,
+        "is_test": True
+    }
+    await db.messages.insert_one(message)
+    
+    # Ensure a connection exists for this test user (so chat works)
+    existing_connection = await db.connections.find_one({
+        "$or": [
+            {"user1_id": current_user["id"], "user2_id": fake_user["id"]},
+            {"user1_id": fake_user["id"], "user2_id": current_user["id"]}
+        ]
+    })
+    if not existing_connection:
+        connection = {
+            "id": str(uuid.uuid4()),
+            "user1_id": fake_user["id"],
+            "user2_id": current_user["id"],
+            "venue_id": "test_venue",
+            "connected_at": datetime.now(timezone.utc).isoformat(),
+            "is_test": True
+        }
+        await db.connections.insert_one(connection)
+    
+    # Send WebSocket notification
     await manager.send_to_user(current_user["id"], {
         "type": "new_message",
         "message": {
+            "id": message_id,
             "from_user_id": fake_user["id"],
             "from_user_name": fake_user["display_name"],
-            "content": message
+            "from_user_avatar": fake_user.get("avatar_url", ""),
+            "content": message_content,
+            "created_at": message["created_at"]
         }
     })
     
-    return {"message": "Fake message generated", "from": fake_user["display_name"], "text": message}
+    # Send push notification
+    preview = message_content[:50] + "..." if len(message_content) > 50 else message_content
+    await send_push_notification(
+        current_user["id"],
+        f"New message from {fake_user['display_name']} 💬",
+        preview,
+        {"type": "message", "from_user_id": fake_user["id"], "message_id": message_id}
+    )
+    
+    return {"message": "Fake message generated", "from": fake_user["display_name"], "text": message_content, "message_id": message_id}
+
+@api_router.post("/test/generate-chat-request")
+async def generate_test_chat_request(current_user: dict = Depends(get_current_user)):
+    """Generate a fake chat request (test mode only)"""
+    if not IS_TEST_BUILD:
+        raise HTTPException(status_code=403, detail="Test mode only")
+    
+    import random
+    fake_user = random.choice(FAKE_TEST_USERS)
+    request_type = random.choice(["drink", "chat"])
+    
+    # Create a proper chat request record in the database
+    request_id = str(uuid.uuid4())
+    chat_request = {
+        "id": request_id,
+        "from_user_id": fake_user["id"],
+        "to_user_id": current_user["id"],
+        "request_type": request_type,
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "is_test": True
+    }
+    await db.chat_requests.insert_one(chat_request)
+    
+    # Send WebSocket notification
+    await manager.send_to_user(current_user["id"], {
+        "type": "chat_request",
+        "request": {
+            "id": request_id,
+            "from_user_id": fake_user["id"],
+            "from_user_name": fake_user["display_name"],
+            "from_user_avatar": fake_user.get("avatar_url", ""),
+            "request_type": request_type
+        }
+    })
+    
+    # Send push notification
+    if request_type == "drink":
+        await send_push_notification(
+            current_user["id"],
+            f"{fake_user['display_name']} wants to buy you a drink! 🍸",
+            "Tap to accept or decline",
+            {"type": "chat_request", "request_id": request_id, "request_type": request_type}
+        )
+    else:
+        await send_push_notification(
+            current_user["id"],
+            f"{fake_user['display_name']} wants to chat! 💬",
+            "Tap to respond",
+            {"type": "chat_request", "request_id": request_id, "request_type": request_type}
+        )
+    
+    return {"message": "Fake chat request generated", "from": fake_user["display_name"], "request_type": request_type, "request_id": request_id}
+
+@api_router.post("/test/ensure-fake-users")
+async def ensure_fake_users_exist(current_user: dict = Depends(get_current_user)):
+    """Ensure fake test users exist in the database (test mode only)"""
+    if not IS_TEST_BUILD:
+        raise HTTPException(status_code=403, detail="Test mode only")
+    
+    created = []
+    for fake_user in FAKE_TEST_USERS:
+        existing = await db.users.find_one({"id": fake_user["id"]})
+        if not existing:
+            user_record = {
+                "id": fake_user["id"],
+                "email": f"{fake_user['id']}@test.local",
+                "display_name": fake_user["display_name"],
+                "avatar_url": fake_user.get("avatar_url", ""),
+                "age": fake_user.get("age"),
+                "is_visible": True,
+                "is_premium": False,
+                "token_balance": 0,
+                "daily_glances_remaining": FREE_DAILY_GLANCES,
+                "daily_tokens_remaining": FREE_DAILY_TOKENS,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "is_test": True
+            }
+            await db.users.insert_one(user_record)
+            created.append(fake_user["display_name"])
+    
+    return {"message": "Fake users ensured", "created": created}
 
 # Venue Routes
 @api_router.get("/venues", response_model=List[VenueResponse])
@@ -1875,23 +2085,48 @@ async def get_notifications(current_user: dict = Depends(get_current_user)):
     glances = await db.glances.find({"to_user_id": current_user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(20)
     
     # Get drink tokens
-    tokens = await db.drink_tokens.find({"to_user_id": current_user["id"], "is_accepted": False}, {"_id": 0}).sort("created_at", -1).to_list(20)
+    tokens = await db.drink_tokens.find({"to_user_id": current_user["id"], "status": "pending"}, {"_id": 0}).sort("created_at", -1).to_list(20)
+    
+    # Get stored notifications (including test notifications)
+    stored_notifications = await db.notifications.find(
+        {"user_id": current_user["id"]},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(30)
     
     notifications = []
+    
+    # Add stored notifications first
+    for n in stored_notifications:
+        notifications.append(n)
+    
+    # Process glances (avoid duplicates with stored notifications)
+    stored_glance_ids = {n.get("glance_id") for n in stored_notifications if n.get("type") == "glance"}
+    
     for g in glances:
+        if g.get("id") in stored_glance_ids:
+            continue  # Already in stored notifications
+            
         # Check if mutual
         mutual = await db.glances.find_one({
             "from_user_id": current_user["id"],
             "to_user_id": g["from_user_id"],
             "venue_id": g["venue_id"]
         })
+        
         from_user = await db.users.find_one({"id": g["from_user_id"]}, {"_id": 0, "password": 0})
+        
+        # Also check fake users for test mode
+        if not from_user and IS_TEST_BUILD:
+            fake_user = next((u for u in FAKE_TEST_USERS if u["id"] == g["from_user_id"]), None)
+            if fake_user:
+                from_user = fake_user
+        
         if mutual and from_user:
             notifications.append({
                 "type": "mutual_glance",
                 "user": {
-                    "id": from_user["id"],
-                    "display_name": from_user["display_name"],
+                    "id": from_user["id"] if isinstance(from_user, dict) else from_user.get("id"),
+                    "display_name": from_user.get("display_name", "Someone"),
                     "avatar_url": from_user.get("avatar_url", "")
                 },
                 "created_at": g["created_at"]
@@ -1903,15 +2138,28 @@ async def get_notifications(current_user: dict = Depends(get_current_user)):
                 "created_at": g["created_at"]
             })
     
+    # Process drink tokens (avoid duplicates)
+    stored_token_ids = {n.get("token_id") for n in stored_notifications if n.get("type") == "drink_token"}
+    
     for t in tokens:
+        if t.get("id") in stored_token_ids:
+            continue
+            
         from_user = await db.users.find_one({"id": t["from_user_id"]}, {"_id": 0, "password": 0})
+        
+        # Also check fake users for test mode
+        if not from_user and IS_TEST_BUILD:
+            fake_user = next((u for u in FAKE_TEST_USERS if u["id"] == t["from_user_id"]), None)
+            if fake_user:
+                from_user = fake_user
+        
         if from_user:
             notifications.append({
                 "type": "drink_token",
                 "token_id": t["id"],
                 "from_user": {
-                    "id": from_user["id"],
-                    "display_name": from_user["display_name"],
+                    "id": from_user.get("id"),
+                    "display_name": from_user.get("display_name", "Someone"),
                     "avatar_url": from_user.get("avatar_url", "")
                 },
                 "drink_type": t["drink_type"],
@@ -1919,7 +2167,7 @@ async def get_notifications(current_user: dict = Depends(get_current_user)):
             })
     
     # Sort by date
-    notifications.sort(key=lambda x: x["created_at"], reverse=True)
+    notifications.sort(key=lambda x: x.get("created_at", ""), reverse=True)
     return notifications[:30]
 
 # ============================================

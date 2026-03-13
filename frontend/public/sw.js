@@ -29,7 +29,9 @@ self.addEventListener('push', (event) => {
   
   if (event.data) {
     try {
-      data = { ...data, ...event.data.json() };
+      const payload = event.data.json();
+      console.log('[SW] Push payload:', payload);
+      data = { ...data, ...payload };
     } catch (e) {
       console.error('[SW] Error parsing push data:', e);
       data.body = event.data.text();
@@ -40,16 +42,21 @@ self.addEventListener('push', (event) => {
     body: data.body,
     icon: data.icon || '/logo192.png',
     badge: data.badge || '/logo192.png',
-    vibrate: [100, 50, 100],
+    vibrate: [200, 100, 200],
     data: data.data || {},
     actions: getActionsForType(data.data?.type),
     tag: data.data?.type || 'default',
     renotify: true,
-    requireInteraction: data.data?.type === 'match'
+    requireInteraction: data.data?.type === 'match' || data.data?.type === 'drink',
+    silent: false
   };
+  
+  console.log('[SW] Showing notification:', data.title, options);
   
   event.waitUntil(
     self.registration.showNotification(data.title, options)
+      .then(() => console.log('[SW] Notification shown successfully'))
+      .catch((err) => console.error('[SW] Failed to show notification:', err))
   );
 });
 
