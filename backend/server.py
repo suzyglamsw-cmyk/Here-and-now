@@ -2278,11 +2278,23 @@ async def send_push_notification(user_id: str, title: str, body: str, data: Dict
     # Try to send the actual push notification
     if vapid_private_key_file and os.path.exists(vapid_private_key_file):
         try:
+            # Validate subscription keys before attempting to send
+            p256dh = subscription["keys"].get("p256dh", "")
+            if not p256dh or len(p256dh) < 80:
+                logger.warning(f"Invalid p256dh key for user {user_id}, removing subscription")
+                await db.push_subscriptions.delete_one({"user_id": user_id})
+                await db.push_queue.update_one(
+                    {"id": notification_id},
+                    {"$set": {"status": "failed", "error": "Invalid subscription key format"}}
+                )
+                return False
+            
             subscription_info = {
                 "endpoint": subscription["endpoint"],
                 "keys": subscription["keys"]
             }
             
+            logger.info(f"Sending push to {subscription['endpoint'][:60]}...")
             webpush(
                 subscription_info=subscription_info,
                 data=notification_payload,
@@ -2299,14 +2311,27 @@ async def send_push_notification(user_id: str, title: str, body: str, data: Dict
             return True
             
         except WebPushException as e:
-            logger.error(f"WebPush error for user {user_id}: {e}")
-            # If subscription is invalid (410 Gone), remove it
+            error_msg = str(e)
+            logger.error(f"WebPush error for user {user_id}: {error_msg}")
+            
+            # If subscription is invalid or expired (410 Gone), remove it automatically
             if e.response and e.response.status_code == 410:
                 await db.push_subscriptions.delete_one({"user_id": user_id})
-                logger.info(f"Removed invalid subscription for user {user_id}")
+                logger.info(f"Removed expired subscription for user {user_id}")
+                error_msg = "Subscription expired - user needs to re-enable notifications"
+            
             await db.push_queue.update_one(
                 {"id": notification_id},
-                {"$set": {"status": "failed", "error": str(e)}}
+                {"$set": {"status": "failed", "error": error_msg}}
+            )
+            return False
+        except ValueError as e:
+            # Invalid EC key or other crypto errors
+            logger.error(f"Crypto error for user {user_id}: {e}")
+            await db.push_subscriptions.delete_one({"user_id": user_id})
+            await db.push_queue.update_one(
+                {"id": notification_id},
+                {"$set": {"status": "failed", "error": f"Invalid subscription crypto key: {e}"}}
             )
             return False
         except Exception as e:
