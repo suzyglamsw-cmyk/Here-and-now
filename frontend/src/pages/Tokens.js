@@ -5,7 +5,8 @@ import { useAuth, API } from "@/App";
 import { toast } from "sonner";
 import axios from "axios";
 import Layout from "../components/Layout";
-import { Coins, Loader2, Plus } from "lucide-react";
+import { Coins, Loader2, Plus, Smartphone } from "lucide-react";
+import { isGooglePlayAvailable, completePurchase, GOOGLE_PLAY_PRODUCTS } from "../utils/googlePlayBilling";
 
 const Tokens = () => {
   const navigate = useNavigate();
@@ -15,11 +16,13 @@ const Tokens = () => {
   const [balance, setBalance] = useState({ balance: 0, daily_remaining: 0 });
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(null);
+  const [googlePlayAvailable, setGooglePlayAvailable] = useState(false);
 
   const sessionId = searchParams.get("session_id");
 
   useEffect(() => {
     fetchData();
+    setGooglePlayAvailable(isGooglePlayAvailable());
     if (sessionId) {
       handlePaymentSuccess(sessionId);
     }
@@ -57,12 +60,28 @@ const Tokens = () => {
   const handlePurchase = async (packageId) => {
     setPurchasing(packageId);
     try {
+      // Use Google Play Billing on Android if available
+      if (googlePlayAvailable) {
+        const productConfig = GOOGLE_PLAY_PRODUCTS[packageId];
+        if (productConfig) {
+          const result = await completePurchase(API, productConfig.id, productConfig.type);
+          if (result.valid) {
+            toast.success(`${productConfig.name} added!`);
+            await fetchUser();
+            await fetchData();
+          }
+          setPurchasing(null);
+          return;
+        }
+      }
+      
+      // Fall back to Stripe for web
       const response = await axios.post(`${API}/payments/checkout/tokens?package_id=${packageId}`);
       if (response.data.url) {
         window.location.href = response.data.url;
       }
     } catch (error) {
-      toast.error("Failed to start checkout");
+      toast.error(error.message || "Failed to start checkout");
     } finally {
       setPurchasing(null);
     }
