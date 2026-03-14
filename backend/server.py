@@ -1365,76 +1365,15 @@ async def admin_block_user(user_id: str, current_user: dict = Depends(get_curren
     return {"message": "User banned"}
 
 # ============================================
-# Premium - Profile Viewers
+# Premium - Profile Viewers  
+# Note: Moved to consolidated endpoint at /profile/viewers (after get_user_profile)
+# Old endpoints removed for cleaner architecture
 # ============================================
 
-@api_router.post("/profile/view/{user_id}")
-async def record_profile_view(user_id: str, current_user: dict = Depends(get_current_user)):
-    """Record that current user viewed a profile"""
-    await db.profile_views.insert_one({
-        "id": str(uuid.uuid4()),
-        "viewer_id": current_user["id"],
-        "viewed_id": user_id,
-        "created_at": datetime.now(timezone.utc).isoformat()
-    })
-    return {"recorded": True}
-
-@api_router.get("/profile/viewers")
-async def get_profile_viewers(current_user: dict = Depends(get_current_user)):
-    """Get users who viewed your profile (Premium only)"""
-    if not current_user.get("is_premium"):
-        raise HTTPException(status_code=403, detail="Premium feature")
-    
-    views = await db.profile_views.find(
-        {"viewed_id": current_user["id"]},
-        {"_id": 0}
-    ).sort("created_at", -1).to_list(50)
-    
-    result = []
-    seen_viewers = set()
-    for v in views:
-        if v["viewer_id"] in seen_viewers:
-            continue
-        seen_viewers.add(v["viewer_id"])
-        viewer = await db.users.find_one({"id": v["viewer_id"]}, {"_id": 0, "password": 0})
-        if viewer:
-            result.append({
-                "user_id": viewer["id"],
-                "display_name": viewer["display_name"],
-                "avatar_url": viewer.get("avatar_url") or (viewer.get("photos", [""])[0] if viewer.get("photos") else ""),
-                "viewed_at": v["created_at"]
-            })
-    return result
-
 # ============================================
-# Second Reveal Logic
+# Second Reveal Logic - REMOVED
+# Feature removed from backlog until core social flows are stable
 # ============================================
-
-@api_router.post("/glance/second-reveal/{glance_id}")
-async def send_second_reveal(glance_id: str, current_user: dict = Depends(get_current_user)):
-    """Send second reveal after 7 days (Premium only)"""
-    if not current_user.get("is_premium"):
-        raise HTTPException(status_code=403, detail="Premium feature")
-    
-    glance = await db.glances.find_one({"id": glance_id, "from_user_id": current_user["id"]})
-    if not glance:
-        raise HTTPException(status_code=404, detail="Glance not found")
-    
-    created = datetime.fromisoformat(glance["created_at"].replace('Z', '+00:00'))
-    if datetime.now(timezone.utc) - created < timedelta(days=SECOND_REVEAL_DAYS):
-        raise HTTPException(status_code=400, detail="Must wait 7 days")
-    
-    if glance.get("second_reveal_sent"):
-        raise HTTPException(status_code=400, detail="Already sent")
-    
-    await db.glances.update_one({"id": glance_id}, {"$set": {"second_reveal_sent": True}})
-    
-    await manager.send_to_user(glance["to_user_id"], {
-        "type": "second_reveal",
-        "message": "Someone glanced at you again."
-    })
-    
-    return {"message": "Second reveal sent"}
 
 @api_router.post("/glance/{glance_id}/viewed")
 async def mark_glance_viewed(glance_id: str, current_user: dict = Depends(get_current_user)):
@@ -3019,6 +2958,18 @@ async def get_user_profile(user_id: str, current_user: dict = Depends(get_curren
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
+    # Log profile view (don't log self-views)
+    if current_user["id"] != user_id:
+        await db.profile_views.update_one(
+            {"viewer_id": current_user["id"], "viewed_id": user_id},
+            {"$set": {
+                "viewer_id": current_user["id"],
+                "viewed_id": user_id,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            }},
+            upsert=True
+        )
+    
     # Check glance status
     they_glanced_at_me = await db.glances.find_one({
         "from_user_id": user_id,
@@ -3074,6 +3025,47 @@ async def get_user_profile(user_id: str, current_user: dict = Depends(get_curren
         "friend_request_received": friend_request_received,
         "unlock_reason": unlock_reason
     }
+
+@api_router.get("/profile/viewers")
+async def get_profile_viewers(current_user: dict = Depends(get_current_user)):
+    """Get users who viewed your profile in the last 48 hours (premium only)"""
+    if not current_user.get("is_premium"):
+        raise HTTPException(status_code=403, detail="Premium subscription required")
+    
+    # Calculate 48 hours ago
+    cutoff_time = (datetime.now(timezone.utc) - timedelta(hours=48)).isoformat()
+    
+    # Get views in the last 48 hours
+    views = await db.profile_views.find(
+        {"viewed_id": current_user["id"], "timestamp": {"$gte": cutoff_time}},
+        {"_id": 0}
+    ).sort("timestamp", -1).to_list(50)
+    
+    # Delete old views (older than 48 hours) for cleanup
+    await db.profile_views.delete_many(
+        {"viewed_id": current_user["id"], "timestamp": {"$lt": cutoff_time}}
+    )
+    
+    # Fetch viewer details
+    viewers = []
+    for view in views:
+        viewer = await db.users.find_one({"id": view["viewer_id"]}, {"_id": 0, "password": 0})
+        
+        # Check fake users for test mode
+        if not viewer and IS_TEST_BUILD:
+            fake_user = next((u for u in FAKE_TEST_USERS if u["id"] == view["viewer_id"]), None)
+            if fake_user:
+                viewer = fake_user
+        
+        if viewer:
+            viewers.append({
+                "id": viewer.get("id"),
+                "display_name": viewer.get("display_name"),
+                "avatar_url": viewer.get("avatar_url", ""),
+                "viewed_at": view["timestamp"]
+            })
+    
+    return viewers
 
 
 # Message Routes

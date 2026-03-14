@@ -153,9 +153,13 @@ IS_TEST_BUILD=true
 - [x] Drink accept failing in Drinks tab - RESOLVED (fixed endpoint from /drink-tokens/ to /drink-token/)
 - [x] Remove drink accept from Notifications - RESOLVED (now shows "View in Drinks" button only)
 - [x] Add delete functionality for drinks - RESOLVED (DELETE /api/drink-token/{id} + trash icons in UI)
+- [x] Chat Request flow matches Drink flow - RESOLVED (View in Chat Requests button in notifications)
+- [x] Remove Requests tab from Notifications - RESOLVED (all actions in Connections only)
+- [x] Notifications limited to 20 with Clear All - RESOLVED
+- [x] Profile Viewers (premium) - RESOLVED (last 48 hours, auto-cleanup)
 
 ### P1 (High) - For Production
-- [ ] Backend refactoring: server.py is now 4850+ lines - needs modular structure (routes/, models/, services/)
+- [ ] Backend refactoring: server.py is now 4970+ lines - needs modular structure (routes/, models/, services/)
 - [ ] Production Google Places API key
 - [ ] Google Play service account credentials
 

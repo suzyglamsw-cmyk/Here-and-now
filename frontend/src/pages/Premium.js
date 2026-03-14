@@ -87,7 +87,7 @@ const Premium = () => {
     "20 daily glances (vs 5 free)",
     "5 daily drink tokens (vs 1 free)",
     "See if your glance was viewed",
-    "Second reveal attempt after 24h"
+    "See who viewed your profile (last 48h)"
   ];
 
   return (
