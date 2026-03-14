@@ -5,7 +5,7 @@ import { useAuth, API } from "@/App";
 import { toast } from "sonner";
 import axios from "axios";
 import Layout from "../components/Layout";
-import { MessageCircle, MapPin, Loader2, Users, Sparkles, Eye, Heart, Wine, UserPlus, Check, X, Clock, UserCheck, ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { MessageCircle, MapPin, Loader2, Users, Sparkles, Eye, Heart, Wine, UserPlus, Check, X, Clock, UserCheck, ArrowUpRight, ArrowDownLeft, MessageSquare } from "lucide-react";
 
 const Connections = () => {
   const navigate = useNavigate();
@@ -17,8 +17,9 @@ const Connections = () => {
   const [friends, setFriends] = useState([]);
   const [glances, setGlances] = useState({ incoming: [], outgoing: [] });
   const [drinks, setDrinks] = useState({ incoming: [], outgoing: [] });
+  const [chatRequests, setChatRequests] = useState({ incoming: [], outgoing: [] });
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState("messages"); // "messages" | "glances" | "drinks" | "requests" | "friends" | "connections"
+  const [tab, setTab] = useState("messages"); // "messages" | "glances" | "drinks" | "chats" | "requests" | "friends" | "connections"
 
   useEffect(() => {
     fetchAllData();
@@ -26,14 +27,15 @@ const Connections = () => {
 
   const fetchAllData = async () => {
     try {
-      const [connectionsRes, mutualRes, threadsRes, requestsRes, friendsRes, glancesRes, drinksRes] = await Promise.all([
+      const [connectionsRes, mutualRes, threadsRes, requestsRes, friendsRes, glancesRes, drinksRes, chatRequestsRes] = await Promise.all([
         axios.get(`${API}/connections`),
         axios.get(`${API}/connections/mutual-glances`),
         axios.get(`${API}/messages/threads`),
         axios.get(`${API}/friends/requests`),
         axios.get(`${API}/friends/list`),
         axios.get(`${API}/connections/glances`),
-        axios.get(`${API}/connections/drinks`)
+        axios.get(`${API}/connections/drinks`),
+        axios.get(`${API}/connections/chat-requests`)
       ]);
       setConnections(connectionsRes.data);
       setMutualGlances(mutualRes.data);
@@ -42,6 +44,7 @@ const Connections = () => {
       setFriends(friendsRes.data);
       setGlances(glancesRes.data);
       setDrinks(drinksRes.data);
+      setChatRequests(chatRequestsRes.data);
     } catch (error) {
       console.error("Failed to load data:", error);
       toast.error("Failed to load connections");
@@ -71,6 +74,11 @@ const Connections = () => {
   const totalGlances = (glances.incoming?.length || 0) + (glances.outgoing?.length || 0);
   const totalDrinks = (drinks.incoming?.length || 0) + (drinks.outgoing?.length || 0);
   const pendingDrinks = drinks.incoming?.filter(d => d.status === "pending").length || 0;
+  const totalChatRequests = (chatRequests.incoming?.length || 0) + (chatRequests.outgoing?.length || 0);
+  const pendingChatRequests = chatRequests.incoming?.filter(c => c.status === "pending").length || 0;
+  const [declineModalOpen, setDeclineModalOpen] = useState(false);
+  const [selectedDeclineItem, setSelectedDeclineItem] = useState(null);
+  const [declineType, setDeclineType] = useState(null); // "drink" or "chat"
 
   const handleAcceptRequest = async (requestId) => {
     try {
@@ -104,8 +112,8 @@ const Connections = () => {
 
   const handleAcceptDrink = async (drinkId) => {
     try {
-      await axios.post(`${API}/drinks/respond/${drinkId}?accept=true`);
-      toast.success("Drink offer accepted!");
+      await axios.post(`${API}/drink-tokens/${drinkId}/accept`);
+      toast.success("Drink offer accepted! 🍸");
       fetchAllData();
     } catch (error) {
       toast.error("Failed to accept drink offer");
@@ -113,14 +121,64 @@ const Connections = () => {
   };
 
   const handleDeclineDrink = async (drinkId) => {
+    setSelectedDeclineItem(drinkId);
+    setDeclineType("drink");
+    setDeclineModalOpen(true);
+  };
+
+  const handlePoliteDeclineDrink = async (reason) => {
     try {
-      await axios.post(`${API}/drinks/respond/${drinkId}?accept=false`);
-      toast.success("Drink offer declined");
+      await axios.post(`${API}/drinks/decline/${selectedDeclineItem}`, { decline_reason: reason });
+      toast.success("Drink offer politely declined");
+      setDeclineModalOpen(false);
+      setSelectedDeclineItem(null);
       fetchAllData();
     } catch (error) {
       toast.error("Failed to decline drink offer");
     }
   };
+
+  const handleAcceptChatRequest = async (requestId) => {
+    try {
+      await axios.post(`${API}/chat-request/${requestId}/respond`, { accept: true });
+      toast.success("Chat request accepted! 💬");
+      fetchAllData();
+    } catch (error) {
+      toast.error("Failed to accept chat request");
+    }
+  };
+
+  const handleDeclineChatRequest = async (requestId) => {
+    setSelectedDeclineItem(requestId);
+    setDeclineType("chat");
+    setDeclineModalOpen(true);
+  };
+
+  const handlePoliteDeclineChatRequest = async (reason) => {
+    try {
+      await axios.post(`${API}/chat-request/${selectedDeclineItem}/polite-decline?decline_reason=${reason}`);
+      toast.success("Chat request politely declined");
+      setDeclineModalOpen(false);
+      setSelectedDeclineItem(null);
+      fetchAllData();
+    } catch (error) {
+      toast.error("Failed to decline chat request");
+    }
+  };
+
+  const drinkDeclineOptions = [
+    { key: "not_right_now", label: "Not right now, maybe later" },
+    { key: "leaving_soon", label: "I'm about to head out" },
+    { key: "already_have_one", label: "I already have a drink" },
+    { key: "thanks_but_no", label: "Thanks, but no thanks" }
+  ];
+
+  const chatDeclineOptions = [
+    { key: "not_looking", label: "Not looking to chat right now" },
+    { key: "just_arrived", label: "Just got here, settling in" },
+    { key: "with_friends", label: "Here with friends tonight" },
+    { key: "not_feeling_it", label: "Going to pass, thanks" }
+  ];
 
   return (
     <Layout>
@@ -172,6 +230,20 @@ const Connections = () => {
             {pendingDrinks > 0 && (
               <span className="ml-2 text-xs bg-amber-500 px-2 py-0.5 rounded-full">
                 {pendingDrinks}
+              </span>
+            )}
+          </Button>
+          <Button
+            data-testid="chats-tab"
+            variant={tab === "chats" ? "default" : "ghost"}
+            onClick={() => setTab("chats")}
+            className={`rounded-xl flex-shrink-0 ${tab === "chats" ? "bg-white/10" : "text-slate-400"}`}
+          >
+            <MessageSquare className="w-4 h-4 mr-2" />
+            Chat Requests
+            {pendingChatRequests > 0 && (
+              <span className="ml-2 text-xs bg-pink-500 px-2 py-0.5 rounded-full">
+                {pendingChatRequests}
               </span>
             )}
           </Button>
@@ -515,6 +587,149 @@ const Connections = () => {
               )}
             </div>
           )
+        ) : tab === "chats" ? (
+          /* Chat Requests Tab */
+          totalChatRequests === 0 ? (
+            <div className="text-center py-20">
+              <div className="w-20 h-20 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-4">
+                <MessageSquare className="w-10 h-10 text-slate-600" />
+              </div>
+              <h2 className="text-xl font-semibold text-white mb-2">No chat requests yet</h2>
+              <p className="text-slate-400 mb-6">
+                Use a token to ask someone if they'd like to chat
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-6" data-testid="chat-requests-list">
+              {/* Received Chat Requests */}
+              {chatRequests.incoming?.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium text-slate-400 mb-3 flex items-center gap-2">
+                    <ArrowDownLeft className="w-4 h-4" />
+                    Received ({chatRequests.incoming.length})
+                  </h3>
+                  <div className="space-y-3">
+                    {chatRequests.incoming.map((request) => (
+                      <div
+                        key={request.id}
+                        data-testid={`received-chat-${request.id}`}
+                        className="glass rounded-2xl p-4 flex items-center gap-4"
+                      >
+                        <div 
+                          className="cursor-pointer"
+                          onClick={() => navigate(`/profile/${request.user_id}`)}
+                        >
+                          <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-pink-500 transition-all">
+                            {request.avatar_url ? (
+                              <img src={request.avatar_url} alt={request.display_name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-br from-pink-500 to-indigo-500 flex items-center justify-center">
+                                <span className="text-xl text-white">{request.display_name?.charAt(0) || "?"}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-white truncate">{request.display_name}</h4>
+                          {request.bio && (
+                            <p className="text-slate-400 text-sm truncate">{request.bio}</p>
+                          )}
+                          <p className="text-slate-500 text-xs mt-1">
+                            {request.status === "pending" ? "💬 Wants to chat" : request.status === "accepted" ? "✅ Accepted" : "❌ Declined"} • {formatDate(request.created_at)}
+                          </p>
+                        </div>
+                        {request.status === "pending" && (
+                          <div className="flex gap-2">
+                            <Button
+                              data-testid={`accept-chat-${request.id}`}
+                              onClick={() => handleAcceptChatRequest(request.id)}
+                              size="sm"
+                              className="rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white"
+                            >
+                              <Check className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              data-testid={`decline-chat-${request.id}`}
+                              onClick={() => handleDeclineChatRequest(request.id)}
+                              size="sm"
+                              variant="ghost"
+                              className="rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        )}
+                        {request.status === "accepted" && (
+                          <Button
+                            data-testid={`message-${request.id}`}
+                            onClick={() => navigate(`/chat/${request.user_id}`)}
+                            size="sm"
+                            className="rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white"
+                          >
+                            <MessageCircle className="w-4 h-4 mr-1" />
+                            Chat
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Sent Chat Requests */}
+              {chatRequests.outgoing?.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium text-slate-400 mb-3 flex items-center gap-2">
+                    <ArrowUpRight className="w-4 h-4" />
+                    Sent ({chatRequests.outgoing.length})
+                  </h3>
+                  <div className="space-y-3">
+                    {chatRequests.outgoing.map((request) => (
+                      <div
+                        key={request.id}
+                        data-testid={`sent-chat-${request.id}`}
+                        onClick={() => navigate(`/profile/${request.user_id}`)}
+                        className="glass rounded-2xl p-4 flex items-center gap-4 hover:bg-white/5 transition-colors cursor-pointer"
+                      >
+                        <div className="w-14 h-14 rounded-2xl overflow-hidden">
+                          {request.avatar_url ? (
+                            <img src={request.avatar_url} alt={request.display_name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center">
+                              <span className="text-xl text-slate-400">{request.display_name?.charAt(0) || "?"}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-white truncate">{request.display_name}</h4>
+                          {request.bio && (
+                            <p className="text-slate-400 text-sm truncate">{request.bio}</p>
+                          )}
+                          <p className="text-slate-500 text-xs mt-1">
+                            {request.status === "pending" ? "⏳ Waiting for response" : request.status === "accepted" ? "✅ Accepted" : "❌ Declined"} • {formatDate(request.created_at)}
+                          </p>
+                          {request.decline_message && (
+                            <p className="text-slate-500 text-xs italic mt-1">"{request.decline_message}"</p>
+                          )}
+                        </div>
+                        {request.status === "accepted" && (
+                          <Button
+                            data-testid={`message-out-${request.id}`}
+                            onClick={(e) => { e.stopPropagation(); navigate(`/chat/${request.user_id}`); }}
+                            size="sm"
+                            className="rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white"
+                          >
+                            <MessageCircle className="w-4 h-4 mr-1" />
+                            Chat
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )
         ) : tab === "requests" ? (
           /* Friend Requests Tab */
           totalRequests === 0 ? (
@@ -817,6 +1032,44 @@ const Connections = () => {
           )
         )}
       </div>
+
+      {/* Polite Decline Modal */}
+      {declineModalOpen && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="glass rounded-2xl p-6 max-w-md w-full">
+            <h3 className="text-xl font-semibold text-white mb-4">
+              {declineType === "drink" ? "Politely Decline Drink" : "Politely Decline Chat"}
+            </h3>
+            <p className="text-slate-400 text-sm mb-4">
+              Choose a polite way to decline. They'll receive a friendly message.
+            </p>
+            <div className="space-y-2">
+              {(declineType === "drink" ? drinkDeclineOptions : chatDeclineOptions).map((option) => (
+                <button
+                  key={option.key}
+                  onClick={() => declineType === "drink" 
+                    ? handlePoliteDeclineDrink(option.key) 
+                    : handlePoliteDeclineChatRequest(option.key)
+                  }
+                  className="w-full p-3 text-left rounded-xl bg-white/5 hover:bg-white/10 text-white transition-colors"
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <Button
+              onClick={() => {
+                setDeclineModalOpen(false);
+                setSelectedDeclineItem(null);
+              }}
+              variant="ghost"
+              className="w-full mt-4 text-slate-400"
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };

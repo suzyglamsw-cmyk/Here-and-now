@@ -2473,7 +2473,10 @@ async def accept_drink_token(token_id: str, current_user: dict = Depends(get_cur
     if not token:
         raise HTTPException(status_code=404, detail="Token not found")
     
-    await db.drink_tokens.update_one({"id": token_id}, {"$set": {"is_accepted": True}})
+    await db.drink_tokens.update_one(
+        {"id": token_id}, 
+        {"$set": {"is_accepted": True, "accepted_at": datetime.now(timezone.utc).isoformat()}}
+    )
     
     # Notify sender
     await manager.send_to_user(token["from_user_id"], {
@@ -2485,6 +2488,46 @@ async def accept_drink_token(token_id: str, current_user: dict = Depends(get_cur
     })
     
     return {"message": "Drink accepted! Cheers!"}
+
+class PoliteDeclineRequest(BaseModel):
+    decline_reason: str = "not_right_now"  # "not_right_now", "leaving_soon", "already_have_one", "thanks_but_no"
+
+POLITE_DECLINE_MESSAGES = {
+    "not_right_now": "Thanks for the offer, but I'm not looking for drinks right now. Maybe another time!",
+    "leaving_soon": "I appreciate the thought, but I'm actually about to head out. Thanks though!",
+    "already_have_one": "That's really kind of you, but I already have a drink. Thanks for thinking of me!",
+    "thanks_but_no": "Thank you for the offer, but I'll have to pass this time. Enjoy your night!"
+}
+
+@api_router.post("/drinks/decline/{token_id}")
+async def decline_drink_token(token_id: str, data: PoliteDeclineRequest, current_user: dict = Depends(get_current_user)):
+    """Decline a drink offer with a polite pre-set message"""
+    token = await db.drink_tokens.find_one({"id": token_id, "to_user_id": current_user["id"]})
+    if not token:
+        raise HTTPException(status_code=404, detail="Token not found")
+    
+    decline_message = POLITE_DECLINE_MESSAGES.get(data.decline_reason, POLITE_DECLINE_MESSAGES["thanks_but_no"])
+    
+    await db.drink_tokens.update_one(
+        {"id": token_id}, 
+        {"$set": {
+            "is_declined": True, 
+            "declined_at": datetime.now(timezone.utc).isoformat(),
+            "decline_message": decline_message
+        }}
+    )
+    
+    # Notify sender with polite message
+    await manager.send_to_user(token["from_user_id"], {
+        "type": "drink_token_declined",
+        "by_user": {
+            "id": current_user["id"],
+            "display_name": current_user["display_name"]
+        },
+        "message": decline_message
+    })
+    
+    return {"message": "Drink offer politely declined"}
 
 # Connection Routes
 @api_router.get("/connections")
@@ -2712,9 +2755,9 @@ async def get_all_glances(current_user: dict = Depends(get_current_user)):
 
 @api_router.get("/connections/drinks")
 async def get_all_drinks(current_user: dict = Depends(get_current_user)):
-    """Get all drink offers - both sent and received"""
-    # Drinks I sent
-    sent_drinks = await db.drink_offers.find({"from_user_id": current_user["id"]}, {"_id": 0}).to_list(100)
+    """Get all drink tokens - both sent and received"""
+    # Drinks I sent (from drink_tokens collection)
+    sent_drinks = await db.drink_tokens.find({"from_user_id": current_user["id"]}, {"_id": 0}).to_list(100)
     outgoing = []
     for drink in sent_drinks:
         user = await db.users.find_one({"id": drink["to_user_id"]}, {"_id": 0, "password": 0})
@@ -2723,18 +2766,20 @@ async def get_all_drinks(current_user: dict = Depends(get_current_user)):
             if fake_user:
                 user = {"id": fake_user["id"], "display_name": fake_user["display_name"], "avatar_url": fake_user.get("avatar_url", "")}
         if user:
+            status = "accepted" if drink.get("is_accepted") else ("declined" if drink.get("is_declined") else "pending")
             outgoing.append({
                 "id": drink["id"],
                 "user_id": user["id"],
                 "display_name": user.get("display_name", "Someone"),
                 "avatar_url": user.get("avatar_url", ""),
+                "drink_type": drink.get("drink_type", "cocktail"),
                 "message": drink.get("message", ""),
-                "status": drink.get("status", "pending"),
+                "status": status,
                 "created_at": drink["created_at"]
             })
     
     # Drinks I received
-    received_drinks = await db.drink_offers.find({"to_user_id": current_user["id"]}, {"_id": 0}).to_list(100)
+    received_drinks = await db.drink_tokens.find({"to_user_id": current_user["id"]}, {"_id": 0}).to_list(100)
     incoming = []
     for drink in received_drinks:
         user = await db.users.find_one({"id": drink["from_user_id"]}, {"_id": 0, "password": 0})
@@ -2743,17 +2788,109 @@ async def get_all_drinks(current_user: dict = Depends(get_current_user)):
             if fake_user:
                 user = {"id": fake_user["id"], "display_name": fake_user["display_name"], "avatar_url": fake_user.get("avatar_url", "")}
         if user:
+            status = "accepted" if drink.get("is_accepted") else ("declined" if drink.get("is_declined") else "pending")
             incoming.append({
                 "id": drink["id"],
                 "user_id": user["id"],
                 "display_name": user.get("display_name", "Someone"),
                 "avatar_url": user.get("avatar_url", ""),
+                "drink_type": drink.get("drink_type", "cocktail"),
                 "message": drink.get("message", ""),
-                "status": drink.get("status", "pending"),
+                "status": status,
                 "created_at": drink["created_at"]
             })
     
     return {"incoming": incoming, "outgoing": outgoing}
+
+@api_router.get("/connections/chat-requests")
+async def get_all_chat_requests(current_user: dict = Depends(get_current_user)):
+    """Get all chat requests - both sent and received"""
+    # Chat requests I sent
+    sent_requests = await db.chat_requests.find(
+        {"from_user_id": current_user["id"], "request_type": "chat"},
+        {"_id": 0}
+    ).to_list(100)
+    outgoing = []
+    for req in sent_requests:
+        user = await db.users.find_one({"id": req["to_user_id"]}, {"_id": 0, "password": 0})
+        if not user and IS_TEST_BUILD:
+            fake_user = next((u for u in FAKE_TEST_USERS if u["id"] == req["to_user_id"]), None)
+            if fake_user:
+                user = {"id": fake_user["id"], "display_name": fake_user["display_name"], "avatar_url": fake_user.get("avatar_url", ""), "bio": fake_user.get("bio", "")}
+        if user:
+            outgoing.append({
+                "id": req["id"],
+                "user_id": user["id"],
+                "display_name": user.get("display_name", "Someone"),
+                "avatar_url": user.get("avatar_url", ""),
+                "bio": user.get("bio", "")[:50] + "..." if len(user.get("bio", "")) > 50 else user.get("bio", ""),
+                "status": req.get("status", "pending"),
+                "decline_message": req.get("decline_message", ""),
+                "created_at": req["created_at"]
+            })
+    
+    # Chat requests I received
+    received_requests = await db.chat_requests.find(
+        {"to_user_id": current_user["id"], "request_type": "chat"},
+        {"_id": 0}
+    ).to_list(100)
+    incoming = []
+    for req in received_requests:
+        user = await db.users.find_one({"id": req["from_user_id"]}, {"_id": 0, "password": 0})
+        if not user and IS_TEST_BUILD:
+            fake_user = next((u for u in FAKE_TEST_USERS if u["id"] == req["from_user_id"]), None)
+            if fake_user:
+                user = {"id": fake_user["id"], "display_name": fake_user["display_name"], "avatar_url": fake_user.get("avatar_url", ""), "bio": fake_user.get("bio", "")}
+        if user:
+            incoming.append({
+                "id": req["id"],
+                "user_id": user["id"],
+                "display_name": user.get("display_name", "Someone"),
+                "avatar_url": user.get("avatar_url", ""),
+                "bio": user.get("bio", "")[:50] + "..." if len(user.get("bio", "")) > 50 else user.get("bio", ""),
+                "status": req.get("status", "pending"),
+                "created_at": req["created_at"]
+            })
+    
+    return {"incoming": incoming, "outgoing": outgoing}
+
+# Polite decline messages for chat requests
+POLITE_CHAT_DECLINE_MESSAGES = {
+    "not_looking": "Thanks for reaching out, but I'm not looking to chat right now. Good luck!",
+    "just_arrived": "I appreciate the interest, but I just got here and want to settle in first. Maybe later!",
+    "with_friends": "That's kind of you, but I'm here with friends tonight. Hope you have a great time!",
+    "not_feeling_it": "Thanks for the message, but I'm going to pass. Enjoy your evening!"
+}
+
+@api_router.post("/chat-request/{request_id}/polite-decline")
+async def polite_decline_chat_request(request_id: str, decline_reason: str = "not_feeling_it", current_user: dict = Depends(get_current_user)):
+    """Decline a chat request with a polite pre-set message"""
+    request = await db.chat_requests.find_one({"id": request_id, "to_user_id": current_user["id"]})
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found")
+    
+    decline_message = POLITE_CHAT_DECLINE_MESSAGES.get(decline_reason, POLITE_CHAT_DECLINE_MESSAGES["not_feeling_it"])
+    
+    await db.chat_requests.update_one(
+        {"id": request_id}, 
+        {"$set": {
+            "status": "declined",
+            "declined_at": datetime.now(timezone.utc).isoformat(),
+            "decline_message": decline_message
+        }}
+    )
+    
+    # Notify sender with polite message
+    await manager.send_to_user(request["from_user_id"], {
+        "type": "chat_request_declined",
+        "by_user": {
+            "id": current_user["id"],
+            "display_name": current_user["display_name"]
+        },
+        "message": decline_message
+    })
+    
+    return {"message": "Chat request politely declined"}
 
 @api_router.get("/messages/threads")
 async def get_message_threads(current_user: dict = Depends(get_current_user)):
