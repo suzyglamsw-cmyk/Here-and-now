@@ -5,7 +5,7 @@ import { useAuth, API } from "@/App";
 import { toast } from "sonner";
 import axios from "axios";
 import Layout from "../components/Layout";
-import { MessageCircle, MapPin, Loader2, Users, Sparkles, Eye, Heart, Wine } from "lucide-react";
+import { MessageCircle, MapPin, Loader2, Users, Sparkles, Eye, Heart, Wine, UserPlus, Check, X, Clock, UserCheck } from "lucide-react";
 
 const Connections = () => {
   const navigate = useNavigate();
@@ -13,8 +13,10 @@ const Connections = () => {
   const [connections, setConnections] = useState([]);
   const [mutualGlances, setMutualGlances] = useState([]);
   const [messageThreads, setMessageThreads] = useState([]);
+  const [friendRequests, setFriendRequests] = useState({ incoming: [], outgoing: [] });
+  const [friends, setFriends] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState("messages"); // "messages" | "mutual" | "connections"
+  const [tab, setTab] = useState("messages"); // "messages" | "mutual" | "requests" | "friends" | "connections"
 
   useEffect(() => {
     fetchAllData();
@@ -22,14 +24,18 @@ const Connections = () => {
 
   const fetchAllData = async () => {
     try {
-      const [connectionsRes, mutualRes, threadsRes] = await Promise.all([
+      const [connectionsRes, mutualRes, threadsRes, requestsRes, friendsRes] = await Promise.all([
         axios.get(`${API}/connections`),
         axios.get(`${API}/connections/mutual-glances`),
-        axios.get(`${API}/messages/threads`)
+        axios.get(`${API}/messages/threads`),
+        axios.get(`${API}/friends/requests`),
+        axios.get(`${API}/friends/list`)
       ]);
       setConnections(connectionsRes.data);
       setMutualGlances(mutualRes.data);
       setMessageThreads(threadsRes.data);
+      setFriendRequests(requestsRes.data);
+      setFriends(friendsRes.data);
     } catch (error) {
       console.error("Failed to load data:", error);
       toast.error("Failed to load connections");
@@ -55,6 +61,37 @@ const Connections = () => {
   };
 
   const totalUnread = messageThreads.reduce((sum, t) => sum + t.unread_count, 0);
+  const totalRequests = (friendRequests.incoming?.length || 0) + (friendRequests.outgoing?.length || 0);
+
+  const handleAcceptRequest = async (requestId) => {
+    try {
+      await axios.post(`${API}/friends/respond/${requestId}?accept=true`);
+      toast.success("Friend request accepted!");
+      fetchAllData();
+    } catch (error) {
+      toast.error("Failed to accept request");
+    }
+  };
+
+  const handleDeclineRequest = async (requestId) => {
+    try {
+      await axios.post(`${API}/friends/respond/${requestId}?accept=false`);
+      toast.success("Friend request declined");
+      fetchAllData();
+    } catch (error) {
+      toast.error("Failed to decline request");
+    }
+  };
+
+  const handleCancelRequest = async (requestId) => {
+    try {
+      await axios.delete(`${API}/friends/request/${requestId}`);
+      toast.success("Friend request cancelled");
+      fetchAllData();
+    } catch (error) {
+      toast.error("Failed to cancel request");
+    }
+  };
 
   return (
     <Layout>
@@ -66,12 +103,12 @@ const Connections = () => {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
           <Button
             data-testid="messages-tab"
             variant={tab === "messages" ? "default" : "ghost"}
             onClick={() => setTab("messages")}
-            className={`rounded-xl ${tab === "messages" ? "bg-white/10" : "text-slate-400"}`}
+            className={`rounded-xl flex-shrink-0 ${tab === "messages" ? "bg-white/10" : "text-slate-400"}`}
           >
             <MessageCircle className="w-4 h-4 mr-2" />
             Messages
@@ -85,7 +122,7 @@ const Connections = () => {
             data-testid="mutual-tab"
             variant={tab === "mutual" ? "default" : "ghost"}
             onClick={() => setTab("mutual")}
-            className={`rounded-xl ${tab === "mutual" ? "bg-white/10" : "text-slate-400"}`}
+            className={`rounded-xl flex-shrink-0 ${tab === "mutual" ? "bg-white/10" : "text-slate-400"}`}
           >
             <Heart className="w-4 h-4 mr-2" />
             Mutual
@@ -96,10 +133,38 @@ const Connections = () => {
             )}
           </Button>
           <Button
+            data-testid="requests-tab"
+            variant={tab === "requests" ? "default" : "ghost"}
+            onClick={() => setTab("requests")}
+            className={`rounded-xl flex-shrink-0 ${tab === "requests" ? "bg-white/10" : "text-slate-400"}`}
+          >
+            <UserPlus className="w-4 h-4 mr-2" />
+            Requests
+            {totalRequests > 0 && (
+              <span className="ml-2 text-xs bg-amber-500 px-2 py-0.5 rounded-full">
+                {totalRequests}
+              </span>
+            )}
+          </Button>
+          <Button
+            data-testid="friends-tab"
+            variant={tab === "friends" ? "default" : "ghost"}
+            onClick={() => setTab("friends")}
+            className={`rounded-xl flex-shrink-0 ${tab === "friends" ? "bg-white/10" : "text-slate-400"}`}
+          >
+            <UserCheck className="w-4 h-4 mr-2" />
+            Friends
+            {friends.length > 0 && (
+              <span className="ml-2 text-xs bg-emerald-500 px-2 py-0.5 rounded-full">
+                {friends.length}
+              </span>
+            )}
+          </Button>
+          <Button
             data-testid="connections-tab"
             variant={tab === "connections" ? "default" : "ghost"}
             onClick={() => setTab("connections")}
-            className={`rounded-xl ${tab === "connections" ? "bg-white/10" : "text-slate-400"}`}
+            className={`rounded-xl flex-shrink-0 ${tab === "connections" ? "bg-white/10" : "text-slate-400"}`}
           >
             <Users className="w-4 h-4 mr-2" />
             All
@@ -245,6 +310,204 @@ const Connections = () => {
                       Chat
                     </Button>
                   </div>
+                </div>
+              ))}
+            </div>
+          )
+        ) : tab === "requests" ? (
+          /* Friend Requests Tab */
+          totalRequests === 0 ? (
+            <div className="text-center py-20">
+              <div className="w-20 h-20 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-4">
+                <UserPlus className="w-10 h-10 text-slate-600" />
+              </div>
+              <h2 className="text-xl font-semibold text-white mb-2">No friend requests</h2>
+              <p className="text-slate-400 mb-6">
+                Send or receive friend requests after accepting a drink or chat
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-6" data-testid="requests-list">
+              {/* Incoming Requests */}
+              {friendRequests.incoming?.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium text-slate-400 mb-3">Incoming Requests</h3>
+                  <div className="space-y-3">
+                    {friendRequests.incoming.map((request) => (
+                      <div
+                        key={request.id}
+                        data-testid={`incoming-request-${request.id}`}
+                        className="glass rounded-2xl p-4 flex items-center gap-4"
+                      >
+                        <div 
+                          className="cursor-pointer"
+                          onClick={() => navigate(`/profile/${request.from_user_id}`)}
+                        >
+                          <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-amber-500 transition-all">
+                            {request.avatar_url ? (
+                              <img
+                                src={request.avatar_url}
+                                alt={request.display_name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center">
+                                <span className="text-xl text-slate-400">
+                                  {request.display_name?.charAt(0) || "?"}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-white truncate">{request.display_name}</h4>
+                          <p className="text-slate-500 text-xs">
+                            Wants to be friends • {formatDate(request.created_at)}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            data-testid={`accept-${request.id}`}
+                            onClick={() => handleAcceptRequest(request.id)}
+                            size="sm"
+                            className="rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white"
+                          >
+                            <Check className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            data-testid={`decline-${request.id}`}
+                            onClick={() => handleDeclineRequest(request.id)}
+                            size="sm"
+                            variant="ghost"
+                            className="rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Outgoing Requests */}
+              {friendRequests.outgoing?.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium text-slate-400 mb-3">Sent Requests</h3>
+                  <div className="space-y-3">
+                    {friendRequests.outgoing.map((request) => (
+                      <div
+                        key={request.id}
+                        data-testid={`outgoing-request-${request.id}`}
+                        className="glass rounded-2xl p-4 flex items-center gap-4"
+                      >
+                        <div 
+                          className="cursor-pointer"
+                          onClick={() => navigate(`/profile/${request.to_user_id}`)}
+                        >
+                          <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-amber-500 transition-all">
+                            {request.avatar_url ? (
+                              <img
+                                src={request.avatar_url}
+                                alt={request.display_name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center">
+                                <span className="text-xl text-slate-400">
+                                  {request.display_name?.charAt(0) || "?"}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-white truncate">{request.display_name}</h4>
+                          <p className="text-slate-500 text-xs flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            Pending • {formatDate(request.created_at)}
+                          </p>
+                        </div>
+                        <Button
+                          data-testid={`cancel-${request.id}`}
+                          onClick={() => handleCancelRequest(request.id)}
+                          size="sm"
+                          variant="ghost"
+                          className="rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        ) : tab === "friends" ? (
+          /* Friends Tab */
+          friends.length === 0 ? (
+            <div className="text-center py-20">
+              <div className="w-20 h-20 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-4">
+                <UserCheck className="w-10 h-10 text-slate-600" />
+              </div>
+              <h2 className="text-xl font-semibold text-white mb-2">No friends yet</h2>
+              <p className="text-slate-400 mb-6">
+                Accept or send friend requests to add people here
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3" data-testid="friends-list">
+              {friends.map((friend) => (
+                <div
+                  key={friend.id}
+                  data-testid={`friend-${friend.id}`}
+                  onClick={() => navigate(`/chat/${friend.id}`)}
+                  className="glass rounded-2xl p-4 flex items-center gap-4 hover:bg-white/5 transition-colors cursor-pointer"
+                >
+                  <div 
+                    className="cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/profile/${friend.id}`);
+                    }}
+                  >
+                    <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-emerald-500 transition-all">
+                      {friend.avatar_url ? (
+                        <img
+                          src={friend.avatar_url}
+                          alt={friend.display_name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center">
+                          <span className="text-xl text-slate-400">
+                            {friend.display_name?.charAt(0) || "?"}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-white truncate">{friend.display_name}</h4>
+                    {friend.bio && (
+                      <p className="text-slate-400 text-sm truncate">{friend.bio}</p>
+                    )}
+                    <p className="text-slate-500 text-xs mt-1">
+                      Friends since {formatDate(friend.friends_since)}
+                    </p>
+                  </div>
+                  <Button
+                    data-testid={`message-friend-${friend.id}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/chat/${friend.id}`);
+                    }}
+                    className="rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white"
+                  >
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    Chat
+                  </Button>
                 </div>
               ))}
             </div>

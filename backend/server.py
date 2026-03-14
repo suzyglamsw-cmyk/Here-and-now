@@ -1101,7 +1101,10 @@ async def respond_to_friend_request(friend_id: str, accept: bool, current_user: 
         raise HTTPException(status_code=404, detail="Friend request not found")
     
     if accept:
-        await db.friends.update_one({"id": friend_id}, {"$set": {"status": "accepted"}})
+        await db.friends.update_one(
+            {"id": friend_id}, 
+            {"$set": {"status": "accepted", "accepted_at": datetime.now(timezone.utc).isoformat()}}
+        )
         return {"message": "Friend added"}
     else:
         await db.friends.delete_one({"id": friend_id})
@@ -1152,26 +1155,95 @@ async def remove_friend(user_id: str, current_user: dict = Depends(get_current_u
     
     return {"message": "Friend removed"}
 
+@api_router.delete("/friends/request/{request_id}")
+async def cancel_friend_request(request_id: str, current_user: dict = Depends(get_current_user)):
+    """Cancel a pending friend request I sent"""
+    result = await db.friends.delete_one({
+        "id": request_id,
+        "user1_id": current_user["id"],
+        "status": "pending"
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Friend request not found")
+    
+    return {"message": "Friend request cancelled"}
+
 @api_router.get("/friends/requests")
 async def get_friend_requests(current_user: dict = Depends(get_current_user)):
-    """Get pending friend requests"""
-    requests = await db.friends.find(
+    """Get all pending friend requests (both incoming and outgoing)"""
+    # Get incoming requests (others sent to me)
+    incoming = await db.friends.find(
         {"user2_id": current_user["id"], "status": "pending"},
         {"_id": 0}
     ).to_list(50)
     
-    result = []
-    for r in requests:
+    incoming_result = []
+    for r in incoming:
         user = await db.users.find_one({"id": r["user1_id"]}, {"_id": 0, "password": 0})
         if user:
-            result.append({
-                "friend_id": r["id"],
-                "user_id": user["id"],
+            incoming_result.append({
+                "id": r["id"],
+                "type": "incoming",
+                "from_user_id": user["id"],
                 "display_name": user["display_name"],
                 "avatar_url": user.get("avatar_url") or (user.get("photos", [""])[0] if user.get("photos") else ""),
                 "created_at": r["created_at"]
             })
-    return result
+    
+    # Get outgoing requests (I sent to others)
+    outgoing = await db.friends.find(
+        {"user1_id": current_user["id"], "status": "pending"},
+        {"_id": 0}
+    ).to_list(50)
+    
+    outgoing_result = []
+    for r in outgoing:
+        user = await db.users.find_one({"id": r["user2_id"]}, {"_id": 0, "password": 0})
+        if user:
+            outgoing_result.append({
+                "id": r["id"],
+                "type": "outgoing",
+                "to_user_id": user["id"],
+                "display_name": user["display_name"],
+                "avatar_url": user.get("avatar_url") or (user.get("photos", [""])[0] if user.get("photos") else ""),
+                "created_at": r["created_at"]
+            })
+    
+    return {
+        "incoming": incoming_result,
+        "outgoing": outgoing_result
+    }
+
+@api_router.get("/friends/list")
+async def get_friends_list(current_user: dict = Depends(get_current_user)):
+    """Get list of accepted friends"""
+    # Find all accepted friend relationships
+    friendships = await db.friends.find(
+        {
+            "$or": [
+                {"user1_id": current_user["id"], "status": "accepted"},
+                {"user2_id": current_user["id"], "status": "accepted"}
+            ]
+        },
+        {"_id": 0}
+    ).to_list(100)
+    
+    friends = []
+    for f in friendships:
+        # Get the other user's ID
+        friend_id = f["user2_id"] if f["user1_id"] == current_user["id"] else f["user1_id"]
+        user = await db.users.find_one({"id": friend_id}, {"_id": 0, "password": 0})
+        if user:
+            friends.append({
+                "id": friend_id,
+                "display_name": user["display_name"],
+                "avatar_url": user.get("avatar_url") or (user.get("photos", [""])[0] if user.get("photos") else ""),
+                "bio": user.get("bio", ""),
+                "friends_since": f.get("accepted_at", f["created_at"])
+            })
+    
+    return friends
 
 # ============================================
 # Blocking (Updated)
