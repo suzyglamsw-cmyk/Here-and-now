@@ -1185,18 +1185,48 @@ async def remove_friend(user_id: str, current_user: dict = Depends(get_current_u
     return {"message": "Friend removed"}
 
 @api_router.delete("/friends/request/{request_id}")
-async def cancel_friend_request(request_id: str, current_user: dict = Depends(get_current_user)):
-    """Cancel a pending friend request I sent"""
+async def delete_friend_request(request_id: str, current_user: dict = Depends(get_current_user)):
+    """Delete a friend request (sender can delete pending, receiver can delete any)"""
+    request = await db.friends.find_one({"id": request_id})
+    if not request:
+        raise HTTPException(status_code=404, detail="Friend request not found")
+    
+    is_sender = request["user1_id"] == current_user["id"]
+    is_receiver = request["user2_id"] == current_user["id"]
+    
+    if not is_sender and not is_receiver:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    await db.friends.delete_one({"id": request_id})
+    
+    return {"message": "Friend request deleted"}
+
+@api_router.delete("/friends/{friend_id}")
+async def remove_friend(friend_id: str, current_user: dict = Depends(get_current_user)):
+    """Remove a friend from your friends list"""
     result = await db.friends.delete_one({
-        "id": request_id,
-        "user1_id": current_user["id"],
-        "status": "pending"
+        "$or": [
+            {"user1_id": current_user["id"], "user2_id": friend_id, "status": "accepted"},
+            {"user1_id": friend_id, "user2_id": current_user["id"], "status": "accepted"}
+        ]
     })
     
     if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Friend request not found")
+        raise HTTPException(status_code=404, detail="Friend not found")
     
-    return {"message": "Friend request cancelled"}
+    return {"message": "Friend removed"}
+
+@api_router.delete("/messages/conversation/{other_user_id}")
+async def delete_conversation(other_user_id: str, current_user: dict = Depends(get_current_user)):
+    """Delete all messages in a conversation with another user"""
+    result = await db.messages.delete_many({
+        "$or": [
+            {"from_user_id": current_user["id"], "to_user_id": other_user_id},
+            {"from_user_id": other_user_id, "to_user_id": current_user["id"]}
+        ]
+    })
+    
+    return {"message": f"Deleted {result.deleted_count} messages"}
 
 @api_router.get("/friends/requests")
 async def get_friend_requests(current_user: dict = Depends(get_current_user)):
@@ -2757,6 +2787,23 @@ async def get_all_glances(current_user: dict = Depends(get_current_user)):
             })
     
     return {"incoming": incoming, "outgoing": outgoing}
+
+@api_router.delete("/glances/{glance_id}")
+async def delete_glance(glance_id: str, current_user: dict = Depends(get_current_user)):
+    """Delete a glance (sender or receiver can delete)"""
+    glance = await db.glances.find_one({"id": glance_id})
+    if not glance:
+        raise HTTPException(status_code=404, detail="Glance not found")
+    
+    is_sender = glance["from_user_id"] == current_user["id"]
+    is_receiver = glance["to_user_id"] == current_user["id"]
+    
+    if not is_sender and not is_receiver:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    await db.glances.delete_one({"id": glance_id})
+    
+    return {"message": "Glance removed"}
 
 @api_router.get("/connections/drinks")
 async def get_all_drinks(current_user: dict = Depends(get_current_user)):

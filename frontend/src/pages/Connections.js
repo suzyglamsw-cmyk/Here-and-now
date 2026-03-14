@@ -195,6 +195,55 @@ const Connections = () => {
     }
   };
 
+  const handleDeleteFriendRequest = async (requestId) => {
+    try {
+      await axios.delete(`${API}/friends/request/${requestId}`);
+      toast.success("Friend request removed");
+      fetchAllData();
+    } catch (error) {
+      toast.error("Failed to remove friend request");
+    }
+  };
+
+  const handleRemoveFriend = async (friendId) => {
+    try {
+      await axios.delete(`${API}/friends/${friendId}`);
+      toast.success("Friend removed");
+      fetchAllData();
+    } catch (error) {
+      toast.error("Failed to remove friend");
+    }
+  };
+
+  const handleDeleteConversation = async (otherUserId) => {
+    try {
+      await axios.delete(`${API}/messages/conversation/${otherUserId}`);
+      toast.success("Conversation deleted");
+      fetchAllData();
+    } catch (error) {
+      toast.error("Failed to delete conversation");
+    }
+  };
+
+  const handleDeleteGlance = async (glanceId) => {
+    try {
+      await axios.delete(`${API}/glances/${glanceId}`);
+      toast.success("Glance removed");
+      fetchAllData();
+    } catch (error) {
+      toast.error("Failed to remove glance");
+    }
+  };
+
+  // Sort helper - most recent first
+  const sortByDate = (items, dateField = "created_at") => {
+    return [...items].sort((a, b) => {
+      const dateA = new Date(a[dateField] || a.last_message_at || a.created_at || 0);
+      const dateB = new Date(b[dateField] || b.last_message_at || b.created_at || 0);
+      return dateB - dateA;
+    });
+  };
+
   const drinkDeclineOptions = [
     { key: "not_right_now", label: "Not right now, maybe later" },
     { key: "leaving_soon", label: "I'm about to head out" },
@@ -333,20 +382,16 @@ const Connections = () => {
             </div>
           ) : (
             <div className="space-y-3" data-testid="messages-list">
-              {messageThreads.map((thread) => (
+              {sortByDate(messageThreads, "last_message_at").map((thread) => (
                 <div
                   key={thread.user_id}
                   data-testid={`thread-${thread.user_id}`}
-                  onClick={() => navigate(`/chat/${thread.user_id}`)}
-                  className="glass rounded-2xl p-4 flex items-center gap-4 hover:bg-white/5 transition-colors cursor-pointer"
+                  className="glass rounded-2xl p-4 flex items-center gap-4"
                 >
                   {/* Avatar - tappable to profile */}
                   <div 
                     className="relative cursor-pointer"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/profile/${thread.user_id}`);
-                    }}
+                    onClick={() => navigate(`/profile/${thread.user_id}`)}
                   >
                     <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all">
                       <img
@@ -362,8 +407,11 @@ const Connections = () => {
                     )}
                   </div>
 
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
+                  {/* Info - tappable to chat */}
+                  <div 
+                    className="flex-1 min-w-0 cursor-pointer"
+                    onClick={() => navigate(`/chat/${thread.user_id}`)}
+                  >
                     <h3 className="font-semibold text-white truncate">{thread.display_name}</h3>
                     <p className={`text-sm truncate ${thread.unread_count > 0 ? "text-white font-medium" : "text-slate-400"}`}>
                       {thread.is_from_me && <span className="text-slate-500">You: </span>}
@@ -372,9 +420,20 @@ const Connections = () => {
                   </div>
 
                   {/* Time */}
-                  <div className="text-slate-500 text-xs">
+                  <div className="text-slate-500 text-xs mr-2">
                     {formatDate(thread.last_message_at)}
                   </div>
+
+                  {/* Delete button */}
+                  <Button
+                    data-testid={`delete-thread-${thread.user_id}`}
+                    onClick={(e) => { e.stopPropagation(); handleDeleteConversation(thread.user_id); }}
+                    size="sm"
+                    variant="ghost"
+                    className="rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
               ))}
             </div>
@@ -408,15 +467,17 @@ const Connections = () => {
                     Received ({glances.incoming.length})
                   </h3>
                   <div className="space-y-3">
-                    {glances.incoming.map((glance) => (
+                    {sortByDate(glances.incoming).map((glance) => (
                       <div
                         key={glance.id}
                         data-testid={`received-glance-${glance.id}`}
-                        onClick={() => navigate(`/profile/${glance.user_id}`)}
-                        className="glass rounded-2xl p-4 flex items-center gap-4 hover:bg-white/5 transition-colors cursor-pointer"
+                        className="glass rounded-2xl p-4 flex items-center gap-4"
                       >
-                        <div className="relative">
-                          <div className="w-14 h-14 rounded-2xl overflow-hidden">
+                        <div 
+                          className="relative cursor-pointer"
+                          onClick={() => navigate(`/profile/${glance.user_id}`)}
+                        >
+                          <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all">
                             {glance.avatar_url ? (
                               <img src={glance.avatar_url} alt={glance.display_name} className="w-full h-full object-cover" />
                             ) : (
@@ -448,6 +509,15 @@ const Connections = () => {
                             Glance Back
                           </Button>
                         )}
+                        <Button
+                          data-testid={`delete-glance-${glance.id}`}
+                          onClick={(e) => { e.stopPropagation(); handleDeleteGlance(glance.id); }}
+                          size="sm"
+                          variant="ghost"
+                          className="rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     ))}
                   </div>
@@ -462,15 +532,17 @@ const Connections = () => {
                     Sent ({glances.outgoing.length})
                   </h3>
                   <div className="space-y-3">
-                    {glances.outgoing.map((glance) => (
+                    {sortByDate(glances.outgoing).map((glance) => (
                       <div
                         key={glance.id}
                         data-testid={`sent-glance-${glance.id}`}
-                        onClick={() => navigate(`/profile/${glance.user_id}`)}
-                        className="glass rounded-2xl p-4 flex items-center gap-4 hover:bg-white/5 transition-colors cursor-pointer"
+                        className="glass rounded-2xl p-4 flex items-center gap-4"
                       >
-                        <div className="relative">
-                          <div className="w-14 h-14 rounded-2xl overflow-hidden">
+                        <div 
+                          className="relative cursor-pointer"
+                          onClick={() => navigate(`/profile/${glance.user_id}`)}
+                        >
+                          <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all">
                             {glance.avatar_url ? (
                               <img src={glance.avatar_url} alt={glance.display_name} className="w-full h-full object-cover" />
                             ) : (
@@ -491,6 +563,15 @@ const Connections = () => {
                             {glance.is_mutual ? "Mutual glance" : "Waiting for them to glance back"} • {formatDate(glance.created_at)}
                           </p>
                         </div>
+                        <Button
+                          data-testid={`delete-sent-glance-${glance.id}`}
+                          onClick={(e) => { e.stopPropagation(); handleDeleteGlance(glance.id); }}
+                          size="sm"
+                          variant="ghost"
+                          className="rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     ))}
                   </div>
@@ -520,7 +601,7 @@ const Connections = () => {
                     Received ({drinks.incoming.length})
                   </h3>
                   <div className="space-y-3">
-                    {drinks.incoming.map((drink) => (
+                    {sortByDate(drinks.incoming).map((drink) => (
                       <div
                         key={drink.id}
                         data-testid={`received-drink-${drink.id}`}
@@ -597,7 +678,7 @@ const Connections = () => {
                     Sent ({drinks.outgoing.length})
                   </h3>
                   <div className="space-y-3">
-                    {drinks.outgoing.map((drink) => (
+                    {sortByDate(drinks.outgoing).map((drink) => (
                       <div
                         key={drink.id}
                         data-testid={`sent-drink-${drink.id}`}
@@ -667,7 +748,7 @@ const Connections = () => {
                     Received ({chatRequests.incoming.length})
                   </h3>
                   <div className="space-y-3">
-                    {chatRequests.incoming.map((request) => (
+                    {sortByDate(chatRequests.incoming).map((request) => (
                       <div
                         key={request.id}
                         data-testid={`received-chat-${request.id}`}
@@ -765,7 +846,7 @@ const Connections = () => {
                     Sent ({chatRequests.outgoing.length})
                   </h3>
                   <div className="space-y-3">
-                    {chatRequests.outgoing.map((request) => (
+                    {sortByDate(chatRequests.outgoing).map((request) => (
                       <div
                         key={request.id}
                         data-testid={`sent-chat-${request.id}`}
@@ -855,7 +936,7 @@ const Connections = () => {
                 <div>
                   <h3 className="text-sm font-medium text-slate-400 mb-3">Incoming Requests</h3>
                   <div className="space-y-3">
-                    {friendRequests.incoming.map((request) => (
+                    {sortByDate(friendRequests.incoming).map((request) => (
                       <div
                         key={request.id}
                         data-testid={`incoming-request-${request.id}`}
@@ -897,13 +978,13 @@ const Connections = () => {
                             <Check className="w-4 h-4" />
                           </Button>
                           <Button
-                            data-testid={`decline-${request.id}`}
-                            onClick={() => handleDeclineRequest(request.id)}
+                            data-testid={`delete-incoming-request-${request.id}`}
+                            onClick={() => handleDeleteFriendRequest(request.id)}
                             size="sm"
                             variant="ghost"
                             className="rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10"
                           >
-                            <X className="w-4 h-4" />
+                            <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
                       </div>
@@ -917,7 +998,7 @@ const Connections = () => {
                 <div>
                   <h3 className="text-sm font-medium text-slate-400 mb-3">Sent Requests</h3>
                   <div className="space-y-3">
-                    {friendRequests.outgoing.map((request) => (
+                    {sortByDate(friendRequests.outgoing).map((request) => (
                       <div
                         key={request.id}
                         data-testid={`outgoing-request-${request.id}`}
@@ -951,13 +1032,13 @@ const Connections = () => {
                           </p>
                         </div>
                         <Button
-                          data-testid={`cancel-${request.id}`}
-                          onClick={() => handleCancelRequest(request.id)}
+                          data-testid={`delete-outgoing-request-${request.id}`}
+                          onClick={() => handleDeleteFriendRequest(request.id)}
                           size="sm"
                           variant="ghost"
                           className="rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10"
                         >
-                          Cancel
+                          <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
                     ))}
@@ -984,15 +1065,11 @@ const Connections = () => {
                 <div
                   key={friend.id}
                   data-testid={`friend-${friend.id}`}
-                  onClick={() => navigate(`/chat/${friend.id}`)}
-                  className="glass rounded-2xl p-4 flex items-center gap-4 hover:bg-white/5 transition-colors cursor-pointer"
+                  className="glass rounded-2xl p-4 flex items-center gap-4"
                 >
                   <div 
                     className="cursor-pointer"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/profile/${friend.id}`);
-                    }}
+                    onClick={() => navigate(`/profile/${friend.id}`)}
                   >
                     <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-emerald-500 transition-all">
                       {friend.avatar_url ? (
@@ -1010,7 +1087,10 @@ const Connections = () => {
                       )}
                     </div>
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div 
+                    className="flex-1 min-w-0 cursor-pointer"
+                    onClick={() => navigate(`/chat/${friend.id}`)}
+                  >
                     <h4 className="font-semibold text-white truncate">{friend.display_name}</h4>
                     {friend.bio && (
                       <p className="text-slate-400 text-sm truncate">{friend.bio}</p>
@@ -1029,6 +1109,15 @@ const Connections = () => {
                   >
                     <MessageCircle className="w-4 h-4 mr-2" />
                     Chat
+                  </Button>
+                  <Button
+                    data-testid={`remove-friend-${friend.id}`}
+                    onClick={(e) => { e.stopPropagation(); handleRemoveFriend(friend.id); }}
+                    size="sm"
+                    variant="ghost"
+                    className="rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                  >
+                    <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
               ))}
