@@ -5,7 +5,7 @@ import { useAuth, API } from "@/App";
 import { toast } from "sonner";
 import axios from "axios";
 import Layout from "../components/Layout";
-import { MessageCircle, MapPin, Loader2, Users, Sparkles, Eye, Heart, Wine, UserPlus, Check, X, Clock, UserCheck } from "lucide-react";
+import { MessageCircle, MapPin, Loader2, Users, Sparkles, Eye, Heart, Wine, UserPlus, Check, X, Clock, UserCheck, ArrowUpRight, ArrowDownLeft } from "lucide-react";
 
 const Connections = () => {
   const navigate = useNavigate();
@@ -15,8 +15,10 @@ const Connections = () => {
   const [messageThreads, setMessageThreads] = useState([]);
   const [friendRequests, setFriendRequests] = useState({ incoming: [], outgoing: [] });
   const [friends, setFriends] = useState([]);
+  const [glances, setGlances] = useState({ incoming: [], outgoing: [] });
+  const [drinks, setDrinks] = useState({ incoming: [], outgoing: [] });
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState("messages"); // "messages" | "mutual" | "requests" | "friends" | "connections"
+  const [tab, setTab] = useState("messages"); // "messages" | "glances" | "drinks" | "requests" | "friends" | "connections"
 
   useEffect(() => {
     fetchAllData();
@@ -24,18 +26,22 @@ const Connections = () => {
 
   const fetchAllData = async () => {
     try {
-      const [connectionsRes, mutualRes, threadsRes, requestsRes, friendsRes] = await Promise.all([
+      const [connectionsRes, mutualRes, threadsRes, requestsRes, friendsRes, glancesRes, drinksRes] = await Promise.all([
         axios.get(`${API}/connections`),
         axios.get(`${API}/connections/mutual-glances`),
         axios.get(`${API}/messages/threads`),
         axios.get(`${API}/friends/requests`),
-        axios.get(`${API}/friends/list`)
+        axios.get(`${API}/friends/list`),
+        axios.get(`${API}/connections/glances`),
+        axios.get(`${API}/connections/drinks`)
       ]);
       setConnections(connectionsRes.data);
       setMutualGlances(mutualRes.data);
       setMessageThreads(threadsRes.data);
       setFriendRequests(requestsRes.data);
       setFriends(friendsRes.data);
+      setGlances(glancesRes.data);
+      setDrinks(drinksRes.data);
     } catch (error) {
       console.error("Failed to load data:", error);
       toast.error("Failed to load connections");
@@ -62,6 +68,9 @@ const Connections = () => {
 
   const totalUnread = messageThreads.reduce((sum, t) => sum + t.unread_count, 0);
   const totalRequests = (friendRequests.incoming?.length || 0) + (friendRequests.outgoing?.length || 0);
+  const totalGlances = (glances.incoming?.length || 0) + (glances.outgoing?.length || 0);
+  const totalDrinks = (drinks.incoming?.length || 0) + (drinks.outgoing?.length || 0);
+  const pendingDrinks = drinks.incoming?.filter(d => d.status === "pending").length || 0;
 
   const handleAcceptRequest = async (requestId) => {
     try {
@@ -93,6 +102,26 @@ const Connections = () => {
     }
   };
 
+  const handleAcceptDrink = async (drinkId) => {
+    try {
+      await axios.post(`${API}/drinks/respond/${drinkId}?accept=true`);
+      toast.success("Drink offer accepted!");
+      fetchAllData();
+    } catch (error) {
+      toast.error("Failed to accept drink offer");
+    }
+  };
+
+  const handleDeclineDrink = async (drinkId) => {
+    try {
+      await axios.post(`${API}/drinks/respond/${drinkId}?accept=false`);
+      toast.success("Drink offer declined");
+      fetchAllData();
+    } catch (error) {
+      toast.error("Failed to decline drink offer");
+    }
+  };
+
   return (
     <Layout>
       <div className="max-w-4xl mx-auto px-4 py-6 pb-32" data-testid="connections-page">
@@ -119,16 +148,30 @@ const Connections = () => {
             )}
           </Button>
           <Button
-            data-testid="mutual-tab"
-            variant={tab === "mutual" ? "default" : "ghost"}
-            onClick={() => setTab("mutual")}
-            className={`rounded-xl flex-shrink-0 ${tab === "mutual" ? "bg-white/10" : "text-slate-400"}`}
+            data-testid="glances-tab"
+            variant={tab === "glances" ? "default" : "ghost"}
+            onClick={() => setTab("glances")}
+            className={`rounded-xl flex-shrink-0 ${tab === "glances" ? "bg-white/10" : "text-slate-400"}`}
           >
-            <Heart className="w-4 h-4 mr-2" />
-            Mutual
-            {mutualGlances.length > 0 && (
+            <Eye className="w-4 h-4 mr-2" />
+            Glances
+            {totalGlances > 0 && (
               <span className="ml-2 text-xs bg-indigo-500 px-2 py-0.5 rounded-full">
-                {mutualGlances.length}
+                {totalGlances}
+              </span>
+            )}
+          </Button>
+          <Button
+            data-testid="drinks-tab"
+            variant={tab === "drinks" ? "default" : "ghost"}
+            onClick={() => setTab("drinks")}
+            className={`rounded-xl flex-shrink-0 ${tab === "drinks" ? "bg-white/10" : "text-slate-400"}`}
+          >
+            <Wine className="w-4 h-4 mr-2" />
+            Drinks
+            {pendingDrinks > 0 && (
+              <span className="ml-2 text-xs bg-amber-500 px-2 py-0.5 rounded-full">
+                {pendingDrinks}
               </span>
             )}
           </Button>
@@ -235,16 +278,16 @@ const Connections = () => {
               ))}
             </div>
           )
-        ) : tab === "mutual" ? (
-          /* Mutual Glances Tab */
-          mutualGlances.length === 0 ? (
+        ) : tab === "glances" ? (
+          /* Glances Tab */
+          totalGlances === 0 ? (
             <div className="text-center py-20">
               <div className="w-20 h-20 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-4">
-                <Heart className="w-10 h-10 text-slate-600" />
+                <Eye className="w-10 h-10 text-slate-600" />
               </div>
-              <h2 className="text-xl font-semibold text-white mb-2">No mutual glances yet</h2>
+              <h2 className="text-xl font-semibold text-white mb-2">No glances yet</h2>
               <p className="text-slate-400 mb-6">
-                When you and someone else both glance at each other, they'll appear here
+                Glance at someone in a venue or receive glances to see them here
               </p>
               <Button
                 data-testid="find-venues-btn"
@@ -255,63 +298,221 @@ const Connections = () => {
               </Button>
             </div>
           ) : (
-            <div className="space-y-3" data-testid="mutual-glances-list">
-              {mutualGlances.map((glance) => (
-                <div
-                  key={glance.user_id}
-                  data-testid={`mutual-glance-${glance.user_id}`}
-                  onClick={() => navigate(`/profile/${glance.user_id}`)}
-                  className="glass rounded-2xl p-4 flex items-center gap-4 hover:bg-white/5 transition-colors cursor-pointer"
-                >
-                  {/* Avatar - tappable to profile */}
-                  <div className="relative">
-                    <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-pink-500 transition-all">
-                      <img
-                        src={glance.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200"}
-                        alt={glance.display_name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-pink-500 flex items-center justify-center">
-                      <Heart className="w-3 h-3 text-white" />
-                    </div>
-                  </div>
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-white truncate">{glance.display_name}</h3>
-                    {glance.bio && (
-                      <p className="text-slate-400 text-sm truncate">{glance.bio}</p>
-                    )}
-                    <p className="text-slate-500 text-xs mt-1">
-                      Mutual glance • {formatDate(glance.glanced_at)}
-                    </p>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                    <Button
-                      data-testid={`view-profile-${glance.user_id}`}
-                      onClick={() => navigate(`/profile/${glance.user_id}`)}
-                      variant="outline"
-                      size="sm"
-                      className="rounded-xl"
-                    >
-                      <Eye className="w-4 h-4 mr-1" />
-                      View
-                    </Button>
-                    <Button
-                      data-testid={`chat-btn-${glance.user_id}`}
-                      onClick={() => navigate(`/chat/${glance.user_id}`)}
-                      size="sm"
-                      className="rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white"
-                    >
-                      <MessageCircle className="w-4 h-4 mr-1" />
-                      Chat
-                    </Button>
+            <div className="space-y-6" data-testid="glances-list">
+              {/* Received Glances */}
+              {glances.incoming?.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium text-slate-400 mb-3 flex items-center gap-2">
+                    <ArrowDownLeft className="w-4 h-4" />
+                    Received ({glances.incoming.length})
+                  </h3>
+                  <div className="space-y-3">
+                    {glances.incoming.map((glance) => (
+                      <div
+                        key={glance.id}
+                        data-testid={`received-glance-${glance.id}`}
+                        onClick={() => navigate(`/profile/${glance.user_id}`)}
+                        className="glass rounded-2xl p-4 flex items-center gap-4 hover:bg-white/5 transition-colors cursor-pointer"
+                      >
+                        <div className="relative">
+                          <div className="w-14 h-14 rounded-2xl overflow-hidden">
+                            {glance.avatar_url ? (
+                              <img src={glance.avatar_url} alt={glance.display_name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-pink-500 flex items-center justify-center">
+                                <span className="text-xl text-white">{glance.display_name?.charAt(0) || "?"}</span>
+                              </div>
+                            )}
+                          </div>
+                          {glance.is_mutual && (
+                            <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-pink-500 flex items-center justify-center">
+                              <Heart className="w-3 h-3 text-white" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-white truncate">{glance.display_name}</h4>
+                          <p className="text-slate-500 text-xs">
+                            {glance.is_mutual ? "Mutual glance" : "Glanced at you"} • {formatDate(glance.created_at)}
+                          </p>
+                        </div>
+                        {!glance.is_mutual && (
+                          <Button
+                            data-testid={`glance-back-${glance.id}`}
+                            onClick={(e) => { e.stopPropagation(); navigate(`/profile/${glance.user_id}`); }}
+                            size="sm"
+                            className="rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white"
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            Glance Back
+                          </Button>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
+              )}
+              
+              {/* Sent Glances */}
+              {glances.outgoing?.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium text-slate-400 mb-3 flex items-center gap-2">
+                    <ArrowUpRight className="w-4 h-4" />
+                    Sent ({glances.outgoing.length})
+                  </h3>
+                  <div className="space-y-3">
+                    {glances.outgoing.map((glance) => (
+                      <div
+                        key={glance.id}
+                        data-testid={`sent-glance-${glance.id}`}
+                        onClick={() => navigate(`/profile/${glance.user_id}`)}
+                        className="glass rounded-2xl p-4 flex items-center gap-4 hover:bg-white/5 transition-colors cursor-pointer"
+                      >
+                        <div className="relative">
+                          <div className="w-14 h-14 rounded-2xl overflow-hidden">
+                            {glance.avatar_url ? (
+                              <img src={glance.avatar_url} alt={glance.display_name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center">
+                                <span className="text-xl text-slate-400">{glance.display_name?.charAt(0) || "?"}</span>
+                              </div>
+                            )}
+                          </div>
+                          {glance.is_mutual && (
+                            <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-pink-500 flex items-center justify-center">
+                              <Heart className="w-3 h-3 text-white" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-white truncate">{glance.display_name}</h4>
+                          <p className="text-slate-500 text-xs">
+                            {glance.is_mutual ? "Mutual glance" : "Waiting for them to glance back"} • {formatDate(glance.created_at)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        ) : tab === "drinks" ? (
+          /* Drinks Tab */
+          totalDrinks === 0 ? (
+            <div className="text-center py-20">
+              <div className="w-20 h-20 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-4">
+                <Wine className="w-10 h-10 text-slate-600" />
+              </div>
+              <h2 className="text-xl font-semibold text-white mb-2">No drink offers yet</h2>
+              <p className="text-slate-400 mb-6">
+                Send a drink offer to someone or receive one to see them here
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-6" data-testid="drinks-list">
+              {/* Received Drinks */}
+              {drinks.incoming?.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium text-slate-400 mb-3 flex items-center gap-2">
+                    <ArrowDownLeft className="w-4 h-4" />
+                    Received ({drinks.incoming.length})
+                  </h3>
+                  <div className="space-y-3">
+                    {drinks.incoming.map((drink) => (
+                      <div
+                        key={drink.id}
+                        data-testid={`received-drink-${drink.id}`}
+                        className="glass rounded-2xl p-4 flex items-center gap-4"
+                      >
+                        <div 
+                          className="cursor-pointer"
+                          onClick={() => navigate(`/profile/${drink.user_id}`)}
+                        >
+                          <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-amber-500 transition-all">
+                            {drink.avatar_url ? (
+                              <img src={drink.avatar_url} alt={drink.display_name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+                                <span className="text-xl text-white">{drink.display_name?.charAt(0) || "?"}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-white truncate">{drink.display_name}</h4>
+                          {drink.message && (
+                            <p className="text-slate-400 text-sm truncate">"{drink.message}"</p>
+                          )}
+                          <p className="text-slate-500 text-xs mt-1">
+                            {drink.status === "pending" ? "🍸 Offered you a drink" : drink.status === "accepted" ? "✅ Accepted" : "❌ Declined"} • {formatDate(drink.created_at)}
+                          </p>
+                        </div>
+                        {drink.status === "pending" && (
+                          <div className="flex gap-2">
+                            <Button
+                              data-testid={`accept-drink-${drink.id}`}
+                              onClick={() => handleAcceptDrink(drink.id)}
+                              size="sm"
+                              className="rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white"
+                            >
+                              <Check className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              data-testid={`decline-drink-${drink.id}`}
+                              onClick={() => handleDeclineDrink(drink.id)}
+                              size="sm"
+                              variant="ghost"
+                              className="rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Sent Drinks */}
+              {drinks.outgoing?.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium text-slate-400 mb-3 flex items-center gap-2">
+                    <ArrowUpRight className="w-4 h-4" />
+                    Sent ({drinks.outgoing.length})
+                  </h3>
+                  <div className="space-y-3">
+                    {drinks.outgoing.map((drink) => (
+                      <div
+                        key={drink.id}
+                        data-testid={`sent-drink-${drink.id}`}
+                        onClick={() => navigate(`/profile/${drink.user_id}`)}
+                        className="glass rounded-2xl p-4 flex items-center gap-4 hover:bg-white/5 transition-colors cursor-pointer"
+                      >
+                        <div className="w-14 h-14 rounded-2xl overflow-hidden">
+                          {drink.avatar_url ? (
+                            <img src={drink.avatar_url} alt={drink.display_name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center">
+                              <span className="text-xl text-slate-400">{drink.display_name?.charAt(0) || "?"}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-white truncate">{drink.display_name}</h4>
+                          {drink.message && (
+                            <p className="text-slate-400 text-sm truncate">"{drink.message}"</p>
+                          )}
+                          <p className="text-slate-500 text-xs mt-1">
+                            {drink.status === "pending" ? "⏳ Pending" : drink.status === "accepted" ? "✅ Accepted" : "❌ Declined"} • {formatDate(drink.created_at)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )
         ) : tab === "requests" ? (

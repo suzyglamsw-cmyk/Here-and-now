@@ -2657,6 +2657,104 @@ async def get_mutual_glances(current_user: dict = Depends(get_current_user)):
     
     return mutual_glances
 
+@api_router.get("/connections/glances")
+async def get_all_glances(current_user: dict = Depends(get_current_user)):
+    """Get all glances - both sent and received"""
+    # Glances I sent
+    sent_glances = await db.glances.find({"from_user_id": current_user["id"]}, {"_id": 0}).to_list(100)
+    outgoing = []
+    for glance in sent_glances:
+        user = await db.users.find_one({"id": glance["to_user_id"]}, {"_id": 0, "password": 0})
+        if not user and IS_TEST_BUILD:
+            fake_user = next((u for u in FAKE_TEST_USERS if u["id"] == glance["to_user_id"]), None)
+            if fake_user:
+                user = {"id": fake_user["id"], "display_name": fake_user["display_name"], "avatar_url": fake_user.get("avatar_url", "")}
+        if user:
+            # Check if they glanced back
+            glanced_back = await db.glances.find_one({
+                "from_user_id": glance["to_user_id"],
+                "to_user_id": current_user["id"]
+            }) is not None
+            outgoing.append({
+                "id": glance["id"],
+                "user_id": user["id"],
+                "display_name": user.get("display_name", "Someone"),
+                "avatar_url": user.get("avatar_url", ""),
+                "created_at": glance["created_at"],
+                "is_mutual": glanced_back
+            })
+    
+    # Glances I received
+    received_glances = await db.glances.find({"to_user_id": current_user["id"]}, {"_id": 0}).to_list(100)
+    incoming = []
+    for glance in received_glances:
+        user = await db.users.find_one({"id": glance["from_user_id"]}, {"_id": 0, "password": 0})
+        if not user and IS_TEST_BUILD:
+            fake_user = next((u for u in FAKE_TEST_USERS if u["id"] == glance["from_user_id"]), None)
+            if fake_user:
+                user = {"id": fake_user["id"], "display_name": fake_user["display_name"], "avatar_url": fake_user.get("avatar_url", "")}
+        if user:
+            # Check if I glanced back
+            i_glanced_back = await db.glances.find_one({
+                "from_user_id": current_user["id"],
+                "to_user_id": glance["from_user_id"]
+            }) is not None
+            incoming.append({
+                "id": glance["id"],
+                "user_id": user["id"],
+                "display_name": user.get("display_name", "Someone"),
+                "avatar_url": user.get("avatar_url", ""),
+                "created_at": glance["created_at"],
+                "is_mutual": i_glanced_back
+            })
+    
+    return {"incoming": incoming, "outgoing": outgoing}
+
+@api_router.get("/connections/drinks")
+async def get_all_drinks(current_user: dict = Depends(get_current_user)):
+    """Get all drink offers - both sent and received"""
+    # Drinks I sent
+    sent_drinks = await db.drink_offers.find({"from_user_id": current_user["id"]}, {"_id": 0}).to_list(100)
+    outgoing = []
+    for drink in sent_drinks:
+        user = await db.users.find_one({"id": drink["to_user_id"]}, {"_id": 0, "password": 0})
+        if not user and IS_TEST_BUILD:
+            fake_user = next((u for u in FAKE_TEST_USERS if u["id"] == drink["to_user_id"]), None)
+            if fake_user:
+                user = {"id": fake_user["id"], "display_name": fake_user["display_name"], "avatar_url": fake_user.get("avatar_url", "")}
+        if user:
+            outgoing.append({
+                "id": drink["id"],
+                "user_id": user["id"],
+                "display_name": user.get("display_name", "Someone"),
+                "avatar_url": user.get("avatar_url", ""),
+                "message": drink.get("message", ""),
+                "status": drink.get("status", "pending"),
+                "created_at": drink["created_at"]
+            })
+    
+    # Drinks I received
+    received_drinks = await db.drink_offers.find({"to_user_id": current_user["id"]}, {"_id": 0}).to_list(100)
+    incoming = []
+    for drink in received_drinks:
+        user = await db.users.find_one({"id": drink["from_user_id"]}, {"_id": 0, "password": 0})
+        if not user and IS_TEST_BUILD:
+            fake_user = next((u for u in FAKE_TEST_USERS if u["id"] == drink["from_user_id"]), None)
+            if fake_user:
+                user = {"id": fake_user["id"], "display_name": fake_user["display_name"], "avatar_url": fake_user.get("avatar_url", "")}
+        if user:
+            incoming.append({
+                "id": drink["id"],
+                "user_id": user["id"],
+                "display_name": user.get("display_name", "Someone"),
+                "avatar_url": user.get("avatar_url", ""),
+                "message": drink.get("message", ""),
+                "status": drink.get("status", "pending"),
+                "created_at": drink["created_at"]
+            })
+    
+    return {"incoming": incoming, "outgoing": outgoing}
+
 @api_router.get("/messages/threads")
 async def get_message_threads(current_user: dict = Depends(get_current_user)):
     """Get all message threads with last message preview"""
