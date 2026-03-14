@@ -466,6 +466,8 @@ class WhoIsHereUser(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str
     display_name: str
+    first_name: Optional[str] = None
+    age: Optional[int] = None
     avatar_url: str
     bio: str = ""
     interests: List[str] = []
@@ -1405,6 +1407,35 @@ async def enable_bypass_limits(current_user: dict = Depends(get_current_user)):
     )
     return {"message": "Bypass limits enabled", "daily_glances_remaining": 999}
 
+@api_router.post("/test/populate-venue/{venue_id}")
+async def populate_venue_with_fake_users(venue_id: str, current_user: dict = Depends(get_current_user)):
+    """Populate a venue with fake users for testing"""
+    if not IS_TEST_BUILD:
+        raise HTTPException(status_code=403, detail="Test mode only")
+    
+    # Clear existing fake checkins
+    await db.checkins.delete_many({"venue_id": venue_id, "user_id": {"$regex": "^fake-"}})
+    
+    # Create checkins for fake users
+    now = datetime.now(timezone.utc)
+    fake_checkins = []
+    for fake_user in FAKE_TEST_USERS:
+        checkin = {
+            "id": str(uuid.uuid4()),
+            "user_id": fake_user["id"],
+            "venue_id": venue_id,
+            "is_open_area": False,
+            "checked_in_at": now.isoformat(),
+            "last_activity_at": now.isoformat(),
+            "is_active": True
+        }
+        fake_checkins.append(checkin)
+    
+    if fake_checkins:
+        await db.checkins.insert_many(fake_checkins)
+    
+    return {"message": f"Populated venue with {len(fake_checkins)} fake users", "venue_id": venue_id}
+
 @api_router.get("/test/fake-users")
 async def get_fake_users(current_user: dict = Depends(get_current_user)):
     """Get fake test users (test mode only)"""
@@ -1720,11 +1751,22 @@ async def get_venues(current_user: dict = Depends(get_current_user)):
         venue["checked_in_count"] = count
     return venues
 
-@api_router.get("/venues/{venue_id}", response_model=VenueResponse)
+@api_router.get("/venues/{venue_id}")
 async def get_venue(venue_id: str, current_user: dict = Depends(get_current_user)):
     venue = await db.venues.find_one({"id": venue_id}, {"_id": 0})
     if not venue:
-        raise HTTPException(status_code=404, detail="Venue not found")
+        # Create a placeholder venue if it doesn't exist
+        venue = {
+            "id": venue_id,
+            "name": "Venue",
+            "type": "venue",
+            "address": "",
+            "latitude": 0,
+            "longitude": 0,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.venues.insert_one(venue)
+    
     count = await db.checkins.count_documents({"venue_id": venue_id, "is_active": True})
     venue["checked_in_count"] = count
     return venue
@@ -1748,6 +1790,21 @@ async def check_in(venue_id: str, current_user: dict = Depends(get_current_user)
         {"user_id": current_user["id"], "is_active": True},
         {"$set": {"is_active": False, "checked_out_at": datetime.now(timezone.utc).isoformat()}}
     )
+    
+    # Check if venue exists, if not create a placeholder
+    venue = await db.venues.find_one({"id": venue_id})
+    if not venue:
+        # Create a placeholder venue - the frontend can update it with Google Places data
+        venue = {
+            "id": venue_id,
+            "name": "Venue",  # Placeholder
+            "type": "venue",
+            "address": "",
+            "latitude": 0,
+            "longitude": 0,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.venues.insert_one(venue)
     
     now = datetime.now(timezone.utc)
     checkin_id = str(uuid.uuid4())
@@ -1774,7 +1831,7 @@ async def check_in(venue_id: str, current_user: dict = Depends(get_current_user)
         }
     })
     
-    return {"message": "Checked in successfully", "checkin_id": checkin_id}
+    return {"message": "Checked in successfully", "checkin_id": checkin_id, "venue_id": venue_id}
 
 @api_router.post("/checkout")
 async def check_out(current_user: dict = Depends(get_current_user)):
@@ -1798,6 +1855,36 @@ async def get_current_checkin(current_user: dict = Depends(get_current_user)):
     venue = await db.venues.find_one({"id": checkin["venue_id"]}, {"_id": 0})
     return {"checked_in": True, "checkin": checkin, "venue": venue}
 
+@api_router.put("/venues/{venue_id}")
+async def update_venue(venue_id: str, data: dict, current_user: dict = Depends(get_current_user)):
+    """Update venue details (e.g., from Google Places data)"""
+    update_fields = {}
+    if data.get("name"):
+        update_fields["name"] = data["name"]
+    if data.get("address"):
+        update_fields["address"] = data["address"]
+    if data.get("type"):
+        update_fields["type"] = data["type"]
+    if data.get("latitude") is not None:
+        update_fields["latitude"] = data["latitude"]
+    if data.get("longitude") is not None:
+        update_fields["longitude"] = data["longitude"]
+    if data.get("photo_url"):
+        update_fields["photo_url"] = data["photo_url"]
+    if data.get("rating") is not None:
+        update_fields["rating"] = data["rating"]
+    
+    if update_fields:
+        # Upsert - create if doesn't exist
+        result = await db.venues.update_one(
+            {"id": venue_id},
+            {"$set": update_fields, "$setOnInsert": {"id": venue_id, "created_at": datetime.now(timezone.utc).isoformat()}},
+            upsert=True
+        )
+        
+    venue = await db.venues.find_one({"id": venue_id}, {"_id": 0})
+    return venue or {"id": venue_id, **update_fields}
+
 # Who's Here Routes
 @api_router.get("/venues/{venue_id}/people", response_model=List[WhoIsHereUser])
 async def get_people_at_venue(venue_id: str, current_user: dict = Depends(get_current_user)):
@@ -1808,21 +1895,35 @@ async def get_people_at_venue(venue_id: str, current_user: dict = Depends(get_cu
         if checkin["user_id"] == current_user["id"]:
             continue
         
+        # Try to find real user first
         user = await db.users.find_one({"id": checkin["user_id"], "is_visible": True}, {"_id": 0, "password": 0})
+        
+        # Check fake users for test mode
+        if not user and IS_TEST_BUILD:
+            fake_user = next((u for u in FAKE_TEST_USERS if u["id"] == checkin["user_id"]), None)
+            if fake_user:
+                user = {
+                    "id": fake_user["id"],
+                    "display_name": fake_user["display_name"],
+                    "avatar_url": fake_user.get("avatar_url", ""),
+                    "bio": "",
+                    "age": fake_user.get("age"),
+                    "interests": [],
+                    "is_visible": True
+                }
+        
         if not user:
             continue
         
         # Check glance status
         has_glanced_at_me = await db.glances.find_one({
             "from_user_id": checkin["user_id"],
-            "to_user_id": current_user["id"],
-            "venue_id": venue_id
+            "to_user_id": current_user["id"]
         }) is not None
         
         i_glanced_at = await db.glances.find_one({
             "from_user_id": current_user["id"],
-            "to_user_id": checkin["user_id"],
-            "venue_id": venue_id
+            "to_user_id": checkin["user_id"]
         }) is not None
         
         # Check connection status
@@ -3399,10 +3500,17 @@ async def run_auto_checkout():
 @api_router.get("/glances/remaining")
 async def get_remaining_glances(current_user: dict = Depends(get_current_user)):
     """Get remaining daily glances"""
+    # Unlimited glances in test mode or with bypass flag
+    if IS_TEST_BUILD or current_user.get("bypass_glance_limits", False):
+        remaining = TEST_MODE_GLANCES
+    else:
+        remaining = current_user.get("daily_glances_remaining", FREE_DAILY_GLANCES)
+    
     return {
-        "remaining": current_user.get("daily_glances_remaining", FREE_DAILY_GLANCES),
+        "remaining": remaining,
         "is_premium": current_user.get("is_premium", False),
-        "max_daily": PREMIUM_DAILY_GLANCES if current_user.get("is_premium") else FREE_DAILY_GLANCES
+        "max_daily": PREMIUM_DAILY_GLANCES if current_user.get("is_premium") else FREE_DAILY_GLANCES,
+        "bypass_enabled": IS_TEST_BUILD or current_user.get("bypass_glance_limits", False)
     }
 
 # ============================================

@@ -19,6 +19,9 @@ import {
   MoreVertical,
   Ban,
   Flag,
+  Crown,
+  Coins,
+  X,
 } from "lucide-react";
 import {
   Dialog,
@@ -171,9 +174,11 @@ const WhosHere = () => {
     }
   };
 
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+
   const handleGlance = async (personId) => {
     if (glancesRemaining <= 0) {
-      toast.error("No glances remaining today. Upgrade to Premium for more!");
+      setShowUpgradePrompt(true);
       return;
     }
     setGlancing(personId);
@@ -194,7 +199,11 @@ const WhosHere = () => {
       }
       fetchPeople();
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Failed to send glance");
+      if (error.response?.data?.detail === "no_glances_remaining") {
+        setShowUpgradePrompt(true);
+      } else {
+        toast.error(error.response?.data?.detail || "Failed to send glance");
+      }
     } finally {
       setGlancing(null);
     }
@@ -513,6 +522,58 @@ const WhosHere = () => {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* No Glances Remaining Prompt */}
+        {showUpgradePrompt && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+            <div className="glass rounded-3xl p-6 max-w-sm w-full relative">
+              <button
+                onClick={() => setShowUpgradePrompt(false)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 rounded-full bg-amber-500/20 flex items-center justify-center mx-auto mb-4">
+                  <Eye className="w-8 h-8 text-amber-400" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">No Glances Left</h3>
+                <p className="text-slate-400 text-sm">
+                  You've used all your daily glances. Get more to keep connecting!
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <Button
+                  data-testid="upgrade-premium-btn"
+                  onClick={() => {
+                    setShowUpgradePrompt(false);
+                    navigate("/premium");
+                  }}
+                  className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-pink-500 text-white font-semibold h-12"
+                >
+                  <Crown className="w-4 h-4 mr-2" />
+                  Upgrade to Premium
+                  <span className="ml-2 text-xs opacity-80">20 glances/day</span>
+                </Button>
+                
+                <Button
+                  data-testid="buy-tokens-btn"
+                  onClick={() => {
+                    setShowUpgradePrompt(false);
+                    navigate("/tokens");
+                  }}
+                  variant="outline"
+                  className="w-full rounded-xl h-12"
+                >
+                  <Coins className="w-4 h-4 mr-2" />
+                  Buy Glance Tokens
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );

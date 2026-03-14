@@ -118,11 +118,30 @@ const Venues = () => {
     }
   };
 
-  const handleCheckIn = async (venueId, venueName) => {
+  const handleCheckIn = async (venueId, venue) => {
     setCheckingIn(venueId);
     try {
+      // First check in to the venue
       await axios.post(`${API}/checkin/${venueId}`);
-      toast.success(`Checked in to ${venueName || 'venue'}!`);
+      
+      // Then save the venue details if we have them
+      if (venue && (venue.name || venue.address)) {
+        try {
+          await axios.put(`${API}/venues/${venueId}`, {
+            name: venue.name || "Unknown Venue",
+            address: venue.address || venue.vicinity || "",
+            type: venue.type || venue.types?.[0] || "venue",
+            latitude: venue.location?.lat || venue.lat,
+            longitude: venue.location?.lng || venue.lng,
+            photo_url: venue.photo_url,
+            rating: venue.rating
+          });
+        } catch (e) {
+          console.error("Failed to save venue details:", e);
+        }
+      }
+      
+      toast.success(`Checked in to ${venue?.name || 'venue'}!`);
       navigate(`/venue/${venueId}`);
     } catch (error) {
       toast.error("Failed to check in");
@@ -370,7 +389,7 @@ const Venues = () => {
 
                   <Button
                     data-testid={`checkin-btn-${venue.place_id || venue.id}`}
-                    onClick={() => handleCheckIn(venue.place_id || venue.id, venue.name)}
+                    onClick={() => handleCheckIn(venue.place_id || venue.id, venue)}
                     disabled={checkingIn === (venue.place_id || venue.id)}
                     className="w-full h-11 rounded-xl bg-white text-slate-900 font-semibold hover:bg-slate-100 transition-all active:scale-[0.98]"
                   >
