@@ -22,6 +22,7 @@ import Legal from "./pages/Legal";
 import Friends from "./pages/Friends";
 import TestTools from "./pages/TestTools";
 import AdminReports from "./pages/AdminReports";
+import UserProfile from "./pages/UserProfile";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
@@ -241,6 +242,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AdminReports />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile/:userId"
+              element={
+                <ProtectedRoute>
+                  <UserProfile />
                 </ProtectedRoute>
               }
             />

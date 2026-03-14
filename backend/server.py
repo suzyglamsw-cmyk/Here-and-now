@@ -686,6 +686,42 @@ async def delete_photo(slot: int, current_user: dict = Depends(get_current_user)
     
     return {"message": "Photo deleted", "slot": slot}
 
+@api_router.post("/photos/make-main/{slot}")
+async def make_main_photo(slot: int, current_user: dict = Depends(get_current_user)):
+    """Make a photo the main photo (move to slot 0)"""
+    if slot < 1 or slot > 2:
+        raise HTTPException(status_code=400, detail="Invalid slot. Use 1 or 2.")
+    
+    photos = current_user.get("photos", ["", "", ""])
+    if len(photos) < 3:
+        photos = photos + [""] * (3 - len(photos))
+    
+    if not photos[slot]:
+        raise HTTPException(status_code=400, detail="No photo in this slot")
+    
+    # Swap the photos: move selected to index 0, move current 0 to selected slot
+    old_main = photos[0]
+    photos[0] = photos[slot]
+    photos[slot] = old_main
+    
+    # Update slot numbers in photos collection
+    # Get the photo IDs
+    slot_0_photo = await db.photos.find_one({"user_id": current_user["id"], "slot": 0})
+    slot_n_photo = await db.photos.find_one({"user_id": current_user["id"], "slot": slot})
+    
+    if slot_n_photo:
+        await db.photos.update_one({"id": slot_n_photo["id"]}, {"$set": {"slot": 0}})
+    if slot_0_photo:
+        await db.photos.update_one({"id": slot_0_photo["id"]}, {"$set": {"slot": slot}})
+    
+    # Update user's photos array and avatar_url
+    await db.users.update_one(
+        {"id": current_user["id"]},
+        {"$set": {"photos": photos, "avatar_url": photos[0]}}
+    )
+    
+    return {"message": "Photo set as main", "photos": photos}
+
 @api_router.get("/photos/user/{user_id}")
 async def get_user_photos(user_id: str, current_user: dict = Depends(get_current_user)):
     """Get all photos for a user"""
@@ -1975,6 +2011,154 @@ async def get_connections(current_user: dict = Depends(get_current_user)):
             })
     
     return result
+
+@api_router.get("/connections/mutual-glances")
+async def get_mutual_glances(current_user: dict = Depends(get_current_user)):
+    """Get users who have mutual glances with the current user"""
+    # Find all glances TO the current user
+    glances_to_me = await db.glances.find({"to_user_id": current_user["id"]}, {"_id": 0}).to_list(100)
+    
+    mutual_glances = []
+    seen_users = set()
+    
+    for glance in glances_to_me:
+        from_user_id = glance["from_user_id"]
+        
+        # Skip if already processed
+        if from_user_id in seen_users:
+            continue
+        
+        # Check if I glanced back at this user
+        my_glance = await db.glances.find_one({
+            "from_user_id": current_user["id"],
+            "to_user_id": from_user_id
+        })
+        
+        if my_glance:
+            seen_users.add(from_user_id)
+            
+            # Get user info
+            user = await db.users.find_one({"id": from_user_id}, {"_id": 0, "password": 0})
+            
+            # Check fake users for test mode
+            if not user and IS_TEST_BUILD:
+                fake_user = next((u for u in FAKE_TEST_USERS if u["id"] == from_user_id), None)
+                if fake_user:
+                    user = fake_user
+            
+            if user:
+                mutual_glances.append({
+                    "user_id": user.get("id"),
+                    "display_name": user.get("display_name", "Someone"),
+                    "avatar_url": user.get("avatar_url", ""),
+                    "bio": user.get("bio", ""),
+                    "glanced_at": glance["created_at"]
+                })
+    
+    return mutual_glances
+
+@api_router.get("/messages/threads")
+async def get_message_threads(current_user: dict = Depends(get_current_user)):
+    """Get all message threads with last message preview"""
+    # Get all messages involving the current user
+    messages = await db.messages.find({
+        "$or": [
+            {"from_user_id": current_user["id"]},
+            {"to_user_id": current_user["id"]}
+        ]
+    }, {"_id": 0}).sort("created_at", -1).to_list(500)
+    
+    # Group by other user
+    threads = {}
+    for msg in messages:
+        other_user_id = msg["to_user_id"] if msg["from_user_id"] == current_user["id"] else msg["from_user_id"]
+        
+        if other_user_id not in threads:
+            threads[other_user_id] = {
+                "last_message": msg,
+                "unread_count": 0
+            }
+        
+        # Count unread messages from other user
+        if msg["from_user_id"] == other_user_id and not msg.get("is_read", False):
+            threads[other_user_id]["unread_count"] += 1
+    
+    # Build result with user info
+    result = []
+    for other_user_id, thread_data in threads.items():
+        user = await db.users.find_one({"id": other_user_id}, {"_id": 0, "password": 0})
+        
+        # Check fake users for test mode
+        if not user and IS_TEST_BUILD:
+            fake_user = next((u for u in FAKE_TEST_USERS if u["id"] == other_user_id), None)
+            if fake_user:
+                user = fake_user
+        
+        if user:
+            last_msg = thread_data["last_message"]
+            result.append({
+                "user_id": user.get("id"),
+                "display_name": user.get("display_name", "Someone"),
+                "avatar_url": user.get("avatar_url", ""),
+                "last_message": last_msg.get("content", "")[:50],
+                "last_message_at": last_msg.get("created_at"),
+                "unread_count": thread_data["unread_count"],
+                "is_from_me": last_msg["from_user_id"] == current_user["id"]
+            })
+    
+    # Sort by last message time
+    result.sort(key=lambda x: x.get("last_message_at", ""), reverse=True)
+    return result
+
+@api_router.get("/users/{user_id}/profile")
+async def get_user_profile(user_id: str, current_user: dict = Depends(get_current_user)):
+    """Get a user's profile without counting as a glance"""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0})
+    
+    # Check fake users for test mode
+    if not user and IS_TEST_BUILD:
+        fake_user = next((u for u in FAKE_TEST_USERS if u["id"] == user_id), None)
+        if fake_user:
+            user = {
+                "id": fake_user["id"],
+                "display_name": fake_user["display_name"],
+                "avatar_url": fake_user.get("avatar_url", ""),
+                "age": fake_user.get("age"),
+                "bio": "",
+                "interests": [],
+                "is_test": True
+            }
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Check glance status
+    they_glanced_at_me = await db.glances.find_one({
+        "from_user_id": user_id,
+        "to_user_id": current_user["id"]
+    }) is not None
+    
+    i_glanced_at_them = await db.glances.find_one({
+        "from_user_id": current_user["id"],
+        "to_user_id": user_id
+    }) is not None
+    
+    is_mutual = they_glanced_at_me and i_glanced_at_them
+    
+    return {
+        "id": user.get("id"),
+        "display_name": user.get("display_name"),
+        "avatar_url": user.get("avatar_url", ""),
+        "bio": user.get("bio", ""),
+        "age": user.get("age"),
+        "interests": user.get("interests", []),
+        "photos": user.get("photos", []),
+        "they_glanced_at_me": they_glanced_at_me,
+        "i_glanced_at_them": i_glanced_at_them,
+        "is_mutual": is_mutual,
+        "can_glance_back": they_glanced_at_me and not i_glanced_at_them
+    }
+
 
 # Message Routes
 @api_router.post("/messages")

@@ -224,6 +224,25 @@ const Settings = () => {
     }
   };
 
+  const makeMainPhoto = async (index) => {
+    if (index === 0) return; // Already main
+    setUploadingSlot(index);
+    try {
+      const response = await axios.post(`${API}/photos/make-main/${index}`);
+      const newPhotos = response.data.photos;
+      setFormData({ ...formData, photos: newPhotos });
+      
+      // Update user context with new photos and avatar
+      updateUser({ photos: newPhotos, avatar_url: newPhotos[0] });
+      
+      toast.success("Photo set as main!");
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to set main photo");
+    } finally {
+      setUploadingSlot(null);
+    }
+  };
+
   const toggleInterest = (interest) => {
     setFormData((prev) => ({
       ...prev,
@@ -334,15 +353,28 @@ const Settings = () => {
                             alt={`Photo ${index + 1}`}
                             className="w-full h-full object-cover"
                           />
-                          <button
-                            type="button"
-                            onClick={() => removePhoto(index)}
-                            disabled={uploadingSlot !== null}
-                            className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                            data-testid={`remove-photo-${index}`}
-                          >
-                            <span className="text-white text-xs">Remove</span>
-                          </button>
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+                            {index !== 0 && (
+                              <button
+                                type="button"
+                                onClick={() => makeMainPhoto(index)}
+                                disabled={uploadingSlot !== null}
+                                className="text-white text-xs bg-indigo-500 hover:bg-indigo-600 px-2 py-1 rounded-full"
+                                data-testid={`make-main-photo-${index}`}
+                              >
+                                Make Main
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => removePhoto(index)}
+                              disabled={uploadingSlot !== null}
+                              className="text-white text-xs bg-red-500/80 hover:bg-red-600 px-2 py-1 rounded-full"
+                              data-testid={`remove-photo-${index}`}
+                            >
+                              Remove
+                            </button>
+                          </div>
                         </div>
                       ) : (
                         <label

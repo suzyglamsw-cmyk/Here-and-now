@@ -7,15 +7,16 @@ Real-time, Location-based, Low-pressure, Spontaneous, Venue-focused, Privacy-saf
 
 ### Core Features
 - [x] JWT authentication
-- [x] Profile with 3 photos
+- [x] Profile with 3 photos + "Make Main Photo" feature
 - [x] Venue discovery (Google Places)
 - [x] Check-in/checkout
 - [x] Glance & Reveal
 - [x] Drink tokens
-- [x] Connections & Chat
+- [x] Connections & Chat (with Mutual Glances + Messages tabs)
 - [x] Friends list
 - [x] Block/Report
 - [x] Account deletion
+- [x] User profile page (view without counting glance)
 
 ### Premium System
 - Stripe payments (web)
@@ -83,7 +84,18 @@ IS_TEST_BUILD=true
 - push_subscriptions, push_settings, push_queue
 - places_cache, google_play_purchases
 
-## API Endpoints (75+)
+## API Endpoints (80+)
+
+### Photos
+- POST /api/photos/upload/{slot} - Upload photo to slot (0-2)
+- DELETE /api/photos/{slot} - Delete photo
+- POST /api/photos/make-main/{slot} - Move photo to slot 0
+
+### Connections
+- GET /api/connections - All connections
+- GET /api/connections/mutual-glances - Users with mutual glances
+- GET /api/messages/threads - Message threads with preview
+- GET /api/users/{user_id}/profile - View profile (no glance counted)
 
 ### Messages (with read receipts)
 - GET /api/messages/{user_id} - Get conversation (marks as read)

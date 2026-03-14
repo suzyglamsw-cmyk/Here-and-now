@@ -182,50 +182,88 @@ const Notifications = () => {
                     {notification.type === "mutual_glance" && (
                       <>
                         <p className="text-white font-medium">
-                          You matched with {notification.user?.display_name}!
+                          You matched with {notification.user?.display_name || notification.from_user?.display_name}!
                         </p>
                         <p className="text-slate-400 text-sm mt-1">
                           You can now chat with them
                         </p>
+                        <div className="mt-2 flex gap-2">
+                          <Button
+                            data-testid={`view-profile-${notification.user?.id || notification.from_user?.id}`}
+                            onClick={() => navigate(`/profile/${notification.user?.id || notification.from_user?.id}`)}
+                            size="sm"
+                            variant="outline"
+                            className="rounded-full text-xs"
+                          >
+                            <Eye className="w-3 h-3 mr-1" />
+                            View
+                          </Button>
+                          <Button
+                            data-testid={`chat-btn-${notification.user?.id || notification.from_user?.id}`}
+                            onClick={() => navigate(`/chat/${notification.user?.id || notification.from_user?.id}`)}
+                            size="sm"
+                            className="rounded-full bg-indigo-500 hover:bg-indigo-600 text-white text-xs"
+                          >
+                            <MessageCircle className="w-3 h-3 mr-1" />
+                            Chat
+                          </Button>
+                        </div>
                       </>
                     )}
                     {notification.type === "glance" && (
                       <>
                         <p className="text-white font-medium">
-                          {notification.from_user?.display_name || notification.from_user_name
-                            ? `${notification.from_user?.display_name || notification.from_user_name} glanced at you`
-                            : notification.message || "Someone glanced at you"}
+                          {notification.from_user?.display_name || notification.from_user_name || "Someone"} glanced at you
                         </p>
-                        {(notification.from_user?.avatar_url || notification.from_user_avatar) && (
-                          <div className="mt-2">
-                            <Button
-                              onClick={() => navigate(`/notifications`)}
-                              size="sm"
-                              variant="outline"
-                              className="rounded-full text-xs"
-                            >
-                              <Eye className="w-3 h-3 mr-1" />
-                              View
-                            </Button>
-                          </div>
-                        )}
+                        <div className="mt-2">
+                          <Button
+                            data-testid={`view-profile-${notification.from_user?.id || notification.from_user_id}`}
+                            onClick={() => {
+                              const userId = notification.from_user?.id || notification.from_user_id;
+                              if (userId) navigate(`/profile/${userId}`);
+                            }}
+                            size="sm"
+                            variant="outline"
+                            className="rounded-full text-xs"
+                            disabled={!notification.from_user?.id && !notification.from_user_id}
+                          >
+                            <Eye className="w-3 h-3 mr-1" />
+                            View
+                          </Button>
+                        </div>
                       </>
                     )}
                     {notification.type === "drink_token" && (
                       <>
                         <p className="text-white font-medium">
-                          {notification.from_user?.display_name || notification.from_user_name || "Someone"} sent you a{" "}
-                          {notification.drink_type}!
+                          {notification.from_user?.display_name || notification.from_user_name || "Someone"} offered you a drink
                         </p>
-                        <div className="mt-2">
+                        <p className="text-slate-400 text-sm">
+                          {notification.drink_type}
+                        </p>
+                        <div className="mt-2 flex gap-2">
                           <Button
-                            data-testid={`accept-drink-${notification.token_id}`}
-                            onClick={() => handleAcceptDrink(notification.token_id)}
-                            disabled={accepting === notification.token_id}
+                            data-testid={`view-profile-drink-${notification.from_user?.id || notification.from_user_id}`}
+                            onClick={() => {
+                              const userId = notification.from_user?.id || notification.from_user_id;
+                              if (userId) navigate(`/profile/${userId}`);
+                            }}
                             size="sm"
-                            className="rounded-full bg-amber-500 hover:bg-amber-600 text-white"
+                            variant="outline"
+                            className="rounded-full text-xs"
+                            disabled={!notification.from_user?.id && !notification.from_user_id}
                           >
-                            {accepting === notification.token_id ? (
+                            <Eye className="w-3 h-3 mr-1" />
+                            View
+                          </Button>
+                          <Button
+                            data-testid={`accept-drink-${notification.token_id || notification.id}`}
+                            onClick={() => handleAcceptDrink(notification.token_id || notification.id)}
+                            disabled={accepting === (notification.token_id || notification.id)}
+                            size="sm"
+                            className="rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs"
+                          >
+                            {accepting === (notification.token_id || notification.id) ? (
                               <Loader2 className="w-4 h-4 animate-spin mr-1" />
                             ) : (
                               <Check className="w-4 h-4 mr-1" />
