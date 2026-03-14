@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth, API } from "@/App";
 import { toast } from "sonner";
 import axios from "axios";
-import { ArrowLeft, Send, Loader2, Check, CheckCheck } from "lucide-react";
+import { ArrowLeft, Send, Loader2, Check, CheckCheck, Lock, Unlock, Shield } from "lucide-react";
 
 const Chat = () => {
   const { userId } = useParams();
@@ -16,6 +16,9 @@ const Chat = () => {
   const [sending, setSending] = useState(false);
   const [newMessage, setNewMessage] = useState("");
   const [otherUser, setOtherUser] = useState(null);
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [unlockReason, setUnlockReason] = useState(null);
+  const [accepting, setAccepting] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const wsRef = useRef(null);
@@ -60,6 +63,14 @@ const Chat = () => {
         if (data.type === 'new_message' && data.message.from_user_id === userId) {
           fetchMessages();
         }
+        
+        // Handle chat request accepted
+        if (data.type === 'chat_request_accepted' && data.by_user_id === userId) {
+          setIsUnlocked(true);
+          setUnlockReason('chat_accepted');
+          toast.success("Chat unlocked!");
+          fetchMessages();
+        }
       } catch (e) {
         console.error('WebSocket message error:', e);
       }
@@ -79,28 +90,18 @@ const Chat = () => {
   const fetchMessages = async () => {
     try {
       const response = await axios.get(`${API}/messages/${userId}`);
-      setMessages(response.data);
-      if (response.data.length > 0) {
-        const otherMsg = response.data.find((m) => m.from_user_id === userId);
-        if (otherMsg) {
-          setOtherUser({
-            id: userId,
-            display_name: otherMsg.from_user_name,
-            avatar_url: otherMsg.from_user_avatar,
-          });
-        }
-      }
-      // Also fetch from connections if no messages
-      if (!otherUser) {
-        const connResponse = await axios.get(`${API}/connections`);
-        const conn = connResponse.data.find((c) => c.user_id === userId);
-        if (conn) {
-          setOtherUser({
-            id: conn.user_id,
-            display_name: conn.display_name,
-            avatar_url: conn.avatar_url,
-          });
-        }
+      const data = response.data;
+      
+      // Handle new response format with unlock status
+      if (data.messages !== undefined) {
+        setMessages(data.messages);
+        setIsUnlocked(data.is_unlocked);
+        setUnlockReason(data.unlock_reason);
+        setOtherUser(data.other_user);
+      } else {
+        // Old format fallback
+        setMessages(data);
+        setIsUnlocked(true);
       }
     } catch (error) {
       if (error.response?.status === 403) {
@@ -118,10 +119,15 @@ const Chat = () => {
 
     setSending(true);
     try {
-      await axios.post(`${API}/messages`, {
+      const response = await axios.post(`${API}/messages`, {
         to_user_id: userId,
         content: newMessage.trim(),
       });
+      
+      if (response.data.is_request) {
+        toast.info("Message request sent");
+      }
+      
       setNewMessage("");
       fetchMessages();
       inputRef.current?.focus();
@@ -129,6 +135,30 @@ const Chat = () => {
       toast.error("Failed to send message");
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleAcceptRequest = async () => {
+    setAccepting(true);
+    try {
+      await axios.post(`${API}/messages/accept-request/${userId}`);
+      toast.success("Chat unlocked!");
+      setIsUnlocked(true);
+      fetchMessages();
+    } catch (error) {
+      toast.error("Failed to accept request");
+    } finally {
+      setAccepting(false);
+    }
+  };
+
+  const handleDeclineRequest = async () => {
+    try {
+      await axios.post(`${API}/messages/decline-request/${userId}`);
+      toast.success("Request declined");
+      navigate("/connections");
+    } catch (error) {
+      toast.error("Failed to decline request");
     }
   };
 
@@ -157,6 +187,9 @@ const Chat = () => {
     .filter(m => m.from_user_id === user?.id && m.is_read)
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
 
+  // Check if there are pending requests from the other user
+  const hasIncomingRequest = !isUnlocked && messages.some(m => m.from_user_id === userId && m.is_request);
+
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col" data-testid="chat-page">
       {/* Header */}
@@ -173,20 +206,74 @@ const Chat = () => {
               <ArrowLeft className="w-5 h-5" />
             </Button>
             {otherUser && (
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full overflow-hidden">
-                  <img
-                    src={otherUser.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200"}
-                    alt={otherUser.display_name}
-                    className="w-full h-full object-cover"
-                  />
+              <div className="flex items-center gap-3 flex-1">
+                <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-800">
+                  {isUnlocked && otherUser.avatar_url ? (
+                    <img
+                      src={otherUser.avatar_url}
+                      alt={otherUser.display_name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-500 text-lg font-semibold">
+                      {otherUser.display_name?.charAt(0) || "?"}
+                    </div>
+                  )}
                 </div>
-                <h1 className="text-lg font-semibold text-white">{otherUser.display_name}</h1>
+                <div>
+                  <h1 className="text-lg font-semibold text-white">{otherUser.display_name}</h1>
+                  {!isUnlocked && (
+                    <span className="text-xs text-amber-400 flex items-center gap-1">
+                      <Lock className="w-3 h-3" /> Chat locked
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+            {isUnlocked && (
+              <div className="text-emerald-400 text-xs flex items-center gap-1">
+                <Unlock className="w-3 h-3" />
+                Connected
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* Chat Locked Banner */}
+      {!isUnlocked && hasIncomingRequest && (
+        <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-3">
+          <div className="max-w-2xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Shield className="w-5 h-5 text-amber-400" />
+              <div>
+                <p className="text-white text-sm font-medium">{otherUser?.display_name} wants to chat</p>
+                <p className="text-slate-400 text-xs">Accept to unlock full messages and profile</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                data-testid="decline-request-btn"
+                variant="ghost"
+                size="sm"
+                onClick={handleDeclineRequest}
+                className="text-slate-400 hover:text-red-400"
+              >
+                Decline
+              </Button>
+              <Button
+                data-testid="accept-request-btn"
+                size="sm"
+                onClick={handleAcceptRequest}
+                disabled={accepting}
+                className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl"
+              >
+                {accepting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Accept"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-6">
@@ -200,61 +287,59 @@ const Chat = () => {
               <p className="text-slate-400">No messages yet. Say hello!</p>
             </div>
           ) : (
-            messages.map((message, index) => {
-              const isOwn = message.from_user_id === user?.id;
-              const isLastMessage = index === messages.length - 1;
-              const showReadReceipt = isOwn && message.is_read && user?.is_premium;
-              const isLastRead = lastReadMessage?.id === message.id;
-              
-              return (
-                <div key={message.id}>
+            <>
+              {messages.map((msg, index) => {
+                const isMe = msg.from_user_id === user?.id;
+                const showReadReceipt = isMe && msg.is_read && msg.id === lastReadMessage?.id && user?.is_premium;
+                
+                return (
                   <div
-                    data-testid={`message-${message.id}`}
-                    className={`flex ${isOwn ? "justify-end" : "justify-start"}`}
+                    key={msg.id}
+                    data-testid={`message-${index}`}
+                    className={`flex ${isMe ? "justify-end" : "justify-start"}`}
                   >
                     <div
                       className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                        isOwn
-                          ? "message-sent text-white"
-                          : "message-received text-white"
+                        isMe
+                          ? "bg-indigo-500 text-white"
+                          : msg.is_masked 
+                            ? "bg-amber-500/20 text-amber-200 border border-amber-500/30"
+                            : "bg-white/10 text-white"
                       }`}
                     >
-                      <p className="text-sm leading-relaxed">{message.content}</p>
-                      <div className={`flex items-center gap-1 mt-1 ${isOwn ? "justify-end" : ""}`}>
-                        <p
-                          className={`text-xs ${
-                            isOwn ? "text-white/60" : "text-slate-500"
-                          }`}
-                        >
-                          {formatTime(message.created_at)}
-                        </p>
-                        {/* Read receipt indicators for own messages */}
-                        {isOwn && (
-                          <span className="text-white/60">
-                            {message.is_read ? (
-                              <CheckCheck className="w-3.5 h-3.5 text-indigo-400" data-testid={`read-receipt-${message.id}`} />
+                      {msg.is_masked && (
+                        <div className="flex items-center gap-1 text-amber-400 text-xs mb-1">
+                          <Lock className="w-3 h-3" />
+                          Preview only
+                        </div>
+                      )}
+                      <p className="text-sm">{msg.content}</p>
+                      <div className={`flex items-center gap-2 mt-1 ${isMe ? "justify-end" : "justify-start"}`}>
+                        <span className="text-xs opacity-70">
+                          {formatTime(msg.created_at)}
+                        </span>
+                        {isMe && (
+                          <span className="text-xs">
+                            {msg.is_read ? (
+                              <CheckCheck className="w-4 h-4 text-blue-300" />
                             ) : (
-                              <Check className="w-3.5 h-3.5" data-testid={`sent-receipt-${message.id}`} />
+                              <Check className="w-4 h-4 opacity-70" />
                             )}
                           </span>
                         )}
                       </div>
+                      {showReadReceipt && msg.read_at && (
+                        <p className="text-xs text-blue-200 mt-1">
+                          Read {formatReadTime(msg.read_at)}
+                        </p>
+                      )}
                     </div>
                   </div>
-                  
-                  {/* Show "Read" text for the last read message (premium feature) */}
-                  {showReadReceipt && isLastRead && (
-                    <div className="flex justify-end mt-1 mr-2">
-                      <span className="text-xs text-indigo-400" data-testid="read-timestamp">
-                        Read {formatReadTime(message.read_at)}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              );
-            })
+                );
+              })}
+              <div ref={messagesEndRef} />
+            </>
           )}
-          <div ref={messagesEndRef} />
         </div>
       </div>
 
@@ -266,14 +351,14 @@ const Chat = () => {
             data-testid="message-input"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type a message..."
-            className="flex-1 h-12 bg-white/5 border-transparent focus:border-indigo-500 rounded-xl text-white placeholder:text-slate-500"
+            placeholder={isUnlocked ? "Type a message..." : "Send a message request..."}
+            className="flex-1 h-12 bg-white/5 border-transparent focus:border-indigo-500 rounded-xl text-white"
           />
           <Button
             data-testid="send-btn"
             type="submit"
             disabled={sending || !newMessage.trim()}
-            className="h-12 w-12 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white"
+            className="h-12 px-6 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white"
           >
             {sending ? (
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -282,6 +367,12 @@ const Chat = () => {
             )}
           </Button>
         </form>
+        {!isUnlocked && (
+          <p className="text-center text-amber-400 text-xs mt-2 flex items-center justify-center gap-1">
+            <Shield className="w-3 h-3" />
+            Contact details are hidden until chat is unlocked
+          </p>
+        )}
       </div>
     </div>
   );

@@ -8,15 +8,19 @@ Real-time, Location-based, Low-pressure, Spontaneous, Venue-focused, Privacy-saf
 ### Core Features
 - [x] JWT authentication
 - [x] Profile with 3 photos + "Make Main Photo" feature
+- [x] photos[0] always used as avatar_url
 - [x] Venue discovery (Google Places)
 - [x] Check-in/checkout
-- [x] Glance & Reveal
+- [x] Glance & Reveal (unlimited in test mode)
 - [x] Drink tokens
 - [x] Connections & Chat (with Mutual Glances + Messages tabs)
+- [x] Message Requests (locked until mutual glance/drink/chat acceptance)
+- [x] Contact masking in message requests
 - [x] Friends list
 - [x] Block/Report
 - [x] Account deletion
 - [x] User profile page (view without counting glance)
+- [x] "No glances remaining" upgrade prompt
 
 ### Premium System
 - Stripe payments (web)
@@ -97,10 +101,12 @@ IS_TEST_BUILD=true
 - GET /api/messages/threads - Message threads with preview
 - GET /api/users/{user_id}/profile - View profile (no glance counted)
 
-### Messages (with read receipts)
-- GET /api/messages/{user_id} - Get conversation (marks as read)
-- POST /api/messages - Send message
+### Messages
+- GET /api/messages/{user_id} - Get conversation (returns unlock status + masked content if locked)
+- POST /api/messages - Send message (or message request if not unlocked)
 - POST /api/messages/mark-read - Explicitly mark as read
+- POST /api/messages/accept-request/{from_user_id} - Accept message request (unlocks chat)
+- POST /api/messages/decline-request/{from_user_id} - Decline message request
 - GET /api/messages/unread/count - Get unread count
 
 ## Remaining Tasks

@@ -193,8 +193,12 @@ const Settings = () => {
       newPhotos[index] = response.data.url;
       setFormData({ ...formData, photos: newPhotos });
 
-      // Update user context
-      updateUser({ photos: newPhotos });
+      // Update user context (include avatar_url if slot 0)
+      const userUpdate = { photos: newPhotos };
+      if (index === 0) {
+        userUpdate.avatar_url = response.data.url;
+      }
+      updateUser(userUpdate);
 
       toast.success("Photo uploaded!");
     } catch (error) {
@@ -213,8 +217,12 @@ const Settings = () => {
       newPhotos[index] = "";
       setFormData({ ...formData, photos: newPhotos });
       
-      // Update user context
-      updateUser({ photos: newPhotos });
+      // Update user context (clear avatar_url if slot 0)
+      const userUpdate = { photos: newPhotos };
+      if (index === 0) {
+        userUpdate.avatar_url = "";
+      }
+      updateUser(userUpdate);
       
       toast.success("Photo removed");
     } catch (error) {

@@ -74,6 +74,9 @@ PREMIUM_DAILY_GLANCES = 20
 PREMIUM_DAILY_TOKENS = 5
 FREE_TOKEN_EXPIRY_HOURS = 24
 
+# Unlimited glances in test mode
+TEST_MODE_GLANCES = 999
+
 # Second reveal after 7 days
 SECOND_REVEAL_DAYS = 7
 
@@ -125,6 +128,75 @@ TOKEN_PACKAGES = {
     "tokens_15": {"price": 7.99, "tokens": 15, "name": "15 Tokens", "currency": "gbp"},
     "tokens_50": {"price": 19.99, "tokens": 50, "name": "50 Tokens", "currency": "gbp"},
 }
+
+# Contact info patterns to mask
+import re
+CONTACT_PATTERNS = [
+    (re.compile(r'\b[\w\.-]+@[\w\.-]+\.\w{2,4}\b'), '[email hidden]'),  # Email
+    (re.compile(r'\b(?:\+?\d{1,3}[-.\s]?)?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{3,4}\b'), '[phone hidden]'),  # Phone
+    (re.compile(r'@[\w_]{1,30}\b'), '[handle hidden]'),  # Social handles @username
+    (re.compile(r'\b(?:instagram|insta|ig|snap|snapchat|twitter|tiktok|whatsapp|telegram|discord)[\s:]*[\w@.]+\b', re.I), '[contact hidden]'),
+    (re.compile(r'\b(?:add me|dm me|message me|text me|call me)[\s:]*[\w@.]+\b', re.I), '[contact hidden]'),
+]
+
+def mask_contact_info(text: str) -> str:
+    """Mask phone numbers, emails, social handles in message text"""
+    if not text:
+        return text
+    masked = text
+    for pattern, replacement in CONTACT_PATTERNS:
+        masked = pattern.sub(replacement, masked)
+    return masked
+
+def get_first_name(display_name: str) -> str:
+    """Extract first name from display name"""
+    if not display_name:
+        return "Someone"
+    return display_name.split()[0]
+
+async def check_chat_unlocked(user1_id: str, user2_id: str) -> dict:
+    """
+    Check if chat is unlocked between two users.
+    Chat is unlocked when:
+    1. Mutual glance exists
+    2. Drink has been accepted
+    3. Chat request has been accepted
+    Returns dict with is_unlocked and reason
+    """
+    # Check for connection (mutual glance or drink acceptance)
+    connection = await db.connections.find_one({
+        "$or": [
+            {"user1_id": user1_id, "user2_id": user2_id},
+            {"user1_id": user2_id, "user2_id": user1_id}
+        ]
+    })
+    
+    if connection:
+        return {"is_unlocked": True, "reason": "connected"}
+    
+    # Check for accepted chat request
+    chat_request = await db.chat_requests.find_one({
+        "$or": [
+            {"from_user_id": user1_id, "to_user_id": user2_id, "status": "accepted"},
+            {"from_user_id": user2_id, "to_user_id": user1_id, "status": "accepted"}
+        ]
+    })
+    
+    if chat_request:
+        return {"is_unlocked": True, "reason": "chat_accepted"}
+    
+    # Check for accepted drink
+    accepted_drink = await db.drink_tokens.find_one({
+        "$or": [
+            {"from_user_id": user1_id, "to_user_id": user2_id, "status": "accepted"},
+            {"from_user_id": user2_id, "to_user_id": user1_id, "status": "accepted"}
+        ]
+    })
+    
+    if accepted_drink:
+        return {"is_unlocked": True, "reason": "drink_accepted"}
+    
+    return {"is_unlocked": False, "reason": None}
 
 # Create the main app
 app = FastAPI(title="Here & Now API")
@@ -1770,10 +1842,17 @@ async def get_people_at_venue(venue_id: str, current_user: dict = Depends(get_cu
 # Glance Routes
 @api_router.post("/glance")
 async def send_glance(data: GlanceCreate, current_user: dict = Depends(get_current_user)):
-    # Check daily glance limit
-    remaining = current_user.get("daily_glances_remaining", FREE_DAILY_GLANCES)
+    # Check daily glance limit (unlimited in test mode)
+    if IS_TEST_BUILD:
+        remaining = TEST_MODE_GLANCES
+    else:
+        remaining = current_user.get("daily_glances_remaining", FREE_DAILY_GLANCES)
+    
     if remaining <= 0:
-        raise HTTPException(status_code=429, detail="No glances remaining today. Upgrade to Premium for more!")
+        raise HTTPException(
+            status_code=429, 
+            detail="no_glances_remaining"  # Special code for frontend to show upgrade prompt
+        )
     
     # Check if target user has blocked current user
     target_user = await db.users.find_one({"id": data.to_user_id}, {"_id": 0})
@@ -1793,11 +1872,12 @@ async def send_glance(data: GlanceCreate, current_user: dict = Depends(get_curre
     if existing:
         return {"message": "Already glanced", "is_mutual": False}
     
-    # Decrement daily glances
-    await db.users.update_one(
-        {"id": current_user["id"]},
-        {"$inc": {"daily_glances_remaining": -1}}
-    )
+    # Decrement daily glances (skip in test mode)
+    if not IS_TEST_BUILD:
+        await db.users.update_one(
+            {"id": current_user["id"]},
+            {"$inc": {"daily_glances_remaining": -1}}
+        )
     
     glance_id = str(uuid.uuid4())
     glance = {
@@ -2163,16 +2243,41 @@ async def get_user_profile(user_id: str, current_user: dict = Depends(get_curren
 # Message Routes
 @api_router.post("/messages")
 async def send_message(data: MessageCreate, current_user: dict = Depends(get_current_user)):
-    # Check if connected
-    connection = await db.connections.find_one({
-        "$or": [
-            {"user1_id": current_user["id"], "user2_id": data.to_user_id},
-            {"user1_id": data.to_user_id, "user2_id": current_user["id"]}
-        ]
-    })
-    if not connection:
-        raise HTTPException(status_code=403, detail="You must be connected to send messages")
+    # Check if chat is unlocked
+    unlock_status = await check_chat_unlocked(current_user["id"], data.to_user_id)
     
+    if not unlock_status["is_unlocked"]:
+        # Chat not unlocked - this is a message request
+        # Store as a pending message request
+        message_id = str(uuid.uuid4())
+        message_request = {
+            "id": message_id,
+            "from_user_id": current_user["id"],
+            "to_user_id": data.to_user_id,
+            "content": data.content,  # Store full content but mask when displaying
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "status": "pending",
+            "is_request": True
+        }
+        await db.messages.insert_one(message_request)
+        
+        # Send notification with masked preview
+        masked_preview = mask_contact_info(data.content[:30])
+        await send_push_notification(
+            data.to_user_id,
+            f"{get_first_name(current_user['display_name'])} wants to chat",
+            masked_preview + "...",
+            {
+                "type": "message_request",
+                "from_user_id": current_user["id"],
+                "from_user_name": get_first_name(current_user["display_name"]),
+                "from_user_photo": current_user.get("avatar_url", "")
+            }
+        )
+        
+        return {"message": "Message request sent", "message_id": message_id, "is_request": True}
+    
+    # Chat is unlocked - send normally
     message_id = str(uuid.uuid4())
     message = {
         "id": message_id,
@@ -2180,7 +2285,8 @@ async def send_message(data: MessageCreate, current_user: dict = Depends(get_cur
         "to_user_id": data.to_user_id,
         "content": data.content,
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "is_read": False
+        "is_read": False,
+        "is_request": False
     }
     await db.messages.insert_one(message)
     
@@ -2216,8 +2322,12 @@ async def send_message(data: MessageCreate, current_user: dict = Depends(get_cur
     
     return {"message": "Message sent", "message_id": message_id}
 
-@api_router.get("/messages/{user_id}", response_model=List[MessageResponse])
+@api_router.get("/messages/{user_id}")
 async def get_messages(user_id: str, current_user: dict = Depends(get_current_user)):
+    # Check chat unlock status
+    unlock_status = await check_chat_unlocked(current_user["id"], user_id)
+    
+    # Get all messages between users
     messages = await db.messages.find({
         "$or": [
             {"from_user_id": current_user["id"], "to_user_id": user_id},
@@ -2225,6 +2335,57 @@ async def get_messages(user_id: str, current_user: dict = Depends(get_current_us
         ]
     }, {"_id": 0}).sort("created_at", 1).to_list(100)
     
+    # Get other user info
+    other_user = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0})
+    
+    # Check fake users for test mode
+    if not other_user and IS_TEST_BUILD:
+        fake_user = next((u for u in FAKE_TEST_USERS if u["id"] == user_id), None)
+        if fake_user:
+            other_user = fake_user
+    
+    result = []
+    
+    if not unlock_status["is_unlocked"]:
+        # Chat not unlocked - show only message requests with masked content
+        for msg in messages:
+            if msg["from_user_id"] == user_id:
+                # Message from other user - mask it
+                masked_content = mask_contact_info(msg["content"][:30]) + "..." if len(msg["content"]) > 30 else mask_contact_info(msg["content"])
+                result.append({
+                    "id": msg["id"],
+                    "from_user_id": msg["from_user_id"],
+                    "to_user_id": msg["to_user_id"],
+                    "content": masked_content,
+                    "created_at": msg["created_at"],
+                    "from_user_name": get_first_name(other_user.get("display_name", "Someone")) if other_user else "Someone",
+                    "from_user_avatar": "",  # Hide avatar until unlocked
+                    "is_read": msg.get("is_read", False),
+                    "is_request": True,
+                    "is_masked": True
+                })
+            else:
+                # My own message
+                result.append({
+                    **msg,
+                    "from_user_name": current_user["display_name"],
+                    "from_user_avatar": current_user.get("avatar_url", ""),
+                    "is_request": msg.get("is_request", False),
+                    "is_masked": False
+                })
+        
+        return {
+            "messages": result,
+            "is_unlocked": False,
+            "unlock_reason": None,
+            "other_user": {
+                "id": user_id,
+                "display_name": get_first_name(other_user.get("display_name", "Someone")) if other_user else "Someone",
+                "avatar_url": ""  # Hide full avatar
+            }
+        }
+    
+    # Chat is unlocked - return full messages
     # Find unread messages from the other user
     unread_message_ids = [
         msg["id"] for msg in messages 
@@ -2240,7 +2401,6 @@ async def get_messages(user_id: str, current_user: dict = Depends(get_current_us
         )
         
         # Send read receipt notification via WebSocket (premium feature)
-        other_user = await db.users.find_one({"id": user_id}, {"_id": 0})
         if other_user and other_user.get("is_premium"):
             await manager.send_to_user(user_id, {
                 "type": "messages_read",
@@ -2250,9 +2410,15 @@ async def get_messages(user_id: str, current_user: dict = Depends(get_current_us
                 "read_at": read_at
             })
     
-    result = []
     for msg in messages:
         from_user = await db.users.find_one({"id": msg["from_user_id"]}, {"_id": 0, "password": 0})
+        
+        # Check fake users for test mode
+        if not from_user and IS_TEST_BUILD:
+            fake_user = next((u for u in FAKE_TEST_USERS if u["id"] == msg["from_user_id"]), None)
+            if fake_user:
+                from_user = fake_user
+        
         if from_user:
             # Update is_read and read_at for messages we just marked as read
             msg_is_read = msg.get("is_read", False)
@@ -2263,13 +2429,24 @@ async def get_messages(user_id: str, current_user: dict = Depends(get_current_us
             
             result.append({
                 **msg,
-                "from_user_name": from_user["display_name"],
+                "from_user_name": from_user.get("display_name", "Someone"),
                 "from_user_avatar": from_user.get("avatar_url", ""),
                 "is_read": msg_is_read,
-                "read_at": msg_read_at
+                "read_at": msg_read_at,
+                "is_request": False,
+                "is_masked": False
             })
     
-    return result
+    return {
+        "messages": result,
+        "is_unlocked": True,
+        "unlock_reason": unlock_status["reason"],
+        "other_user": {
+            "id": user_id,
+            "display_name": other_user.get("display_name", "Someone") if other_user else "Someone",
+            "avatar_url": other_user.get("avatar_url", "") if other_user else ""
+        }
+    }
 
 @api_router.post("/messages/mark-read")
 async def mark_messages_as_read(data: MarkMessagesRead, current_user: dict = Depends(get_current_user)):
@@ -2316,6 +2493,76 @@ async def mark_messages_as_read(data: MarkMessagesRead, current_user: dict = Dep
 async def get_unread_count(current_user: dict = Depends(get_current_user)):
     count = await db.messages.count_documents({"to_user_id": current_user["id"], "is_read": False})
     return {"unread_count": count}
+
+@api_router.post("/messages/accept-request/{from_user_id}")
+async def accept_message_request(from_user_id: str, current_user: dict = Depends(get_current_user)):
+    """Accept a message request, which creates a connection and unlocks chat"""
+    # Check if there's a pending message from this user
+    pending_message = await db.messages.find_one({
+        "from_user_id": from_user_id,
+        "to_user_id": current_user["id"],
+        "is_request": True
+    })
+    
+    if not pending_message:
+        raise HTTPException(status_code=404, detail="No pending message request found")
+    
+    # Create a connection (this unlocks chat)
+    connection_id = str(uuid.uuid4())
+    connection = {
+        "id": connection_id,
+        "user1_id": current_user["id"],
+        "user2_id": from_user_id,
+        "venue_id": "chat_request",  # Mark as from chat request
+        "connected_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.connections.insert_one(connection)
+    
+    # Update all pending messages to not be requests anymore
+    await db.messages.update_many(
+        {
+            "$or": [
+                {"from_user_id": from_user_id, "to_user_id": current_user["id"]},
+                {"from_user_id": current_user["id"], "to_user_id": from_user_id}
+            ],
+            "is_request": True
+        },
+        {"$set": {"is_request": False}}
+    )
+    
+    # Notify the other user
+    await manager.send_to_user(from_user_id, {
+        "type": "chat_request_accepted",
+        "by_user_id": current_user["id"],
+        "by_user_name": current_user["display_name"]
+    })
+    
+    # Send push notification
+    await send_push_notification(
+        from_user_id,
+        f"{current_user['display_name']} accepted your message!",
+        "You can now chat freely",
+        {
+            "type": "chat_accepted",
+            "from_user_id": current_user["id"],
+            "from_user_name": current_user["display_name"],
+            "from_user_photo": current_user.get("avatar_url", "")
+        }
+    )
+    
+    return {"message": "Chat request accepted", "connection_id": connection_id}
+
+@api_router.post("/messages/decline-request/{from_user_id}")
+async def decline_message_request(from_user_id: str, current_user: dict = Depends(get_current_user)):
+    """Decline a message request"""
+    # Delete all pending messages from this user
+    result = await db.messages.delete_many({
+        "from_user_id": from_user_id,
+        "to_user_id": current_user["id"],
+        "is_request": True
+    })
+    
+    return {"message": "Message request declined", "deleted_count": result.deleted_count}
 
 # Notifications (recent glances and drink tokens)
 @api_router.get("/notifications")
