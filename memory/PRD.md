@@ -150,9 +150,12 @@ IS_TEST_BUILD=true
 - [x] Friends list in Connections tab - RESOLVED (moved from Settings, Friends tab added)
 - [x] Friend request flow - RESOLVED (outgoing/incoming requests display correctly)
 - [x] Drink accept unlocking chat - RESOLVED (fixed status field to 'accepted')
+- [x] Drink accept failing in Drinks tab - RESOLVED (fixed endpoint from /drink-tokens/ to /drink-token/)
+- [x] Remove drink accept from Notifications - RESOLVED (now shows "View in Drinks" button only)
+- [x] Add delete functionality for drinks - RESOLVED (DELETE /api/drink-token/{id} + trash icons in UI)
 
 ### P1 (High) - For Production
-- [ ] Backend refactoring: server.py is now 4500+ lines - needs modular structure (routes/, models/, services/)
+- [ ] Backend refactoring: server.py is now 4850+ lines - needs modular structure (routes/, models/, services/)
 - [ ] Production Google Places API key
 - [ ] Google Play service account credentials
 
