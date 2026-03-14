@@ -1054,16 +1054,14 @@ async def get_chat_status(user_id: str, current_user: dict = Depends(get_current
 @api_router.post("/friends/add")
 async def add_friend(data: FriendRequest, current_user: dict = Depends(get_current_user)):
     """Send a friend request"""
-    # Check if chat is unlocked
-    unlock = await db.chat_unlocks.find_one({
-        "$or": [
-            {"user1_id": current_user["id"], "user2_id": data.user_id},
-            {"user1_id": data.user_id, "user2_id": current_user["id"]}
-        ]
-    })
+    # Check if chat is unlocked (required before adding friends)
+    unlock_status = await check_chat_unlocked(current_user["id"], data.user_id)
     
-    if not unlock:
-        raise HTTPException(status_code=403, detail="Chat must be unlocked first")
+    if not unlock_status["is_unlocked"]:
+        raise HTTPException(
+            status_code=403, 
+            detail="You can only add friends after a drink or chat request has been accepted."
+        )
     
     # Check if already friends
     existing = await db.friends.find_one({
@@ -1075,6 +1073,9 @@ async def add_friend(data: FriendRequest, current_user: dict = Depends(get_curre
     
     if existing and existing.get("status") == "accepted":
         return {"message": "Already friends"}
+    
+    if existing and existing.get("status") == "pending":
+        return {"message": "Friend request already sent"}
     
     friend_id = str(uuid.uuid4())
     await db.friends.insert_one({
@@ -1811,6 +1812,67 @@ async def cleanup_orphaned_checkins(current_user: dict = Depends(get_current_use
                 removed += 1
     
     return {"message": f"Cleaned up {removed} orphaned checkins", "removed": removed}
+
+@api_router.post("/test/create-test-user-at-venue/{venue_id}")
+async def create_test_user_at_venue(venue_id: str, current_user: dict = Depends(get_current_user)):
+    """Create a real test user and check them into a venue for testing social features"""
+    if not IS_TEST_BUILD:
+        raise HTTPException(status_code=403, detail="Test mode only")
+    
+    # Create a test user with full profile
+    test_user_id = f"test-user-{str(uuid.uuid4())[:8]}"
+    test_email = f"{test_user_id}@test.local"
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(minutes=AUTO_CHECKOUT_MINUTES)
+    
+    test_user = {
+        "id": test_user_id,
+        "email": test_email,
+        "password": hash_password("test123"),
+        "display_name": "Test Friend",
+        "avatar_url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200",
+        "photos": ["https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200"],
+        "age": 27,
+        "bio": "Hey! I'm a test user here to help you test the app features.",
+        "interests": ["Testing", "Debugging", "Coffee", "Code"],
+        "gender": "male",
+        "orientation": "",
+        "relationship_status": "single",
+        "seeking": "friends",
+        "is_visible": True,
+        "is_premium": False,
+        "token_balance": 100,
+        "daily_glances_remaining": FREE_DAILY_GLANCES,
+        "daily_tokens_remaining": FREE_DAILY_TOKENS,
+        "glances_reset_at": now.isoformat(),
+        "created_at": now.isoformat(),
+        "is_test": True
+    }
+    
+    await db.users.insert_one(test_user)
+    
+    # Check the test user into the venue
+    checkin_id = str(uuid.uuid4())
+    checkin = {
+        "id": checkin_id,
+        "user_id": test_user_id,
+        "venue_id": venue_id,
+        "is_open_area": False,
+        "checked_in_at": now.isoformat(),
+        "last_activity_at": now.isoformat(),
+        "expires_at": expires_at.isoformat(),
+        "is_active": True
+    }
+    await db.checkins.insert_one(checkin)
+    
+    return {
+        "message": f"Created test user '{test_user['display_name']}' and checked into venue",
+        "user_id": test_user_id,
+        "email": test_email,
+        "password": "test123",
+        "venue_id": venue_id,
+        "checkin_id": checkin_id
+    }
 
 @api_router.get("/test/debug-venue/{venue_id}")
 async def debug_venue(venue_id: str, current_user: dict = Depends(get_current_user)):

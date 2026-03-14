@@ -61,11 +61,25 @@ const UserProfile = () => {
   const handleAddFriend = async () => {
     setAddingFriend(true);
     try {
-      await axios.post(`${API}/friends/add`, { friend_id: userId });
+      await axios.post(`${API}/friends/add`, { user_id: userId });
       toast.success(`Added ${profile.display_name} as a friend!`);
       await fetchProfile();
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Failed to add friend");
+      // Handle various error formats
+      const errorData = error.response?.data;
+      let errorMessage = "Failed to add friend";
+      
+      if (typeof errorData === "string") {
+        errorMessage = errorData;
+      } else if (errorData?.detail) {
+        errorMessage = typeof errorData.detail === "string" 
+          ? errorData.detail 
+          : "Chat must be unlocked first to add friends";
+      } else if (errorData?.msg) {
+        errorMessage = errorData.msg;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setAddingFriend(false);
     }
