@@ -42,6 +42,12 @@ Real-time, Location-based, Low-pressure, Spontaneous, Venue-focused, Privacy-saf
 - Click navigation: messages → chat, glances/drinks → notifications, matches → chat
 - In-app notifications display sender name, avatar, and action buttons
 
+### App Sharing Features (March 2026)
+- **Share Here & Now**: Opens native device share sheet with pre-filled message "I'm using Here & Now — join me on it." and app download link
+- **Scan Here & Now**: Displays scannable QR code linking to app download page
+- Download URL: `https://hereandnow.app/download` (configurable for iOS release)
+- Fallback: Copy to clipboard for browsers without native share support
+
 ### Google Places API
 - Nearby venues with photos/ratings
 - Place details & caching

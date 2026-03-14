@@ -27,7 +27,8 @@ import { useAuth, API } from "@/App";
 import { toast } from "sonner";
 import axios from "axios";
 import Layout from "../components/Layout";
-import { Loader2, LogOut, Trash2, Eye, EyeOff, User, Shield, Crown, Coins, ChevronRight, FileText, Camera, Users, Wrench, AlertTriangle, Bell } from "lucide-react";
+import { Loader2, LogOut, Trash2, Eye, EyeOff, User, Shield, Crown, Coins, ChevronRight, FileText, Camera, Users, Wrench, AlertTriangle, Bell, Share2, QrCode, X } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { subscribeToPush, unsubscribeFromPush, isPushSupported, isSubscribedToPush } from "../utils/pushNotifications";
 
 const INTERESTS = [
@@ -81,6 +82,11 @@ const Settings = () => {
   const [pushLoading, setPushLoading] = useState(false);
   const [profileViewers, setProfileViewers] = useState([]);
   const [viewersLoading, setViewersLoading] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
+
+  // App download link - update this when iOS version is released
+  const APP_DOWNLOAD_URL = "https://hereandnow.app/download";
+  const SHARE_MESSAGE = "I'm using Here & Now — join me on it.";
 
   useEffect(() => {
     // Check if push notifications are supported
@@ -324,6 +330,33 @@ const Settings = () => {
     logout();
     toast.success("Logged out");
     navigate("/");
+  };
+
+  const handleShareApp = async () => {
+    const shareData = {
+      title: "Here & Now",
+      text: SHARE_MESSAGE,
+      url: APP_DOWNLOAD_URL,
+    };
+
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      try {
+        await navigator.share(shareData);
+      } catch (error) {
+        // User cancelled or share failed - no need to show error
+        if (error.name !== "AbortError") {
+          console.error("Share failed:", error);
+        }
+      }
+    } else {
+      // Fallback: copy to clipboard
+      try {
+        await navigator.clipboard.writeText(`${SHARE_MESSAGE}\n${APP_DOWNLOAD_URL}`);
+        toast.success("Link copied to clipboard!");
+      } catch (error) {
+        toast.error("Unable to share. Please copy the link manually.");
+      }
+    }
   };
 
   return (
@@ -618,6 +651,52 @@ const Settings = () => {
               checked={user?.is_visible}
               onCheckedChange={handleToggleVisibility}
             />
+          </div>
+        </div>
+
+        {/* Spread the Word Section */}
+        <div className="glass rounded-2xl p-6 mb-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-pink-500/20 flex items-center justify-center">
+              <Share2 className="w-5 h-5 text-pink-400" />
+            </div>
+            <h2 className="text-xl font-semibold text-white">Spread the Word</h2>
+          </div>
+
+          <div className="space-y-3">
+            <button
+              data-testid="share-app-btn"
+              onClick={handleShareApp}
+              className="w-full flex items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center">
+                  <Share2 className="w-5 h-5 text-indigo-400" />
+                </div>
+                <div className="text-left">
+                  <p className="text-white font-medium">Share Here & Now</p>
+                  <p className="text-slate-400 text-sm">Invite friends to join</p>
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-slate-400" />
+            </button>
+
+            <button
+              data-testid="scan-qr-btn"
+              onClick={() => setShowQRModal(true)}
+              className="w-full flex items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
+                  <QrCode className="w-5 h-5 text-purple-400" />
+                </div>
+                <div className="text-left">
+                  <p className="text-white font-medium">Scan Here & Now</p>
+                  <p className="text-slate-400 text-sm">Show QR code to friends</p>
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-slate-400" />
+            </button>
           </div>
         </div>
 
@@ -916,6 +995,53 @@ const Settings = () => {
             </AlertDialog>
           </div>
         </div>
+
+        {/* QR Code Modal */}
+        {showQRModal && (
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+            onClick={() => setShowQRModal(false)}
+            data-testid="qr-modal-overlay"
+          >
+            <div 
+              className="relative bg-slate-900 rounded-2xl p-8 mx-4 max-w-sm w-full border border-white/10"
+              onClick={(e) => e.stopPropagation()}
+              data-testid="qr-modal"
+            >
+              <button
+                onClick={() => setShowQRModal(false)}
+                className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                data-testid="qr-modal-close"
+              >
+                <X className="w-5 h-5 text-white" />
+              </button>
+
+              <div className="text-center">
+                <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center mx-auto mb-4">
+                  <QrCode className="w-6 h-6 text-purple-400" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">Scan Here & Now</h3>
+                <p className="text-slate-400 text-sm mb-6">
+                  Let your friend scan this code to download the app
+                </p>
+
+                <div className="bg-white p-4 rounded-xl inline-block mb-4">
+                  <QRCodeSVG 
+                    value={APP_DOWNLOAD_URL}
+                    size={200}
+                    level="M"
+                    includeMargin={false}
+                    data-testid="qr-code-svg"
+                  />
+                </div>
+
+                <p className="text-slate-500 text-xs">
+                  {APP_DOWNLOAD_URL}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );
