@@ -387,9 +387,9 @@ class ChatRequestCreate(BaseModel):
     request_type: str  # "drink" or "chat"
 
 class ChatRequestResponse(BaseModel):
-    request_id: str
     accept: bool
     message: Optional[str] = None
+    request_id: Optional[str] = None  # Kept for backwards compatibility, but path param is used
 
 class FriendRequest(BaseModel):
     user_id: str
@@ -1008,6 +1008,28 @@ async def respond_to_chat_request(request_id: str, data: ChatRequestResponse, cu
         })
         
         return {"message": "You declined."}
+
+@api_router.delete("/chat-request/{request_id}")
+async def delete_chat_request(request_id: str, current_user: dict = Depends(get_current_user)):
+    """Delete a chat request (sender can delete any, receiver can delete accepted/declined)"""
+    request = await db.chat_requests.find_one({"id": request_id})
+    if not request:
+        raise HTTPException(status_code=404, detail="Chat request not found")
+    
+    # Check if user is the sender or recipient
+    is_sender = request["from_user_id"] == current_user["id"]
+    is_recipient = request["to_user_id"] == current_user["id"]
+    
+    if not is_sender and not is_recipient:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this chat request")
+    
+    # Recipients can only delete accepted/declined requests
+    if is_recipient and request.get("status") == "pending":
+        raise HTTPException(status_code=400, detail="Respond to this chat request first before deleting")
+    
+    await db.chat_requests.delete_one({"id": request_id})
+    
+    return {"message": "Chat request removed"}
 
 @api_router.get("/chat-requests/decline-messages")
 async def get_decline_messages():

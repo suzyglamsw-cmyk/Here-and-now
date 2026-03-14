@@ -163,5 +163,4 @@ IS_TEST_BUILD=true
 - [ ] Cloud storage for photos (S3/GCS)
 
 ### P3 (Nice to Have)
-- [ ] Profile themes (premium)
 - [ ] Group check-ins

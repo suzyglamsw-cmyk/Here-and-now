@@ -6,8 +6,8 @@ import { toast } from "sonner";
 import axios from "axios";
 import Layout from "../components/Layout";
 import { 
-  Eye, Wine, Sparkles, Bell, Loader2, Check, X, 
-  MessageCircle, ChevronRight 
+  Eye, Wine, Sparkles, Bell, Loader2, 
+  MessageCircle, ChevronRight, MessageSquare
 } from "lucide-react";
 
 const Notifications = () => {
@@ -15,13 +15,8 @@ const Notifications = () => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [chatRequests, setChatRequests] = useState([]);
-  const [declineMessages, setDeclineMessages] = useState([]);
-  const [acceptMessages, setAcceptMessages] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [responding, setResponding] = useState(null);
   const [tab, setTab] = useState("notifications"); // "notifications" | "requests"
-  const [showDeclineOptions, setShowDeclineOptions] = useState(null);
-  const [showAcceptOptions, setShowAcceptOptions] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -29,43 +24,16 @@ const Notifications = () => {
 
   const fetchData = async () => {
     try {
-      const [notifRes, requestsRes, declineRes, acceptRes] = await Promise.all([
+      const [notifRes, requestsRes] = await Promise.all([
         axios.get(`${API}/notifications`),
-        axios.get(`${API}/chat-requests/inbox`),
-        axios.get(`${API}/chat-requests/decline-messages`),
-        axios.get(`${API}/chat-requests/accept-messages`)
+        axios.get(`${API}/chat-requests/inbox`)
       ]);
       setNotifications(notifRes.data);
       setChatRequests(requestsRes.data);
-      setDeclineMessages(declineRes.data);
-      setAcceptMessages(acceptRes.data);
     } catch (error) {
       toast.error("Failed to load notifications");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleRespondToRequest = async (requestId, accept, message = null) => {
-    setResponding(requestId);
-    try {
-      await axios.post(`${API}/chat-request/${requestId}/respond`, {
-        request_id: requestId,
-        accept,
-        message
-      });
-      if (accept) {
-        toast.success("Accepted! Chat unlocked.");
-      } else {
-        toast.success("Declined.");
-      }
-      setChatRequests(chatRequests.filter(r => r.id !== requestId));
-      setShowDeclineOptions(null);
-      setShowAcceptOptions(null);
-    } catch (error) {
-      toast.error("Failed to respond");
-    } finally {
-      setResponding(null);
     }
   };
 
@@ -271,7 +239,7 @@ const Notifications = () => {
             </div>
           )
         ) : (
-          /* Chat Requests Tab */
+          /* Chat Requests Tab - Now redirects to Connections */
           chatRequests.length === 0 ? (
             <div className="text-center py-20">
               <div className="w-20 h-20 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-4">
@@ -279,7 +247,7 @@ const Notifications = () => {
               </div>
               <h2 className="text-xl font-semibold text-white mb-2">No pending requests</h2>
               <p className="text-slate-400">
-                When someone sends you a drink or chat request, it'll appear here
+                When someone sends you a chat request, it'll appear here
               </p>
             </div>
           ) : (
@@ -290,7 +258,7 @@ const Notifications = () => {
                   data-testid={`request-${request.id}`}
                   className="glass rounded-2xl p-4"
                 >
-                  <div className="flex items-center gap-4 mb-4">
+                  <div className="flex items-center gap-4">
                     {/* Avatar */}
                     <div className="w-14 h-14 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center overflow-hidden flex-shrink-0">
                       {request.from_user_avatar ? (
@@ -305,101 +273,23 @@ const Notifications = () => {
                     {/* Info */}
                     <div className="flex-1">
                       <p className="text-white font-semibold">{request.from_user_name}</p>
-                      <p className="text-slate-400 text-sm">
-                        {request.request_type === "drink" 
-                          ? "Offered you a drink" 
-                          : "Wants to chat sometime"}
-                      </p>
+                      <p className="text-slate-400 text-sm">Wants to chat sometime</p>
                       <p className="text-slate-500 text-xs mt-1">
                         {formatTime(request.created_at)}
                       </p>
                     </div>
 
-                    {/* Type indicator */}
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      request.request_type === "drink" 
-                        ? "bg-amber-500/20" 
-                        : "bg-indigo-500/20"
-                    }`}>
-                      {request.request_type === "drink" 
-                        ? <Wine className="w-5 h-5 text-amber-400" />
-                        : <MessageCircle className="w-5 h-5 text-indigo-400" />
-                      }
-                    </div>
+                    {/* View in Chat Requests button */}
+                    <Button
+                      data-testid={`view-chat-request-${request.id}`}
+                      onClick={() => navigate("/connections?tab=chats")}
+                      size="sm"
+                      className="rounded-full bg-indigo-500 hover:bg-indigo-600 text-white text-xs"
+                    >
+                      <MessageSquare className="w-3 h-3 mr-1" />
+                      View in Chat Requests
+                    </Button>
                   </div>
-
-                  {/* Accept Options */}
-                  {showAcceptOptions === request.id ? (
-                    <div className="space-y-2">
-                      <p className="text-slate-400 text-sm mb-3">Choose a response:</p>
-                      {acceptMessages.map((msg, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => handleRespondToRequest(request.id, true, msg)}
-                          disabled={responding === request.id}
-                          className="w-full text-left p-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-sm transition-colors"
-                        >
-                          "{msg}"
-                        </button>
-                      ))}
-                      <Button
-                        variant="ghost"
-                        onClick={() => setShowAcceptOptions(null)}
-                        className="w-full mt-2 text-slate-400"
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  ) : showDeclineOptions === request.id ? (
-                    <div className="space-y-2">
-                      <p className="text-slate-400 text-sm mb-3">Choose a response:</p>
-                      {declineMessages.map((msg, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => handleRespondToRequest(request.id, false, msg)}
-                          disabled={responding === request.id}
-                          className="w-full text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-sm transition-colors"
-                        >
-                          "{msg}"
-                        </button>
-                      ))}
-                      <Button
-                        variant="ghost"
-                        onClick={() => setShowDeclineOptions(null)}
-                        className="w-full mt-2 text-slate-400"
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  ) : (
-                    /* Action Buttons */
-                    <div className="flex gap-3">
-                      <Button
-                        data-testid={`accept-${request.id}`}
-                        onClick={() => setShowAcceptOptions(request.id)}
-                        disabled={responding === request.id}
-                        className="flex-1 h-11 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white"
-                      >
-                        {responding === request.id ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <>
-                            <Check className="w-4 h-4 mr-2" />
-                            Accept
-                          </>
-                        )}
-                      </Button>
-                      <Button
-                        data-testid={`decline-${request.id}`}
-                        onClick={() => setShowDeclineOptions(request.id)}
-                        variant="ghost"
-                        className="flex-1 h-11 rounded-xl text-slate-400 hover:text-white hover:bg-white/10"
-                      >
-                        <X className="w-4 h-4 mr-2" />
-                        Decline
-                      </Button>
-                    </div>
-                  )}
                 </div>
               ))}
             </div>

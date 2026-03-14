@@ -185,6 +185,16 @@ const Connections = () => {
     }
   };
 
+  const handleDeleteChatRequest = async (requestId) => {
+    try {
+      await axios.delete(`${API}/chat-request/${requestId}`);
+      toast.success("Chat request removed");
+      fetchAllData();
+    } catch (error) {
+      toast.error("Failed to remove chat request");
+    }
+  };
+
   const drinkDeclineOptions = [
     { key: "not_right_now", label: "Not right now, maybe later" },
     { key: "leaving_soon", label: "I'm about to head out" },
@@ -685,8 +695,11 @@ const Connections = () => {
                           <p className="text-slate-500 text-xs mt-1">
                             {request.status === "pending" ? "💬 Wants to chat" : request.status === "accepted" ? "✅ Accepted" : "❌ Declined"} • {formatDate(request.created_at)}
                           </p>
+                          {request.decline_message && (
+                            <p className="text-slate-500 text-xs italic mt-1">"{request.decline_message}"</p>
+                          )}
                         </div>
-                        {request.status === "pending" && (
+                        {request.status === "pending" ? (
                           <div className="flex gap-2">
                             <Button
                               data-testid={`accept-chat-${request.id}`}
@@ -706,16 +719,36 @@ const Connections = () => {
                               <X className="w-4 h-4" />
                             </Button>
                           </div>
-                        )}
-                        {request.status === "accepted" && (
+                        ) : request.status === "accepted" ? (
+                          <div className="flex gap-2">
+                            <Button
+                              data-testid={`message-${request.id}`}
+                              onClick={() => navigate(`/chat/${request.user_id}`)}
+                              size="sm"
+                              className="rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white"
+                            >
+                              <MessageCircle className="w-4 h-4 mr-1" />
+                              Chat
+                            </Button>
+                            <Button
+                              data-testid={`delete-chat-${request.id}`}
+                              onClick={() => handleDeleteChatRequest(request.id)}
+                              size="sm"
+                              variant="ghost"
+                              className="rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ) : (
                           <Button
-                            data-testid={`message-${request.id}`}
-                            onClick={() => navigate(`/chat/${request.user_id}`)}
+                            data-testid={`delete-chat-${request.id}`}
+                            onClick={() => handleDeleteChatRequest(request.id)}
                             size="sm"
-                            className="rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white"
+                            variant="ghost"
+                            className="rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10"
                           >
-                            <MessageCircle className="w-4 h-4 mr-1" />
-                            Chat
+                            <Trash2 className="w-4 h-4" />
                           </Button>
                         )}
                       </div>
@@ -736,17 +769,21 @@ const Connections = () => {
                       <div
                         key={request.id}
                         data-testid={`sent-chat-${request.id}`}
-                        onClick={() => navigate(`/profile/${request.user_id}`)}
-                        className="glass rounded-2xl p-4 flex items-center gap-4 hover:bg-white/5 transition-colors cursor-pointer"
+                        className="glass rounded-2xl p-4 flex items-center gap-4"
                       >
-                        <div className="w-14 h-14 rounded-2xl overflow-hidden">
-                          {request.avatar_url ? (
-                            <img src={request.avatar_url} alt={request.display_name} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center">
-                              <span className="text-xl text-slate-400">{request.display_name?.charAt(0) || "?"}</span>
-                            </div>
-                          )}
+                        <div 
+                          className="cursor-pointer"
+                          onClick={() => navigate(`/profile/${request.user_id}`)}
+                        >
+                          <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-pink-500 transition-all">
+                            {request.avatar_url ? (
+                              <img src={request.avatar_url} alt={request.display_name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center">
+                                <span className="text-xl text-slate-400">{request.display_name?.charAt(0) || "?"}</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <div className="flex-1 min-w-0">
                           <h4 className="font-semibold text-white truncate">{request.display_name}</h4>
@@ -760,15 +797,36 @@ const Connections = () => {
                             <p className="text-slate-500 text-xs italic mt-1">"{request.decline_message}"</p>
                           )}
                         </div>
-                        {request.status === "accepted" && (
+                        {request.status === "accepted" ? (
+                          <div className="flex gap-2">
+                            <Button
+                              data-testid={`message-out-${request.id}`}
+                              onClick={(e) => { e.stopPropagation(); navigate(`/chat/${request.user_id}`); }}
+                              size="sm"
+                              className="rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white"
+                            >
+                              <MessageCircle className="w-4 h-4 mr-1" />
+                              Chat
+                            </Button>
+                            <Button
+                              data-testid={`delete-sent-chat-${request.id}`}
+                              onClick={(e) => { e.stopPropagation(); handleDeleteChatRequest(request.id); }}
+                              size="sm"
+                              variant="ghost"
+                              className="rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ) : (
                           <Button
-                            data-testid={`message-out-${request.id}`}
-                            onClick={(e) => { e.stopPropagation(); navigate(`/chat/${request.user_id}`); }}
+                            data-testid={`delete-sent-chat-${request.id}`}
+                            onClick={(e) => { e.stopPropagation(); handleDeleteChatRequest(request.id); }}
                             size="sm"
-                            className="rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white"
+                            variant="ghost"
+                            className="rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10"
                           >
-                            <MessageCircle className="w-4 h-4 mr-1" />
-                            Chat
+                            <Trash2 className="w-4 h-4" />
                           </Button>
                         )}
                       </div>
