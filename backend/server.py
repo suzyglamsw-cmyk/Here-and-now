@@ -3409,6 +3409,9 @@ async def get_notifications(current_user: dict = Depends(get_current_user)):
     # Get drink tokens
     tokens = await db.drink_tokens.find({"to_user_id": current_user["id"], "status": "pending"}, {"_id": 0}).sort("created_at", -1).to_list(20)
     
+    # Get chat requests
+    chat_requests = await db.chat_requests.find({"to_user_id": current_user["id"], "status": "pending"}, {"_id": 0}).sort("created_at", -1).to_list(20)
+    
     # Get stored notifications (including test notifications)
     stored_notifications = await db.notifications.find(
         {"user_id": current_user["id"]},
@@ -3452,6 +3455,7 @@ async def get_notifications(current_user: dict = Depends(get_current_user)):
         
         if mutual and from_user:
             notifications.append({
+                "id": g.get("id", str(uuid.uuid4())),
                 "type": "mutual_glance",
                 "user": {
                     "id": from_user["id"] if isinstance(from_user, dict) else from_user.get("id"),
@@ -3468,6 +3472,7 @@ async def get_notifications(current_user: dict = Depends(get_current_user)):
         elif from_user:
             # Non-mutual glance but we have sender info
             notifications.append({
+                "id": g.get("id", str(uuid.uuid4())),
                 "type": "glance",
                 "message": f"{from_user.get('display_name', 'Someone')} glanced at you",
                 "from_user": {
@@ -3482,6 +3487,7 @@ async def get_notifications(current_user: dict = Depends(get_current_user)):
             })
         else:
             notifications.append({
+                "id": g.get("id", str(uuid.uuid4())),
                 "type": "glance",
                 "message": "Someone glanced at you",
                 "created_at": g["created_at"]
@@ -3504,6 +3510,7 @@ async def get_notifications(current_user: dict = Depends(get_current_user)):
         
         if from_user:
             notifications.append({
+                "id": t["id"],
                 "type": "drink_token",
                 "token_id": t["id"],
                 "from_user": {
@@ -3515,9 +3522,45 @@ async def get_notifications(current_user: dict = Depends(get_current_user)):
                 "created_at": t["created_at"]
             })
     
-    # Sort by date
+    # Process chat requests (avoid duplicates)
+    stored_chat_ids = {n.get("request_id") for n in stored_notifications if n.get("type") == "chat_request"}
+    
+    for cr in chat_requests:
+        if cr.get("id") in stored_chat_ids:
+            continue
+            
+        from_user = await db.users.find_one({"id": cr["from_user_id"]}, {"_id": 0, "password": 0})
+        
+        # Also check fake users for test mode
+        if not from_user and IS_TEST_BUILD:
+            fake_user = next((u for u in FAKE_TEST_USERS if u["id"] == cr["from_user_id"]), None)
+            if fake_user:
+                from_user = fake_user
+        
+        if from_user:
+            notifications.append({
+                "id": cr["id"],
+                "type": "chat_request",
+                "request_id": cr["id"],
+                "from_user": {
+                    "id": from_user.get("id"),
+                    "display_name": from_user.get("display_name", "Someone"),
+                    "avatar_url": from_user.get("avatar_url", "")
+                },
+                "created_at": cr["created_at"]
+            })
+    
+    # Sort by date and limit to 20
     notifications.sort(key=lambda x: x.get("created_at", ""), reverse=True)
-    return notifications[:30]
+    return notifications[:20]
+
+@api_router.delete("/notifications/clear")
+async def clear_notifications(current_user: dict = Depends(get_current_user)):
+    """Clear all notifications for the current user"""
+    # Delete stored notifications
+    await db.notifications.delete_many({"user_id": current_user["id"]})
+    
+    return {"message": "Notifications cleared"}
 
 # ============================================
 # Push Notifications System

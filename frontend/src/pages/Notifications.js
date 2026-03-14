@@ -7,16 +7,15 @@ import axios from "axios";
 import Layout from "../components/Layout";
 import { 
   Eye, Wine, Sparkles, Bell, Loader2, 
-  MessageCircle, ChevronRight, MessageSquare
+  MessageCircle, Trash2
 } from "lucide-react";
 
 const Notifications = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [notifications, setNotifications] = useState([]);
-  const [chatRequests, setChatRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState("notifications"); // "notifications" | "requests"
+  const [clearing, setClearing] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -24,16 +23,25 @@ const Notifications = () => {
 
   const fetchData = async () => {
     try {
-      const [notifRes, requestsRes] = await Promise.all([
-        axios.get(`${API}/notifications`),
-        axios.get(`${API}/chat-requests/inbox`)
-      ]);
-      setNotifications(notifRes.data);
-      setChatRequests(requestsRes.data);
+      const response = await axios.get(`${API}/notifications`);
+      setNotifications(response.data);
     } catch (error) {
       toast.error("Failed to load notifications");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleClearAll = async () => {
+    setClearing(true);
+    try {
+      await axios.delete(`${API}/notifications/clear`);
+      setNotifications([]);
+      toast.success("Notifications cleared");
+    } catch (error) {
+      toast.error("Failed to clear notifications");
+    } finally {
+      setClearing(false);
     }
   };
 
@@ -58,8 +66,97 @@ const Notifications = () => {
         return <Eye className="w-5 h-5 text-pink-400" />;
       case "drink_token":
         return <Wine className="w-5 h-5 text-amber-400" />;
+      case "chat_request":
+        return <MessageCircle className="w-5 h-5 text-indigo-400" />;
       default:
         return <Bell className="w-5 h-5 text-slate-400" />;
+    }
+  };
+
+  const getViewButton = (notification) => {
+    switch (notification.type) {
+      case "mutual_glance":
+        return (
+          <Button
+            data-testid={`view-glances-${notification.id}`}
+            onClick={() => navigate("/connections?tab=glances")}
+            size="sm"
+            className="rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs"
+          >
+            <Sparkles className="w-3 h-3 mr-1" />
+            View in Glances
+          </Button>
+        );
+      case "glance":
+        return (
+          <Button
+            data-testid={`view-glances-${notification.id}`}
+            onClick={() => navigate("/connections?tab=glances")}
+            size="sm"
+            className="rounded-full bg-pink-500 hover:bg-pink-600 text-white text-xs"
+          >
+            <Eye className="w-3 h-3 mr-1" />
+            View in Glances
+          </Button>
+        );
+      case "drink_token":
+        return (
+          <Button
+            data-testid={`view-drinks-${notification.token_id || notification.id}`}
+            onClick={() => navigate("/connections?tab=drinks")}
+            size="sm"
+            className="rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs"
+          >
+            <Wine className="w-3 h-3 mr-1" />
+            View in Drinks
+          </Button>
+        );
+      case "chat_request":
+        return (
+          <Button
+            data-testid={`view-chats-${notification.id}`}
+            onClick={() => navigate("/connections?tab=chats")}
+            size="sm"
+            className="rounded-full bg-indigo-500 hover:bg-indigo-600 text-white text-xs"
+          >
+            <MessageCircle className="w-3 h-3 mr-1" />
+            View in Chat Requests
+          </Button>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const getNotificationMessage = (notification) => {
+    const userName = notification.from_user?.display_name || notification.from_user_name || "Someone";
+    
+    switch (notification.type) {
+      case "mutual_glance":
+        return {
+          title: `You matched with ${userName}!`,
+          subtitle: "You can now chat with them"
+        };
+      case "glance":
+        return {
+          title: `${userName} glanced at you`,
+          subtitle: "They noticed you at the venue"
+        };
+      case "drink_token":
+        return {
+          title: `${userName} offered you a drink`,
+          subtitle: notification.drink_type || "A drink"
+        };
+      case "chat_request":
+        return {
+          title: `${userName} wants to chat`,
+          subtitle: "They sent you a chat request"
+        };
+      default:
+        return {
+          title: notification.message || "New notification",
+          subtitle: null
+        };
     }
   };
 
@@ -67,62 +164,51 @@ const Notifications = () => {
     <Layout>
       <div className="max-w-2xl mx-auto px-4 py-6 pb-32" data-testid="notifications-page">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-white mb-2">Notifications</h1>
-          <p className="text-slate-400">Recent activity</p>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex gap-2 mb-6">
-          <Button
-            data-testid="tab-notifications"
-            variant={tab === "notifications" ? "default" : "ghost"}
-            onClick={() => setTab("notifications")}
-            className={`rounded-xl ${tab === "notifications" ? "bg-white/10" : "text-slate-400"}`}
-          >
-            Activity
-            {notifications.length > 0 && (
-              <span className="ml-2 text-xs bg-white/20 px-2 py-0.5 rounded-full">
-                {notifications.length}
-              </span>
-            )}
-          </Button>
-          <Button
-            data-testid="tab-requests"
-            variant={tab === "requests" ? "default" : "ghost"}
-            onClick={() => setTab("requests")}
-            className={`rounded-xl ${tab === "requests" ? "bg-white/10" : "text-slate-400"}`}
-          >
-            Requests
-            {chatRequests.length > 0 && (
-              <span className="ml-2 text-xs bg-pink-500 px-2 py-0.5 rounded-full">
-                {chatRequests.length}
-              </span>
-            )}
-          </Button>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-2">Notifications</h1>
+            <p className="text-slate-400">Recent activity</p>
+          </div>
+          {notifications.length > 0 && (
+            <Button
+              data-testid="clear-all-btn"
+              onClick={handleClearAll}
+              disabled={clearing}
+              variant="ghost"
+              className="text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+            >
+              {clearing ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <Trash2 className="w-4 h-4 mr-2" />
+              )}
+              Clear All
+            </Button>
+          )}
         </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
           </div>
-        ) : tab === "notifications" ? (
-          /* Notifications Tab */
-          notifications.length === 0 ? (
-            <div className="text-center py-20">
-              <div className="w-20 h-20 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-4">
-                <Bell className="w-10 h-10 text-slate-600" />
-              </div>
-              <h2 className="text-xl font-semibold text-white mb-2">No notifications yet</h2>
-              <p className="text-slate-400">
-                Check in to a venue to start receiving notifications
-              </p>
+        ) : notifications.length === 0 ? (
+          <div className="text-center py-20">
+            <div className="w-20 h-20 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-4">
+              <Bell className="w-10 h-10 text-slate-600" />
             </div>
-          ) : (
-            <div className="space-y-3" data-testid="notifications-list">
-              {notifications.map((notification, index) => (
+            <h2 className="text-xl font-semibold text-white mb-2">No notifications yet</h2>
+            <p className="text-slate-400">
+              Check in to a venue to start receiving notifications
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3" data-testid="notifications-list">
+            {notifications.map((notification, index) => {
+              const { title, subtitle } = getNotificationMessage(notification);
+              
+              return (
                 <div
-                  key={index}
+                  key={notification.id || index}
                   data-testid={`notification-${index}`}
                   className="glass rounded-2xl p-4 flex items-start gap-4"
                 >
@@ -133,167 +219,42 @@ const Notifications = () => {
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
-                    {notification.type === "mutual_glance" && (
-                      <>
-                        <p className="text-white font-medium">
-                          You matched with {notification.user?.display_name || notification.from_user?.display_name}!
-                        </p>
-                        <p className="text-slate-400 text-sm mt-1">
-                          You can now chat with them
-                        </p>
-                        <div className="mt-2 flex gap-2">
-                          <Button
-                            data-testid={`view-profile-${notification.user?.id || notification.from_user?.id}`}
-                            onClick={() => navigate(`/profile/${notification.user?.id || notification.from_user?.id}`)}
-                            size="sm"
-                            variant="outline"
-                            className="rounded-full text-xs"
-                          >
-                            <Eye className="w-3 h-3 mr-1" />
-                            View
-                          </Button>
-                          <Button
-                            data-testid={`chat-btn-${notification.user?.id || notification.from_user?.id}`}
-                            onClick={() => navigate(`/chat/${notification.user?.id || notification.from_user?.id}`)}
-                            size="sm"
-                            className="rounded-full bg-indigo-500 hover:bg-indigo-600 text-white text-xs"
-                          >
-                            <MessageCircle className="w-3 h-3 mr-1" />
-                            Chat
-                          </Button>
-                        </div>
-                      </>
+                    <p className="text-white font-medium">{title}</p>
+                    {subtitle && (
+                      <p className="text-slate-400 text-sm mt-1">{subtitle}</p>
                     )}
-                    {notification.type === "glance" && (
-                      <>
-                        <p className="text-white font-medium">
-                          {notification.from_user?.display_name || notification.from_user_name || "Someone"} glanced at you
-                        </p>
-                        <div className="mt-2">
-                          <Button
-                            data-testid={`view-profile-${notification.from_user?.id || notification.from_user_id}`}
-                            onClick={() => {
-                              const userId = notification.from_user?.id || notification.from_user_id;
-                              if (userId) navigate(`/profile/${userId}`);
-                            }}
-                            size="sm"
-                            variant="outline"
-                            className="rounded-full text-xs"
-                            disabled={!notification.from_user?.id && !notification.from_user_id}
-                          >
-                            <Eye className="w-3 h-3 mr-1" />
-                            View
-                          </Button>
-                        </div>
-                      </>
-                    )}
-                    {notification.type === "drink_token" && (
-                      <>
-                        <p className="text-white font-medium">
-                          {notification.from_user?.display_name || notification.from_user_name || "Someone"} offered you a drink
-                        </p>
-                        <p className="text-slate-400 text-sm">
-                          {notification.drink_type}
-                        </p>
-                        <div className="mt-2 flex gap-2">
-                          <Button
-                            data-testid={`view-drinks-${notification.token_id || notification.id}`}
-                            onClick={() => navigate("/connections?tab=drinks")}
-                            size="sm"
-                            className="rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs"
-                          >
-                            <Wine className="w-3 h-3 mr-1" />
-                            View in Drinks
-                          </Button>
-                        </div>
-                      </>
-                    )}
+                    <div className="mt-2 flex gap-2">
+                      {getViewButton(notification)}
+                    </div>
                     <p className="text-slate-500 text-xs mt-2">
                       {formatTime(notification.created_at)}
                     </p>
                   </div>
 
-                  {/* Avatar for matches, glances, and drinks - tappable to profile */}
-                  {(notification.type === "mutual_glance" || notification.type === "drink_token" || notification.type === "glance") &&
-                    (notification.user?.avatar_url || notification.from_user?.avatar_url || notification.from_user_avatar) && (
-                      <div 
-                        className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-indigo-500 transition-all"
-                        onClick={() => {
-                          const userId = notification.user?.id || notification.from_user?.id || notification.from_user_id;
-                          if (userId) navigate(`/profile/${userId}`);
-                        }}
-                      >
-                        <img
-                          src={
-                            notification.user?.avatar_url ||
-                            notification.from_user?.avatar_url ||
-                            notification.from_user_avatar
-                          }
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    )}
-                </div>
-              ))}
-            </div>
-          )
-        ) : (
-          /* Chat Requests Tab - Now redirects to Connections */
-          chatRequests.length === 0 ? (
-            <div className="text-center py-20">
-              <div className="w-20 h-20 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-4">
-                <MessageCircle className="w-10 h-10 text-slate-600" />
-              </div>
-              <h2 className="text-xl font-semibold text-white mb-2">No pending requests</h2>
-              <p className="text-slate-400">
-                When someone sends you a chat request, it'll appear here
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3" data-testid="requests-list">
-              {chatRequests.map((request) => (
-                <div
-                  key={request.id}
-                  data-testid={`request-${request.id}`}
-                  className="glass rounded-2xl p-4"
-                >
-                  <div className="flex items-center gap-4">
-                    {/* Avatar */}
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center overflow-hidden flex-shrink-0">
-                      {request.from_user_avatar ? (
-                        <img src={request.from_user_avatar} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <span className="text-xl font-bold text-white">
-                          {request.from_user_name?.charAt(0) || "?"}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-1">
-                      <p className="text-white font-semibold">{request.from_user_name}</p>
-                      <p className="text-slate-400 text-sm">Wants to chat sometime</p>
-                      <p className="text-slate-500 text-xs mt-1">
-                        {formatTime(request.created_at)}
-                      </p>
-                    </div>
-
-                    {/* View in Chat Requests button */}
-                    <Button
-                      data-testid={`view-chat-request-${request.id}`}
-                      onClick={() => navigate("/connections?tab=chats")}
-                      size="sm"
-                      className="rounded-full bg-indigo-500 hover:bg-indigo-600 text-white text-xs"
+                  {/* Avatar - tappable to profile */}
+                  {(notification.user?.avatar_url || notification.from_user?.avatar_url || notification.from_user_avatar) && (
+                    <div 
+                      className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-indigo-500 transition-all"
+                      onClick={() => {
+                        const userId = notification.user?.id || notification.from_user?.id || notification.from_user_id;
+                        if (userId) navigate(`/profile/${userId}`);
+                      }}
                     >
-                      <MessageSquare className="w-3 h-3 mr-1" />
-                      View in Chat Requests
-                    </Button>
-                  </div>
+                      <img
+                        src={
+                          notification.user?.avatar_url ||
+                          notification.from_user?.avatar_url ||
+                          notification.from_user_avatar
+                        }
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
-          )
+              );
+            })}
+          </div>
         )}
       </div>
     </Layout>
