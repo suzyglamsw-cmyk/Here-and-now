@@ -139,32 +139,68 @@ const UserProfile = () => {
               )}
             </div>
 
+            {/* Profile Details (gender, orientation, relationship, seeking) */}
+            {(profile.gender || profile.orientation || profile.relationship_status || profile.seeking) && (
+              <div className="grid grid-cols-2 gap-3 mb-6">
+                {profile.gender && (
+                  <div className="bg-white/5 rounded-xl px-3 py-2">
+                    <p className="text-slate-500 text-xs">Gender</p>
+                    <p className="text-white text-sm capitalize">{profile.gender}</p>
+                  </div>
+                )}
+                {profile.orientation && (
+                  <div className="bg-white/5 rounded-xl px-3 py-2">
+                    <p className="text-slate-500 text-xs">Orientation</p>
+                    <p className="text-white text-sm capitalize">{profile.orientation}</p>
+                  </div>
+                )}
+                {profile.relationship_status && (
+                  <div className="bg-white/5 rounded-xl px-3 py-2">
+                    <p className="text-slate-500 text-xs">Status</p>
+                    <p className="text-white text-sm capitalize">{profile.relationship_status}</p>
+                  </div>
+                )}
+                {profile.seeking && (
+                  <div className="bg-white/5 rounded-xl px-3 py-2">
+                    <p className="text-slate-500 text-xs">Looking for</p>
+                    <p className="text-white text-sm capitalize">{profile.seeking}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Interests */}
             {profile.interests && profile.interests.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-6">
-                {profile.interests.map((interest) => (
-                  <span
-                    key={interest}
-                    className="bg-white/10 text-slate-300 px-3 py-1 rounded-full text-sm"
-                  >
-                    {interest}
-                  </span>
-                ))}
+              <div className="mb-6">
+                <p className="text-slate-500 text-xs mb-2">Interests</p>
+                <div className="flex flex-wrap gap-2">
+                  {profile.interests.map((interest) => (
+                    <span
+                      key={interest}
+                      className="bg-indigo-500/20 text-indigo-300 px-3 py-1 rounded-full text-sm"
+                    >
+                      {interest}
+                    </span>
+                  ))}
+                </div>
               </div>
             )}
 
             {/* Additional Photos */}
             {profile.photos && profile.photos.filter((p, i) => i > 0 && p).length > 0 && (
-              <div className="flex gap-2 mb-6">
-                {profile.photos.slice(1).filter(p => p).map((photo, index) => (
-                  <div key={index} className="w-20 h-20 rounded-xl overflow-hidden">
-                    <img
-                      src={photo}
-                      alt={`Photo ${index + 2}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ))}
+              <div className="mb-6">
+                <p className="text-slate-500 text-xs mb-2">More Photos</p>
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                  {profile.photos.slice(1).filter(p => p).map((photo, index) => (
+                    <div key={index} className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0">
+                      <img
+                        src={photo}
+                        alt={`Photo ${index + 2}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 

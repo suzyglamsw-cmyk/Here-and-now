@@ -1742,13 +1742,44 @@ async def ensure_fake_users_exist(current_user: dict = Depends(get_current_user)
     
     return {"message": "Fake users ensured", "created": created}
 
+@api_router.post("/test/cleanup-orphaned-checkins")
+async def cleanup_orphaned_checkins(current_user: dict = Depends(get_current_user)):
+    """Remove checkins that have no valid user (test mode only)"""
+    if not IS_TEST_BUILD:
+        raise HTTPException(status_code=403, detail="Test mode only")
+    
+    checkins = await db.checkins.find({"is_active": True}, {"_id": 0}).to_list(1000)
+    removed = 0
+    
+    for checkin in checkins:
+        user = await db.users.find_one({"id": checkin["user_id"]}, {"_id": 0})
+        if not user:
+            # Check if it's a valid fake user
+            fake_user = next((u for u in FAKE_TEST_USERS if u["id"] == checkin["user_id"]), None)
+            if not fake_user:
+                # Orphaned checkin - remove it
+                await db.checkins.delete_one({"id": checkin["id"]})
+                removed += 1
+    
+    return {"message": f"Cleaned up {removed} orphaned checkins", "removed": removed}
+
 # Venue Routes
 @api_router.get("/venues", response_model=List[VenueResponse])
 async def get_venues(current_user: dict = Depends(get_current_user)):
     venues = await db.venues.find({}, {"_id": 0}).to_list(100)
     for venue in venues:
-        count = await db.checkins.count_documents({"venue_id": venue["id"], "is_active": True})
-        venue["checked_in_count"] = count
+        # Count ONLY checkins that have valid users
+        checkins = await db.checkins.find({"venue_id": venue["id"], "is_active": True}, {"_id": 0}).to_list(100)
+        valid_count = 0
+        for checkin in checkins:
+            user = await db.users.find_one({"id": checkin["user_id"]}, {"_id": 0})
+            if user:
+                valid_count += 1
+            elif IS_TEST_BUILD:
+                fake_user = next((u for u in FAKE_TEST_USERS if u["id"] == checkin["user_id"]), None)
+                if fake_user:
+                    valid_count += 1
+        venue["checked_in_count"] = valid_count
     return venues
 
 @api_router.get("/venues/{venue_id}")
@@ -1756,7 +1787,7 @@ async def get_venue(venue_id: str, current_user: dict = Depends(get_current_user
     venue = await db.venues.find_one({"id": venue_id}, {"_id": 0})
     if not venue:
         # Create a placeholder venue if it doesn't exist
-        venue = {
+        new_venue = {
             "id": venue_id,
             "name": "Venue",
             "type": "venue",
@@ -1765,10 +1796,29 @@ async def get_venue(venue_id: str, current_user: dict = Depends(get_current_user
             "longitude": 0,
             "created_at": datetime.now(timezone.utc).isoformat()
         }
-        await db.venues.insert_one(venue)
+        await db.venues.insert_one(new_venue)
+        # Fetch it back without _id
+        venue = await db.venues.find_one({"id": venue_id}, {"_id": 0})
     
-    count = await db.checkins.count_documents({"venue_id": venue_id, "is_active": True})
-    venue["checked_in_count"] = count
+    # Count ONLY checkins that have valid users (real users or fake users in test mode)
+    checkins = await db.checkins.find({"venue_id": venue_id, "is_active": True}, {"_id": 0}).to_list(100)
+    valid_count = 0
+    for checkin in checkins:
+        # Skip current user
+        if checkin["user_id"] == current_user["id"]:
+            valid_count += 1  # Count current user
+            continue
+        # Check if user exists
+        user = await db.users.find_one({"id": checkin["user_id"]}, {"_id": 0})
+        if user:
+            valid_count += 1
+        elif IS_TEST_BUILD:
+            # Check fake users in test mode
+            fake_user = next((u for u in FAKE_TEST_USERS if u["id"] == checkin["user_id"]), None)
+            if fake_user:
+                valid_count += 1
+    
+    venue["checked_in_count"] = valid_count
     return venue
 
 @api_router.post("/venues", response_model=VenueResponse)
@@ -1853,6 +1903,21 @@ async def get_current_checkin(current_user: dict = Depends(get_current_user)):
     if not checkin:
         return {"checked_in": False}
     venue = await db.venues.find_one({"id": checkin["venue_id"]}, {"_id": 0})
+    
+    # Calculate accurate occupancy count
+    if venue:
+        all_checkins = await db.checkins.find({"venue_id": checkin["venue_id"], "is_active": True}, {"_id": 0}).to_list(100)
+        valid_count = 0
+        for c in all_checkins:
+            user = await db.users.find_one({"id": c["user_id"]}, {"_id": 0})
+            if user:
+                valid_count += 1
+            elif IS_TEST_BUILD:
+                fake_user = next((u for u in FAKE_TEST_USERS if u["id"] == c["user_id"]), None)
+                if fake_user:
+                    valid_count += 1
+        venue["checked_in_count"] = valid_count
+    
     return {"checked_in": True, "checkin": checkin, "venue": venue}
 
 @api_router.put("/venues/{venue_id}")
@@ -2407,7 +2472,7 @@ async def get_message_threads(current_user: dict = Depends(get_current_user)):
 
 @api_router.get("/users/{user_id}/profile")
 async def get_user_profile(user_id: str, current_user: dict = Depends(get_current_user)):
-    """Get a user's profile without counting as a glance"""
+    """Get a user's full profile without counting as a glance"""
     user = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0})
     
     # Check fake users for test mode
@@ -2419,8 +2484,14 @@ async def get_user_profile(user_id: str, current_user: dict = Depends(get_curren
                 "display_name": fake_user["display_name"],
                 "avatar_url": fake_user.get("avatar_url", ""),
                 "age": fake_user.get("age"),
-                "bio": "",
-                "interests": [],
+                "bio": "Test user profile",
+                "interests": ["Music", "Travel", "Food"],
+                "gender": "",
+                "orientation": "",
+                "relationship_status": "",
+                "seeking": "",
+                "photos": [fake_user.get("avatar_url", "")],
+                "profile_theme": None,
                 "is_test": True
             }
     
@@ -2440,6 +2511,7 @@ async def get_user_profile(user_id: str, current_user: dict = Depends(get_curren
     
     is_mutual = they_glanced_at_me and i_glanced_at_them
     
+    # Return full profile data
     return {
         "id": user.get("id"),
         "display_name": user.get("display_name"),
@@ -2448,6 +2520,11 @@ async def get_user_profile(user_id: str, current_user: dict = Depends(get_curren
         "age": user.get("age"),
         "interests": user.get("interests", []),
         "photos": user.get("photos", []),
+        "gender": user.get("gender", ""),
+        "orientation": user.get("orientation", ""),
+        "relationship_status": user.get("relationship_status", ""),
+        "seeking": user.get("seeking", ""),
+        "profile_theme": user.get("profile_theme"),
         "they_glanced_at_me": they_glanced_at_me,
         "i_glanced_at_them": i_glanced_at_them,
         "is_mutual": is_mutual,

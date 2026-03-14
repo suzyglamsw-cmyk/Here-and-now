@@ -100,6 +100,22 @@ IS_TEST_BUILD=true
 - GET /api/venues/{venue_id}/people - Returns full profile data:
   - first_name, age, avatar (if revealed), glance state
   - Shows "Alex, 28" instead of "Someone" before reveal
+  - Only returns valid users (real or fake test users in test mode)
+  - Orphaned checkins are automatically filtered out
+
+### User Profile API
+- GET /api/users/{user_id}/profile - Returns full profile:
+  - display_name, bio, age, interests, photos
+  - gender, orientation, relationship_status, seeking, profile_theme
+  - Glance state: they_glanced_at_me, i_glanced_at_them, is_mutual, can_glance_back
+  - For fake test users: returns mock data (bio, interests, photos from avatar_url)
+
+### Venue Occupancy Sync (Fixed March 2026)
+- GET /api/venues - Venue list with accurate checked_in_count
+- GET /api/venues/{venue_id} - Single venue with accurate checked_in_count
+- GET /api/checkin/current - Current checkin with accurate venue.checked_in_count
+- All counts now calculated by validating each checkin has a real user
+- POST /api/test/cleanup-orphaned-checkins - Remove invalid checkins (test mode)
 
 ### Connections
 - GET /api/connections - Unified list includes:
@@ -121,8 +137,12 @@ IS_TEST_BUILD=true
 ### P0 (Critical) - RESOLVED
 - [x] Push notifications not appearing on device - RESOLVED (push system works, test endpoints use fake FCM endpoints that return 410 Gone; real browser subscriptions will work)
 - [x] Fake events not creating DB records - RESOLVED (test endpoints now create proper database records)
+- [x] Venue occupancy mismatch - RESOLVED (March 2026: counts now validated against real users)
+- [x] Placeholder users appearing - RESOLVED (March 2026: presence API filters orphaned checkins)
+- [x] Profile missing bio/details - RESOLVED (March 2026: full profile data returned)
 
 ### P1 (High) - For Production
+- [ ] Backend refactoring: server.py is now 4200+ lines - needs modular structure (routes/, models/, services/)
 - [ ] Production Google Places API key
 - [ ] Google Play service account credentials
 
