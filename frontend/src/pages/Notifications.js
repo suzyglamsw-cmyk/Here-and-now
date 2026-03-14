@@ -190,12 +190,31 @@ const Notifications = () => {
                       </>
                     )}
                     {notification.type === "glance" && (
-                      <p className="text-white">{notification.message}</p>
+                      <>
+                        <p className="text-white font-medium">
+                          {notification.from_user?.display_name || notification.from_user_name
+                            ? `${notification.from_user?.display_name || notification.from_user_name} glanced at you`
+                            : notification.message || "Someone glanced at you"}
+                        </p>
+                        {(notification.from_user?.avatar_url || notification.from_user_avatar) && (
+                          <div className="mt-2">
+                            <Button
+                              onClick={() => navigate(`/notifications`)}
+                              size="sm"
+                              variant="outline"
+                              className="rounded-full text-xs"
+                            >
+                              <Eye className="w-3 h-3 mr-1" />
+                              View
+                            </Button>
+                          </div>
+                        )}
+                      </>
                     )}
                     {notification.type === "drink_token" && (
                       <>
                         <p className="text-white font-medium">
-                          {notification.from_user?.display_name} sent you a{" "}
+                          {notification.from_user?.display_name || notification.from_user_name || "Someone"} sent you a{" "}
                           {notification.drink_type}!
                         </p>
                         <div className="mt-2">
@@ -221,14 +240,15 @@ const Notifications = () => {
                     </p>
                   </div>
 
-                  {/* Avatar for matches */}
-                  {(notification.type === "mutual_glance" || notification.type === "drink_token") &&
-                    (notification.user?.avatar_url || notification.from_user?.avatar_url) && (
+                  {/* Avatar for matches, glances, and drinks */}
+                  {(notification.type === "mutual_glance" || notification.type === "drink_token" || notification.type === "glance") &&
+                    (notification.user?.avatar_url || notification.from_user?.avatar_url || notification.from_user_avatar) && (
                       <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0">
                         <img
                           src={
                             notification.user?.avatar_url ||
-                            notification.from_user?.avatar_url
+                            notification.from_user?.avatar_url ||
+                            notification.from_user_avatar
                           }
                           alt=""
                           className="w-full h-full object-cover"

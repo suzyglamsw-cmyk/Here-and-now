@@ -34,6 +34,7 @@ Real-time, Location-based, Low-pressure, Spontaneous, Venue-focused, Privacy-saf
 - Auto-cleanup of expired/invalid subscriptions
 - Notification payloads include: `from_user_id`, `from_user_name`, `from_user_photo`
 - Click navigation: messages → chat, glances/drinks → notifications, matches → chat
+- In-app notifications display sender name, avatar, and action buttons
 
 ### Google Places API
 - Nearby venues with photos/ratings

@@ -2150,8 +2150,15 @@ async def get_notifications(current_user: dict = Depends(get_current_user)):
     
     notifications = []
     
-    # Add stored notifications first
+    # Add stored notifications first (transform to consistent format)
     for n in stored_notifications:
+        # Ensure from_user object exists for consistency
+        if n.get("from_user_id") and not n.get("from_user"):
+            n["from_user"] = {
+                "id": n.get("from_user_id"),
+                "display_name": n.get("from_user_name", "Someone"),
+                "avatar_url": n.get("from_user_avatar", "")
+            }
         notifications.append(n)
     
     # Process glances (avoid duplicates with stored notifications)
@@ -2184,6 +2191,26 @@ async def get_notifications(current_user: dict = Depends(get_current_user)):
                     "display_name": from_user.get("display_name", "Someone"),
                     "avatar_url": from_user.get("avatar_url", "")
                 },
+                "from_user": {
+                    "id": from_user["id"] if isinstance(from_user, dict) else from_user.get("id"),
+                    "display_name": from_user.get("display_name", "Someone"),
+                    "avatar_url": from_user.get("avatar_url", "")
+                },
+                "created_at": g["created_at"]
+            })
+        elif from_user:
+            # Non-mutual glance but we have sender info
+            notifications.append({
+                "type": "glance",
+                "message": f"{from_user.get('display_name', 'Someone')} glanced at you",
+                "from_user": {
+                    "id": from_user.get("id"),
+                    "display_name": from_user.get("display_name", "Someone"),
+                    "avatar_url": from_user.get("avatar_url", "")
+                },
+                "from_user_id": from_user.get("id"),
+                "from_user_name": from_user.get("display_name", "Someone"),
+                "from_user_avatar": from_user.get("avatar_url", ""),
                 "created_at": g["created_at"]
             })
         else:
