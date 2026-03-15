@@ -1586,6 +1586,60 @@ async def toggle_premium_status(current_user: dict = Depends(get_current_user)):
         "daily_icebreakers_remaining": max(0, daily_icebreaker_limit - daily_icebreakers_used)
     }
 
+@api_router.post("/test/reset-state")
+async def reset_test_state(current_user: dict = Depends(get_current_user)):
+    """Reset all test state for the current user"""
+    if not IS_TEST_BUILD:
+        raise HTTPException(status_code=403, detail="Test mode only")
+    
+    user_id = current_user["id"]
+    
+    # 1. Reset daily counters
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {
+            "daily_glances_used": 0,
+            "daily_icebreakers_used": 0
+        }}
+    )
+    
+    # 2. Delete all outgoing icebreakers
+    outgoing_deleted = await db.icebreakers.delete_many({"from_user_id": user_id})
+    
+    # 3. Delete all incoming icebreakers
+    incoming_deleted = await db.icebreakers.delete_many({"to_user_id": user_id})
+    
+    # 4. Clear any icebreaker cooldowns
+    await db.icebreaker_cooldowns.delete_many({
+        "$or": [{"sender_id": user_id}, {"recipient_id": user_id}]
+    })
+    
+    # 5. Delete all pending chat requests (outgoing and incoming)
+    chat_requests_deleted = await db.chat_requests.delete_many({
+        "$or": [
+            {"from_user_id": user_id, "status": "pending"},
+            {"to_user_id": user_id, "status": "pending"}
+        ]
+    })
+    
+    # 6. Delete all glances from this user (to allow re-glancing)
+    glances_deleted = await db.glances.delete_many({"from_user_id": user_id})
+    
+    # 7. Delete notifications for this user
+    await db.notifications.delete_many({"user_id": user_id})
+    
+    return {
+        "message": "Test state reset successfully",
+        "details": {
+            "daily_glances_used": 0,
+            "daily_icebreakers_used": 0,
+            "outgoing_icebreakers_deleted": outgoing_deleted.deleted_count,
+            "incoming_icebreakers_deleted": incoming_deleted.deleted_count,
+            "chat_requests_deleted": chat_requests_deleted.deleted_count,
+            "glances_deleted": glances_deleted.deleted_count
+        }
+    }
+
 @api_router.post("/test/populate-venue/{venue_id}")
 async def populate_venue_with_fake_users(venue_id: str, current_user: dict = Depends(get_current_user)):
     """Populate a venue with fake users for testing"""

@@ -9,7 +9,7 @@ import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
 import { 
   Wrench, Eye, Snowflake, MessageCircle, Users, 
-  Loader2, AlertTriangle, Sparkles, RefreshCw, Coins, Crown 
+  Loader2, AlertTriangle, Sparkles, RefreshCw, Coins, Crown, RotateCcw 
 } from "lucide-react";
 
 const TestTools = () => {
@@ -20,6 +20,7 @@ const TestTools = () => {
   const [generating, setGenerating] = useState(null);
   const [fakeUsers, setFakeUsers] = useState([]);
   const [togglingPremium, setTogglingPremium] = useState(false);
+  const [resettingState, setResettingState] = useState(false);
 
   useEffect(() => {
     checkTestMode();
@@ -97,6 +98,25 @@ const TestTools = () => {
       toast.error("Failed to toggle premium status");
     } finally {
       setTogglingPremium(false);
+    }
+  };
+
+  const resetTestState = async () => {
+    setResettingState(true);
+    try {
+      const response = await axios.post(`${API}/test/reset-state`);
+      const details = response.data.details;
+      toast.success(
+        `Reset complete: ${details.outgoing_icebreakers_deleted + details.incoming_icebreakers_deleted} icebreakers, ${details.glances_deleted} glances cleared`
+      );
+      // Refresh user data to update counters
+      if (fetchUser) {
+        await fetchUser();
+      }
+    } catch (error) {
+      toast.error("Failed to reset test state");
+    } finally {
+      setResettingState(false);
     }
   };
 
@@ -293,6 +313,28 @@ const TestTools = () => {
               <span className="text-slate-300">{user?.is_premium ? "5" : "1"}</span>
             </div>
           </div>
+        </div>
+
+        {/* Reset Test State */}
+        <div className="glass rounded-2xl p-6">
+          <h2 className="text-lg font-semibold text-white mb-4">Reset Test State</h2>
+          <p className="text-slate-400 text-sm mb-4">
+            Clear all test data including daily counters, icebreakers, glances, and chat requests.
+          </p>
+          <Button
+            data-testid="reset-test-state-btn"
+            onClick={resetTestState}
+            disabled={resettingState}
+            variant="destructive"
+            className="w-full rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30"
+          >
+            {resettingState ? (
+              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+            ) : (
+              <RotateCcw className="w-5 h-5 mr-2" />
+            )}
+            Reset Test State
+          </Button>
         </div>
       </div>
     </Layout>
