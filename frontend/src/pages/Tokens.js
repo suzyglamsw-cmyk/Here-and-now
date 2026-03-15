@@ -16,8 +16,10 @@ const Tokens = () => {
   const [packages, setPackages] = useState([]);
   const [balance, setBalance] = useState({ 
     balance: 0, 
-    daily_icebreakers_remaining: 0,
+    daily_glances_used: 0,
+    daily_icebreakers_used: 0,
     daily_glances_remaining: 0,
+    daily_icebreakers_remaining: 0,
     daily_icebreaker_limit: 1,
     daily_glance_limit: 5,
     is_premium: false 
@@ -125,7 +127,7 @@ const Tokens = () => {
               </div>
               <div className="text-right">
                 <span className="text-2xl font-bold text-white">
-                  {balance.daily_glance_limit - balance.daily_glances_remaining}
+                  {balance.daily_glances_used}
                 </span>
                 <span className="text-slate-400 text-lg"> / {balance.daily_glance_limit}</span>
                 <p className="text-slate-500 text-xs">{balance.daily_glances_remaining} remaining</p>
@@ -147,7 +149,7 @@ const Tokens = () => {
               </div>
               <div className="text-right">
                 <span className="text-2xl font-bold text-white">
-                  {balance.daily_icebreaker_limit - balance.daily_icebreakers_remaining}
+                  {balance.daily_icebreakers_used}
                 </span>
                 <span className="text-slate-400 text-lg"> / {balance.daily_icebreaker_limit}</span>
                 <p className="text-slate-500 text-xs">{balance.daily_icebreakers_remaining} remaining</p>

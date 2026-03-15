@@ -1557,25 +1557,33 @@ async def toggle_premium_status(current_user: dict = Depends(get_current_user)):
     new_premium = not current_premium
     
     # Set premium status and expiration (30 days from now if enabling)
+    # Note: daily_glances_used and daily_icebreakers_used are NOT reset
+    # The limits change but the used counts stay the same
     update_data = {"is_premium": new_premium}
     if new_premium:
         update_data["premium_expires_at"] = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
-        # Also give premium daily allowances
-        update_data["daily_glances_remaining"] = PREMIUM_DAILY_GLANCES
     else:
         update_data["premium_expires_at"] = None
-        update_data["daily_glances_remaining"] = FREE_DAILY_GLANCES
     
     await db.users.update_one(
         {"id": current_user["id"]},
         {"$set": update_data}
     )
     
+    # Calculate new limits and remaining
+    daily_glance_limit = PREMIUM_DAILY_GLANCES if new_premium else FREE_DAILY_GLANCES
+    daily_icebreaker_limit = PREMIUM_DAILY_TOKENS if new_premium else FREE_DAILY_TOKENS
+    daily_glances_used = current_user.get("daily_glances_used", 0)
+    daily_icebreakers_used = current_user.get("daily_icebreakers_used", 0)
+    
     return {
         "message": f"Premium {'enabled' if new_premium else 'disabled'}",
         "is_premium": new_premium,
         "premium_expires_at": update_data.get("premium_expires_at"),
-        "daily_glances_remaining": update_data.get("daily_glances_remaining")
+        "daily_glance_limit": daily_glance_limit,
+        "daily_icebreaker_limit": daily_icebreaker_limit,
+        "daily_glances_remaining": max(0, daily_glance_limit - daily_glances_used),
+        "daily_icebreakers_remaining": max(0, daily_icebreaker_limit - daily_icebreakers_used)
     }
 
 @api_router.post("/test/populate-venue/{venue_id}")
@@ -2350,13 +2358,45 @@ async def get_people_at_venue(venue_id: str, current_user: dict = Depends(get_cu
 # Glance Routes
 @api_router.post("/glance")
 async def send_glance(data: GlanceCreate, current_user: dict = Depends(get_current_user)):
-    # Check daily glance limit (unlimited in test mode or for users with bypass flag)
-    if IS_TEST_BUILD or current_user.get("bypass_glance_limits", False):
-        remaining = TEST_MODE_GLANCES
-    else:
-        remaining = current_user.get("daily_glances_remaining", FREE_DAILY_GLANCES)
+    """Send a glance to another user at a venue"""
+    now = datetime.now(timezone.utc)
     
-    if remaining <= 0:
+    # Check daily glance limit (unlimited glances in test mode or for users with bypass flag, but still track usage)
+    bypass_limits = IS_TEST_BUILD or current_user.get("bypass_glance_limits", False)
+    
+    # Check if daily glances available
+    is_premium = current_user.get("is_premium", False)
+    daily_limit = PREMIUM_DAILY_GLANCES if is_premium else FREE_DAILY_GLANCES
+    
+    # Get daily glances used (reset at 5am)
+    glances_reset_at = current_user.get("glances_reset_at")
+    daily_used = current_user.get("daily_glances_used", 0)
+    
+    if glances_reset_at:
+        reset_time = datetime.fromisoformat(glances_reset_at.replace("Z", "+00:00"))
+        if now >= reset_time:
+            daily_used = 0
+            # Set next reset to 5am
+            next_reset = now.replace(hour=5, minute=0, second=0, microsecond=0)
+            if now.hour >= 5:
+                next_reset = next_reset + timedelta(days=1)
+            await db.users.update_one(
+                {"id": current_user["id"]},
+                {"$set": {"daily_glances_used": 0, "glances_reset_at": next_reset.isoformat()}}
+            )
+    
+    # Check if free allowance available, otherwise use tokens
+    token_balance = current_user.get("token_balance", 0)
+    use_token = False
+    
+    if daily_used < daily_limit:
+        # Use free allowance
+        pass  # Will increment daily_glances_used below
+    elif token_balance > 0:
+        # Use token
+        use_token = True
+    elif not bypass_limits:
+        # No glances remaining and not in bypass mode
         raise HTTPException(
             status_code=429, 
             detail="no_glances_remaining"  # Special code for frontend to show upgrade prompt
@@ -2380,11 +2420,16 @@ async def send_glance(data: GlanceCreate, current_user: dict = Depends(get_curre
     if existing:
         return {"message": "Already glanced", "is_mutual": False}
     
-    # Decrement daily glances (skip in test mode)
-    if not IS_TEST_BUILD:
+    # Track usage (always update counters, even in test mode for UI consistency)
+    if use_token:
         await db.users.update_one(
             {"id": current_user["id"]},
-            {"$inc": {"daily_glances_remaining": -1}}
+            {"$inc": {"token_balance": -1}}
+        )
+    else:
+        await db.users.update_one(
+            {"id": current_user["id"]},
+            {"$inc": {"daily_glances_used": 1}}
         )
     
     glance_id = str(uuid.uuid4())
@@ -4490,15 +4535,26 @@ async def get_premium_packages():
 
 @api_router.get("/tokens/balance")
 async def get_token_balance(current_user: dict = Depends(get_current_user)):
-    """Get current token balance"""
+    """Get current token balance and daily allowances"""
     is_premium = current_user.get("is_premium", False)
+    
+    # Get daily limits based on premium status
+    daily_glance_limit = PREMIUM_DAILY_GLANCES if is_premium else FREE_DAILY_GLANCES
+    daily_icebreaker_limit = PREMIUM_DAILY_TOKENS if is_premium else FREE_DAILY_TOKENS
+    
+    # Get used counts (these reset at 5am)
+    daily_glances_used = current_user.get("daily_glances_used", 0)
+    daily_icebreakers_used = current_user.get("daily_icebreakers_used", 0)
+    
     return {
         "balance": current_user.get("token_balance", 0),
-        "daily_icebreakers_remaining": current_user.get("daily_tokens_remaining", PREMIUM_DAILY_TOKENS if is_premium else FREE_DAILY_TOKENS),
-        "daily_glances_remaining": current_user.get("daily_glances_remaining", PREMIUM_DAILY_GLANCES if is_premium else FREE_DAILY_GLANCES),
-        "is_premium": is_premium,
-        "daily_icebreaker_limit": PREMIUM_DAILY_TOKENS if is_premium else FREE_DAILY_TOKENS,
-        "daily_glance_limit": PREMIUM_DAILY_GLANCES if is_premium else FREE_DAILY_GLANCES
+        "daily_glances_used": daily_glances_used,
+        "daily_icebreakers_used": daily_icebreakers_used,
+        "daily_glance_limit": daily_glance_limit,
+        "daily_icebreaker_limit": daily_icebreaker_limit,
+        "daily_glances_remaining": max(0, daily_glance_limit - daily_glances_used),
+        "daily_icebreakers_remaining": max(0, daily_icebreaker_limit - daily_icebreakers_used),
+        "is_premium": is_premium
     }
 
 @api_router.get("/tokens/packages")
