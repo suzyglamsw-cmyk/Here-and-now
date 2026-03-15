@@ -88,6 +88,43 @@ const Connections = () => {
     return date.toLocaleDateString();
   };
 
+  // Format viewed timestamp for premium users
+  // Same-day: "h:mm a" (e.g., 9:42pm)
+  // Yesterday: "Yesterday · h:mm a"
+  // Older: "DD MMM · h:mm a"
+  const formatViewedTime = (dateString) => {
+    if (!dateString) return null;
+    
+    const date = new Date(dateString);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const viewedDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    
+    // Format time as h:mm a (e.g., 9:42pm)
+    const timeStr = date.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      hour12: true 
+    }).toLowerCase();
+    
+    if (viewedDay.getTime() === today.getTime()) {
+      // Same day: just show time
+      return timeStr;
+    } else if (viewedDay.getTime() === yesterday.getTime()) {
+      // Yesterday
+      return `Yesterday · ${timeStr}`;
+    } else {
+      // Older: DD MMM · h:mm a
+      const dateStr = date.toLocaleDateString('en-GB', { 
+        day: 'numeric', 
+        month: 'short' 
+      });
+      return `${dateStr} · ${timeStr}`;
+    }
+  };
+
   const totalUnread = messageThreads.reduce((sum, t) => sum + t.unread_count, 0);
   const totalRequests = (friendRequests.incoming?.length || 0) + (friendRequests.outgoing?.length || 0);
   const totalGlances = (glances.incoming?.length || 0) + (glances.outgoing?.length || 0);
@@ -158,6 +195,18 @@ const Connections = () => {
     } catch (error) {
       toast.error("Failed to remove icebreaker");
     }
+  };
+
+  // Mark icebreaker as viewed when recipient opens the action sheet
+  const openIcebreakerActionSheet = async (icebreaker) => {
+    // Mark as viewed (only the first view is recorded by backend)
+    try {
+      await axios.post(`${API}/icebreaker/${icebreaker.id}/view`);
+    } catch (error) {
+      // Silently fail - viewing is not critical
+      console.log("Failed to mark as viewed:", error);
+    }
+    setActionSheet(icebreaker);
   };
 
   const handleAcceptChatRequest = async (requestId) => {
@@ -632,7 +681,7 @@ const Connections = () => {
                         {ib.status === "pending" ? (
                           <Button
                             data-testid={`respond-icebreaker-${ib.id}`}
-                            onClick={() => setActionSheet(ib)}
+                            onClick={() => openIcebreakerActionSheet(ib)}
                             size="sm"
                             className="rounded-xl bg-cyan-500 hover:bg-cyan-600 text-white"
                           >
@@ -687,7 +736,19 @@ const Connections = () => {
                           <h4 className="font-semibold text-white truncate">{ib.display_name}</h4>
                           <p className="text-slate-400 text-sm truncate">"{ib.message || ICEBREAKER_MESSAGES[ib.message_type || 0]}"</p>
                           <p className="text-slate-500 text-xs mt-1">
-                            {ib.display_status || (ib.status === "pending" ? "Sent" : ib.status === "accepted" ? "✅ Accepted" : "Response received")} • {formatDate(ib.created_at)}
+                            {/* Premium users see "Viewed · timestamp" if viewed */}
+                            {user?.is_premium && ib.viewed_at ? (
+                              <span className="text-emerald-400">Viewed · {formatViewedTime(ib.viewed_at)}</span>
+                            ) : user?.is_premium && ib.status === "pending" ? (
+                              <span>Sent</span>
+                            ) : ib.status === "accepted" ? (
+                              <span className="text-emerald-400">✅ Accepted</span>
+                            ) : ib.status === "declined" || ib.status === "not_right_now" ? (
+                              <span className="text-slate-400">Response received</span>
+                            ) : null}
+                            {/* Show sent time for non-premium or add separator */}
+                            {(user?.is_premium || ib.status !== "pending") && " · "}
+                            {formatDate(ib.created_at)}
                           </p>
                         </div>
                         <Button
