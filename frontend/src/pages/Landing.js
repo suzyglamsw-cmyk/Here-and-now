@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/App";
@@ -7,9 +8,34 @@ import { Logo, LogoIcon } from "../components/Logo";
 const Landing = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    // Show splash screen for 2.5 seconds
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 2500);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   if (user) {
     navigate("/venues");
+  }
+
+  // Splash/Intro Screen
+  if (showSplash) {
+    return (
+      <div className="min-h-screen hero-gradient flex items-center justify-center">
+        <div className="text-center animate-fade-in">
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <LogoIcon className="w-16 h-16 animate-pulse" />
+          </div>
+          <Logo size="large" />
+          <p className="text-slate-400 mt-4 text-lg">Connect in the moment</p>
+        </div>
+      </div>
+    );
   }
 
   const features = [
