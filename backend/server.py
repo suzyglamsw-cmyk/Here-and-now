@@ -148,6 +148,46 @@ def mask_contact_info(text: str) -> str:
         masked = pattern.sub(replacement, masked)
     return masked
 
+async def handle_premium_expiration(user_id: str, user_data: dict) -> dict:
+    """
+    Handle premium subscription expiration.
+    Returns updated user data with premium features disabled.
+    """
+    now = datetime.now(timezone.utc)
+    
+    # Check if premium is active and has an expiration date
+    if not user_data.get("is_premium"):
+        return user_data
+    
+    expires_at = user_data.get("premium_expires_at")
+    if not expires_at:
+        return user_data
+    
+    try:
+        expires = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+    except (ValueError, AttributeError):
+        return user_data
+    
+    # Check if expired
+    if now <= expires:
+        return user_data
+    
+    # Premium has expired - disable premium features
+    update_data = {
+        "is_premium": False,
+        "premium_expires_at": None,
+        # Note: daily_glances_used and daily_icebreakers_used stay the same
+        # The limits just change, potentially leaving user over-limit until reset
+    }
+    
+    await db.users.update_one({"id": user_id}, {"$set": update_data})
+    
+    # Update the user_data dict to reflect changes
+    user_data["is_premium"] = False
+    user_data["premium_expires_at"] = None
+    
+    return user_data
+
 def get_first_name(display_name: str) -> str:
     """Extract first name from display name"""
     if not display_name:
@@ -639,11 +679,7 @@ async def login(data: UserLogin):
             user["daily_tokens_remaining"] = daily_tokens
     
     # Check premium expiration
-    if user.get("is_premium") and user.get("premium_expires_at"):
-        expires = datetime.fromisoformat(user["premium_expires_at"].replace('Z', '+00:00'))
-        if now > expires:
-            await db.users.update_one({"id": user["id"]}, {"$set": {"is_premium": False}})
-            user["is_premium"] = False
+    user = await handle_premium_expiration(user["id"], user)
     
     token = create_token(user["id"], user["email"])
     return {
@@ -675,6 +711,9 @@ async def login(data: UserLogin):
 
 @api_router.get("/auth/me", response_model=UserResponse)
 async def get_me(current_user: dict = Depends(get_current_user)):
+    # Check premium expiration
+    current_user = await handle_premium_expiration(current_user["id"], current_user)
+    
     # Check for active venue check-in
     checkin = await db.checkins.find_one({"user_id": current_user["id"], "is_active": True}, {"_id": 0})
     
@@ -1639,6 +1678,50 @@ async def reset_test_state(current_user: dict = Depends(get_current_user)):
             "glances_deleted": glances_deleted.deleted_count
         }
     }
+
+@api_router.post("/subscription/cancel")
+async def cancel_subscription(current_user: dict = Depends(get_current_user)):
+    """
+    Cancel the user's premium subscription.
+    - Sets is_premium = False
+    - Clears premium_expires_at
+    - Daily limits revert to free tier (5 glances, 1 icebreaker)
+    - Disables premium features (viewed status, profile views)
+    """
+    if not current_user.get("is_premium"):
+        raise HTTPException(status_code=400, detail="No active subscription to cancel")
+    
+    # Disable premium
+    await db.users.update_one(
+        {"id": current_user["id"]},
+        {"$set": {
+            "is_premium": False,
+            "premium_expires_at": None
+        }}
+    )
+    
+    # Calculate new limits
+    daily_glances_used = current_user.get("daily_glances_used", 0)
+    daily_icebreakers_used = current_user.get("daily_icebreakers_used", 0)
+    
+    return {
+        "message": "Subscription cancelled",
+        "is_premium": False,
+        "daily_glance_limit": FREE_DAILY_GLANCES,
+        "daily_icebreaker_limit": FREE_DAILY_TOKENS,
+        "daily_glances_remaining": max(0, FREE_DAILY_GLANCES - daily_glances_used),
+        "daily_icebreakers_remaining": max(0, FREE_DAILY_TOKENS - daily_icebreakers_used),
+        "features_disabled": ["view_status", "profile_views"]
+    }
+
+@api_router.post("/test/cancel-subscription")
+async def test_cancel_subscription(current_user: dict = Depends(get_current_user)):
+    """Test endpoint to cancel subscription (only in test mode)"""
+    if not IS_TEST_BUILD:
+        raise HTTPException(status_code=403, detail="Test mode only")
+    
+    # Just call the real cancel endpoint
+    return await cancel_subscription(current_user)
 
 @api_router.post("/test/populate-venue/{venue_id}")
 async def populate_venue_with_fake_users(venue_id: str, current_user: dict = Depends(get_current_user)):
