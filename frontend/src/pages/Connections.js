@@ -28,6 +28,7 @@ const Connections = () => {
   const [chatRequests, setChatRequests] = useState({ incoming: [], outgoing: [] });
   const [loading, setLoading] = useState(true);
   const [actionSheet, setActionSheet] = useState(null); // For icebreaker actions
+  const [chatActionSheet, setChatActionSheet] = useState(null); // For chat request actions
   const [tab, setTab] = useState(searchParams.get("tab") || "messages"); // "messages" | "glances" | "icebreakers" | "chats" | "requests" | "friends" | "connections"
 
   useEffect(() => {
@@ -94,9 +95,6 @@ const Connections = () => {
   const pendingIcebreakers = icebreakers.incoming?.filter(d => d.status === "pending").length || 0;
   const totalChatRequests = (chatRequests.incoming?.length || 0) + (chatRequests.outgoing?.length || 0);
   const pendingChatRequests = chatRequests.incoming?.filter(c => c.status === "pending").length || 0;
-  const [declineModalOpen, setDeclineModalOpen] = useState(false);
-  const [selectedDeclineItem, setSelectedDeclineItem] = useState(null);
-  const [declineType, setDeclineType] = useState(null); // "drink" or "chat"
 
   const handleAcceptRequest = async (requestId) => {
     try {
@@ -128,44 +126,6 @@ const Connections = () => {
     }
   };
 
-  const handleAcceptDrink = async (drinkId) => {
-    try {
-      await axios.post(`${API}/drink-token/${drinkId}/accept`);
-      toast.success("Drink offer accepted! 🍸");
-      fetchAllData();
-    } catch (error) {
-      toast.error("Failed to accept drink offer");
-    }
-  };
-
-  const handleDeleteDrink = async (drinkId) => {
-    try {
-      await axios.delete(`${API}/drink-token/${drinkId}`);
-      toast.success("Drink offer removed");
-      fetchAllData();
-    } catch (error) {
-      toast.error("Failed to remove drink offer");
-    }
-  };
-
-  const handleDeclineDrink = async (drinkId) => {
-    setSelectedDeclineItem(drinkId);
-    setDeclineType("drink");
-    setDeclineModalOpen(true);
-  };
-
-  const handlePoliteDeclineDrink = async (reason) => {
-    try {
-      await axios.post(`${API}/drinks/decline/${selectedDeclineItem}`, { decline_reason: reason });
-      toast.success("Drink offer politely declined");
-      setDeclineModalOpen(false);
-      setSelectedDeclineItem(null);
-      fetchAllData();
-    } catch (error) {
-      toast.error("Failed to decline drink offer");
-    }
-  };
-
   // Icebreaker handlers
   const handleIcebreakerAction = async (icebreakerId, action) => {
     try {
@@ -176,6 +136,10 @@ const Connections = () => {
         toast.success("User blocked from sending icebreakers");
       } else if (action === "block_user") {
         toast.success("User blocked");
+      } else if (action === "not_right_now") {
+        toast.success("Response sent");
+      } else if (action === "decline") {
+        toast.success("Icebreaker declined");
       } else {
         toast.success("Response recorded");
       }
@@ -200,27 +164,31 @@ const Connections = () => {
     try {
       await axios.post(`${API}/chat-request/${requestId}/respond`, { accept: true });
       toast.success("Chat request accepted! 💬");
+      setChatActionSheet(null);
       fetchAllData();
     } catch (error) {
       toast.error("Failed to accept chat request");
     }
   };
 
-  const handleDeclineChatRequest = async (requestId) => {
-    setSelectedDeclineItem(requestId);
-    setDeclineType("chat");
-    setDeclineModalOpen(true);
-  };
-
-  const handlePoliteDeclineChatRequest = async (reason) => {
+  const handleChatRequestAction = async (requestId, action, declineReason = null) => {
     try {
-      await axios.post(`${API}/chat-request/${selectedDeclineItem}/polite-decline?decline_reason=${reason}`);
-      toast.success("Chat request politely declined");
-      setDeclineModalOpen(false);
-      setSelectedDeclineItem(null);
+      if (action === "accept") {
+        await axios.post(`${API}/chat-request/${requestId}/respond`, { accept: true });
+        toast.success("Chat request accepted! 💬");
+      } else if (action === "decline") {
+        if (declineReason) {
+          await axios.post(`${API}/chat-request/${requestId}/polite-decline?decline_reason=${declineReason}`);
+          toast.success("Chat request politely declined");
+        } else {
+          await axios.post(`${API}/chat-request/${requestId}/respond`, { accept: false });
+          toast.success("Chat request declined");
+        }
+      }
+      setChatActionSheet(null);
       fetchAllData();
     } catch (error) {
-      toast.error("Failed to decline chat request");
+      toast.error(error.response?.data?.detail || "Failed to respond");
     }
   };
 
@@ -283,18 +251,12 @@ const Connections = () => {
     });
   };
 
-  const drinkDeclineOptions = [
-    { key: "not_right_now", label: "Not right now, maybe later" },
-    { key: "leaving_soon", label: "I'm about to head out" },
-    { key: "already_have_one", label: "I already have a drink" },
-    { key: "thanks_but_no", label: "Thanks, but no thanks" }
-  ];
-
+  // Polite decline options for chat requests
   const chatDeclineOptions = [
-    { key: "not_looking", label: "Not looking to chat right now" },
-    { key: "just_arrived", label: "Just got here, settling in" },
-    { key: "with_friends", label: "Here with friends tonight" },
-    { key: "not_feeling_it", label: "Going to pass, thanks" }
+    { key: "not_looking", label: "Not looking to chat right now", icon: "🙏" },
+    { key: "just_arrived", label: "Just got here, settling in", icon: "🏠" },
+    { key: "with_friends", label: "Here with friends tonight", icon: "👥" },
+    { key: "not_feeling_it", label: "Going to pass, thanks", icon: "✌️" }
   ];
 
   return (
@@ -799,25 +761,14 @@ const Connections = () => {
                           )}
                         </div>
                         {request.status === "pending" ? (
-                          <div className="flex gap-2">
-                            <Button
-                              data-testid={`accept-chat-${request.id}`}
-                              onClick={() => handleAcceptChatRequest(request.id)}
-                              size="sm"
-                              className="rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white"
-                            >
-                              <Check className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              data-testid={`decline-chat-${request.id}`}
-                              onClick={() => handleDeclineChatRequest(request.id)}
-                              size="sm"
-                              variant="ghost"
-                              className="rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10"
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          </div>
+                          <Button
+                            data-testid={`respond-chat-${request.id}`}
+                            onClick={() => setChatActionSheet(request)}
+                            size="sm"
+                            className="rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white"
+                          >
+                            Respond
+                          </Button>
                         ) : request.status === "accepted" ? (
                           <div className="flex gap-2">
                             <Button
@@ -1246,37 +1197,94 @@ const Connections = () => {
         )}
       </div>
 
-      {/* Polite Decline Modal */}
-      {declineModalOpen && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="glass rounded-2xl p-6 max-w-md w-full">
-            <h3 className="text-xl font-semibold text-white mb-4">
-              {declineType === "drink" ? "Politely Decline Drink" : "Politely Decline Chat"}
-            </h3>
-            <p className="text-slate-400 text-sm mb-4">
-              Choose a polite way to decline. They'll receive a friendly message.
-            </p>
-            <div className="space-y-2">
-              {(declineType === "drink" ? drinkDeclineOptions : chatDeclineOptions).map((option) => (
-                <button
-                  key={option.key}
-                  onClick={() => declineType === "drink" 
-                    ? handlePoliteDeclineDrink(option.key) 
-                    : handlePoliteDeclineChatRequest(option.key)
-                  }
-                  className="w-full p-3 text-left rounded-xl bg-white/5 hover:bg-white/10 text-white transition-colors"
-                >
-                  {option.label}
-                </button>
-              ))}
+      {/* Icebreaker Action Sheet */}
+      {actionSheet && (
+        <div 
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm animate-in fade-in duration-200" 
+          onClick={() => setActionSheet(null)}
+          data-testid="icebreaker-action-sheet"
+        >
+          <div 
+            className="w-full max-w-md bg-slate-900 rounded-t-3xl p-6 pb-10 border-t border-white/10 animate-in slide-in-from-bottom duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Handle bar */}
+            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
+            
+            {/* User info */}
+            <div className="text-center mb-6">
+              <div className="w-20 h-20 rounded-full overflow-hidden mx-auto mb-3 ring-2 ring-cyan-500/50">
+                {actionSheet.avatar_url ? (
+                  <img src={actionSheet.avatar_url} alt="" className="w-full h-full object-cover blur-[4px]" />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center">
+                    <span className="text-2xl text-white font-bold">{actionSheet.display_name?.charAt(0)}</span>
+                  </div>
+                )}
+              </div>
+              <h3 className="text-xl font-bold text-white">{actionSheet.display_name}</h3>
+              <div className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/10 border border-cyan-500/20">
+                <Snowflake className="w-4 h-4 text-cyan-400" />
+                <p className="text-cyan-300 text-sm">"{actionSheet.message || ICEBREAKER_MESSAGES[actionSheet.message_type || 0]}"</p>
+              </div>
             </div>
+
+            {/* Primary Actions */}
+            <div className="space-y-2">
+              <Button
+                data-testid="accept-icebreaker-btn"
+                onClick={() => handleIcebreakerAction(actionSheet.id, "accept")}
+                className="w-full h-14 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-base"
+              >
+                <Check className="w-5 h-5 mr-2" />
+                Accept & Start Chat
+              </Button>
+              <Button
+                data-testid="not-right-now-btn"
+                onClick={() => handleIcebreakerAction(actionSheet.id, "not_right_now")}
+                variant="ghost"
+                className="w-full h-12 rounded-xl text-slate-300 hover:bg-white/5 font-medium"
+              >
+                <Clock className="w-5 h-5 mr-2" />
+                Not right now
+              </Button>
+              <Button
+                data-testid="decline-icebreaker-btn"
+                onClick={() => handleIcebreakerAction(actionSheet.id, "decline")}
+                variant="ghost"
+                className="w-full h-12 rounded-xl text-slate-400 hover:bg-white/5"
+              >
+                <X className="w-5 h-5 mr-2" />
+                Decline
+              </Button>
+            </div>
+
+            {/* Block Options */}
+            <div className="border-t border-white/10 pt-3 mt-3 space-y-2">
+              <Button
+                data-testid="block-icebreakers-btn"
+                onClick={() => handleIcebreakerAction(actionSheet.id, "block_icebreakers")}
+                variant="ghost"
+                className="w-full h-12 rounded-xl text-orange-400 hover:bg-orange-500/10"
+              >
+                <Snowflake className="w-5 h-5 mr-2" />
+                Block icebreakers from this user
+              </Button>
+              <Button
+                data-testid="block-user-btn"
+                onClick={() => handleIcebreakerAction(actionSheet.id, "block_user")}
+                variant="ghost"
+                className="w-full h-12 rounded-xl text-red-400 hover:bg-red-500/10"
+              >
+                <Ban className="w-5 h-5 mr-2" />
+                Block user completely
+              </Button>
+            </div>
+
             <Button
-              onClick={() => {
-                setDeclineModalOpen(false);
-                setSelectedDeclineItem(null);
-              }}
+              onClick={() => setActionSheet(null)}
               variant="ghost"
-              className="w-full mt-4 text-slate-400"
+              className="w-full mt-4 h-12 rounded-xl text-slate-500 hover:bg-white/5"
             >
               Cancel
             </Button>
@@ -1284,75 +1292,73 @@ const Connections = () => {
         </div>
       )}
 
-      {/* Icebreaker Action Sheet */}
-      {actionSheet && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm" onClick={() => setActionSheet(null)}>
+      {/* Chat Request Action Sheet */}
+      {chatActionSheet && (
+        <div 
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm animate-in fade-in duration-200" 
+          onClick={() => setChatActionSheet(null)}
+          data-testid="chat-action-sheet"
+        >
           <div 
-            className="w-full max-w-md bg-slate-900 rounded-t-3xl p-6 pb-10 border-t border-white/10"
+            className="w-full max-w-md bg-slate-900 rounded-t-3xl p-6 pb-10 border-t border-white/10 animate-in slide-in-from-bottom duration-300"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Handle bar */}
+            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
+            
+            {/* User info */}
             <div className="text-center mb-6">
-              <div className="w-16 h-16 rounded-full overflow-hidden mx-auto mb-3">
-                {actionSheet.avatar_url ? (
-                  <img src={actionSheet.avatar_url} alt="" className="w-full h-full object-cover blur-[4px]" />
+              <div className="w-20 h-20 rounded-full overflow-hidden mx-auto mb-3 ring-2 ring-indigo-500/50">
+                {chatActionSheet.avatar_url ? (
+                  <img src={chatActionSheet.avatar_url} alt="" className="w-full h-full object-cover blur-[4px]" />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center">
-                    <span className="text-2xl text-white">{actionSheet.display_name?.charAt(0)}</span>
+                  <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
+                    <span className="text-2xl text-white font-bold">{chatActionSheet.display_name?.charAt(0)}</span>
                   </div>
                 )}
               </div>
-              <h3 className="text-lg font-semibold text-white">{actionSheet.display_name}</h3>
-              <p className="text-slate-400 text-sm">"{actionSheet.message || ICEBREAKER_MESSAGES[actionSheet.message_type || 0]}"</p>
+              <h3 className="text-xl font-bold text-white">{chatActionSheet.display_name}</h3>
+              <div className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20">
+                <MessageSquare className="w-4 h-4 text-indigo-400" />
+                <p className="text-indigo-300 text-sm">Wants to chat with you</p>
+              </div>
             </div>
 
+            {/* Primary Actions */}
             <div className="space-y-2">
               <Button
-                onClick={() => handleIcebreakerAction(actionSheet.id, "accept")}
-                className="w-full rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white py-3"
+                data-testid="accept-chat-btn"
+                onClick={() => handleChatRequestAction(chatActionSheet.id, "accept")}
+                className="w-full h-14 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-base"
               >
                 <Check className="w-5 h-5 mr-2" />
-                Accept
+                Accept & Start Chat
               </Button>
-              <Button
-                onClick={() => handleIcebreakerAction(actionSheet.id, "not_right_now")}
-                variant="ghost"
-                className="w-full rounded-xl text-slate-300 hover:bg-white/5 py-3"
-              >
-                <Clock className="w-5 h-5 mr-2" />
-                Not right now
-              </Button>
-              <Button
-                onClick={() => handleIcebreakerAction(actionSheet.id, "decline")}
-                variant="ghost"
-                className="w-full rounded-xl text-slate-400 hover:bg-white/5 py-3"
-              >
-                <X className="w-5 h-5 mr-2" />
-                Decline
-              </Button>
-              <div className="border-t border-white/10 pt-2 mt-2">
-                <Button
-                  onClick={() => handleIcebreakerAction(actionSheet.id, "block_icebreakers")}
-                  variant="ghost"
-                  className="w-full rounded-xl text-orange-400 hover:bg-orange-500/10 py-3"
-                >
-                  <Snowflake className="w-5 h-5 mr-2" />
-                  Block icebreakers from this user
-                </Button>
-                <Button
-                  onClick={() => handleIcebreakerAction(actionSheet.id, "block_user")}
-                  variant="ghost"
-                  className="w-full rounded-xl text-red-400 hover:bg-red-500/10 py-3"
-                >
-                  <Ban className="w-5 h-5 mr-2" />
-                  Block user
-                </Button>
+            </div>
+
+            {/* Polite Decline Options */}
+            <div className="border-t border-white/10 pt-3 mt-3">
+              <p className="text-slate-400 text-xs uppercase tracking-wider mb-3 text-center">Politely Decline</p>
+              <div className="space-y-2">
+                {chatDeclineOptions.map((option) => (
+                  <Button
+                    key={option.key}
+                    data-testid={`decline-${option.key}`}
+                    onClick={() => handleChatRequestAction(chatActionSheet.id, "decline", option.key)}
+                    variant="ghost"
+                    className="w-full h-12 rounded-xl text-slate-300 hover:bg-white/5 justify-start"
+                  >
+                    <span className="mr-3">{option.icon}</span>
+                    {option.label}
+                  </Button>
+                ))}
               </div>
             </div>
 
             <Button
-              onClick={() => setActionSheet(null)}
+              onClick={() => setChatActionSheet(null)}
               variant="ghost"
-              className="w-full mt-4 rounded-xl text-slate-500"
+              className="w-full mt-4 h-12 rounded-xl text-slate-500 hover:bg-white/5"
             >
               Cancel
             </Button>

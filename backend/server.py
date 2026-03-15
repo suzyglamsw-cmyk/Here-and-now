@@ -2630,7 +2630,8 @@ async def respond_to_icebreaker(icebreaker_id: str, data: IcebreakerActionReques
             "user2_id": current_user["id"],
             "status": "connected",
             "connection_type": "icebreaker_accepted",
-            "created_at": now.isoformat()
+            "created_at": now.isoformat(),
+            "connected_at": now.isoformat()
         })
         
         # Notify sender (but don't reveal the action type for non-accept)
@@ -2765,7 +2766,7 @@ async def get_connections(current_user: dict = Depends(get_current_user)):
                 "display_name": other_user.get("display_name", "Someone"),
                 "avatar_url": other_user.get("avatar_url", ""),
                 "bio": other_user.get("bio", ""),
-                "connected_at": conn["connected_at"],
+                "connected_at": conn.get("connected_at", conn.get("created_at", datetime.now(timezone.utc).isoformat())),
                 "venue_name": venue.get("name", "Chat") if venue else "Chat",
                 "connection_type": "connection"
             })

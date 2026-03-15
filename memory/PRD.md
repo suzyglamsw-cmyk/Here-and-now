@@ -97,6 +97,7 @@ Build a real-time, location-based social connection app called "Here & Now". Cor
 - ✅ Splash screen
 - ✅ Test Tools for development
 - ✅ Admin reports inbox
+- ✅ Modern Action Sheets for Icebreaker and Chat Request responses (March 2026)
 
 ### Bug Fixes Applied
 - ✅ Check-in persistence (root cause: FastAPI route ordering in server.py)
