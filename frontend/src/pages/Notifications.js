@@ -247,7 +247,7 @@ const Notifications = () => {
                           notification.from_user_avatar
                         }
                         alt=""
-                        className="w-full h-full object-cover"
+                        className={`w-full h-full object-cover ${notification.type !== "mutual_glance" ? "blur-[4px]" : ""}`}
                       />
                     </div>
                   )}

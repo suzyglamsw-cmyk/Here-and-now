@@ -479,7 +479,7 @@ const Connections = () => {
                         >
                           <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all">
                             {glance.avatar_url ? (
-                              <img src={glance.avatar_url} alt={glance.display_name} className="w-full h-full object-cover" />
+                              <img src={glance.avatar_url} alt={glance.display_name} className={`w-full h-full object-cover ${!glance.is_mutual ? "blur-[4px]" : ""}`} />
                             ) : (
                               <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-pink-500 flex items-center justify-center">
                                 <span className="text-xl text-white">{glance.display_name?.charAt(0) || "?"}</span>
@@ -544,7 +544,7 @@ const Connections = () => {
                         >
                           <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all">
                             {glance.avatar_url ? (
-                              <img src={glance.avatar_url} alt={glance.display_name} className="w-full h-full object-cover" />
+                              <img src={glance.avatar_url} alt={glance.display_name} className={`w-full h-full object-cover ${!glance.is_mutual ? "blur-[4px]" : ""}`} />
                             ) : (
                               <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center">
                                 <span className="text-xl text-slate-400">{glance.display_name?.charAt(0) || "?"}</span>
@@ -613,7 +613,7 @@ const Connections = () => {
                         >
                           <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-amber-500 transition-all">
                             {drink.avatar_url ? (
-                              <img src={drink.avatar_url} alt={drink.display_name} className="w-full h-full object-cover" />
+                              <img src={drink.avatar_url} alt={drink.display_name} className={`w-full h-full object-cover ${drink.status !== "accepted" ? "blur-[4px]" : ""}`} />
                             ) : (
                               <div className="w-full h-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
                                 <span className="text-xl text-white">{drink.display_name?.charAt(0) || "?"}</span>
@@ -690,7 +690,7 @@ const Connections = () => {
                         >
                           <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-amber-500 transition-all">
                             {drink.avatar_url ? (
-                              <img src={drink.avatar_url} alt={drink.display_name} className="w-full h-full object-cover" />
+                              <img src={drink.avatar_url} alt={drink.display_name} className={`w-full h-full object-cover ${drink.status !== "accepted" ? "blur-[4px]" : ""}`} />
                             ) : (
                               <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center">
                                 <span className="text-xl text-slate-400">{drink.display_name?.charAt(0) || "?"}</span>
@@ -760,7 +760,7 @@ const Connections = () => {
                         >
                           <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-pink-500 transition-all">
                             {request.avatar_url ? (
-                              <img src={request.avatar_url} alt={request.display_name} className="w-full h-full object-cover" />
+                              <img src={request.avatar_url} alt={request.display_name} className={`w-full h-full object-cover ${request.status !== "accepted" ? "blur-[4px]" : ""}`} />
                             ) : (
                               <div className="w-full h-full bg-gradient-to-br from-pink-500 to-indigo-500 flex items-center justify-center">
                                 <span className="text-xl text-white">{request.display_name?.charAt(0) || "?"}</span>
@@ -858,7 +858,7 @@ const Connections = () => {
                         >
                           <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-pink-500 transition-all">
                             {request.avatar_url ? (
-                              <img src={request.avatar_url} alt={request.display_name} className="w-full h-full object-cover" />
+                              <img src={request.avatar_url} alt={request.display_name} className={`w-full h-full object-cover ${request.status !== "accepted" ? "blur-[4px]" : ""}`} />
                             ) : (
                               <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center">
                                 <span className="text-xl text-slate-400">{request.display_name?.charAt(0) || "?"}</span>
