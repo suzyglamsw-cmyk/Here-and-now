@@ -7,7 +7,9 @@ Build a real-time, location-based social connection app called "Here & Now". Cor
 
 ### 1. Authentication
 - JWT-based authentication with email/password
-- User registration with display name
+- **18+ Age Gate**: Mandatory age verification before registration
+- **Name Validation**: Blocks PII (phone numbers, emails, URLs, social handles) and offensive content
+- User registration with display name (cannot be changed after creation)
 - Password reset flow
 
 ### 2. Venues & Check-ins
@@ -16,7 +18,12 @@ Build a real-time, location-based social connection app called "Here & Now". Cor
 - Heartbeat system to maintain check-in state
 - **IMPORTANT:** Check-in persists across app navigation, app switching, and phone locking
 
-### 3. Social Interactions - Icebreaker System (replaced "Drinks")
+### 3. Who's Here
+- **Premium Sorting**: Premium users shown first in the list
+- **Last Active Filter**: Four options - Active now (≤2min), Active recently (≤10min), Active this hour (≤60min), All users
+- **Motion Blur**: Profile photos have directional blur (strength 8) until mutual match
+
+### 4. Social Interactions - Icebreaker System (replaced "Drinks")
 - **Sending:** Users can send predefined icebreaker messages ("Hello", "Fancy a chat?", etc.)
 - **Cost:** 1 token after daily free allowance is used
 - **Allowances:** 1 free for standard users, 5 for premium, reset at 5am local time
@@ -30,20 +37,23 @@ Build a real-time, location-based social connection app called "Here & Now". Cor
 - **Notifications:** Generic notification without message preview
 - **Premium Features:** "Viewed" status with timestamp on sent icebreakers
 
-### 4. Glances
+### 5. Glances
 - Send glances to users at the same venue
-- Daily limit: 5 glances for standard users
+- Daily limit: 5 glances for standard users, 20 for premium
 - Mutual glances create a connection
+- **Photo Unblur**: On mutual glance, both users' photos are revealed
 
-### 5. Privacy & Connections
-- Profile images blurred until mutual connection (mutual glance or accepted icebreaker)
+### 6. Privacy & Connections
+- Profile images blurred until mutual connection (mutual glance, accepted icebreaker, or accepted chat request)
 - Messaging and friend requests locked until mutual connection
+- **Clear from Mutual Matches**: Remove someone from matches without breaking chat history
 
-### 6. Premium Features
+### 7. Premium Features
 - 5 free icebreakers daily (vs 1 for standard)
+- 20 glances daily (vs 5 for standard)
 - See "Viewed" status on icebreakers
 - See who viewed your profile
-- Priority visibility at venues
+- Priority visibility at venues (shown first in Who's Here)
 
 ### 7. Additional Features
 - Share app via native share sheet
@@ -84,10 +94,19 @@ Build a real-time, location-based social connection app called "Here & Now". Cor
 
 ### Completed
 - ✅ Full authentication flow (register, login, logout)
+- ✅ **18+ Age Gate** with mandatory confirmation before registration
+- ✅ **Name Validation** blocking PII and offensive content
+- ✅ **Name Lock** - display name cannot be changed after registration
 - ✅ Venue browsing and check-ins with persistence fix
+- ✅ **Who's Here Enhancements:**
+  - ✅ Premium users sorted first
+  - ✅ Last Active filter (now/recent/hour/all)
+  - ✅ Motion blur (strength 8) on non-revealed photos
+  - ✅ Premium badge indicator
 - ✅ Complete Icebreaker system (replaced Drinks)
-- ✅ Glance system
+- ✅ Glance system with mutual unblur
 - ✅ Friend requests and connections
+- ✅ **Clear from Mutual Matches** action (preserves chat history)
 - ✅ Real-time messaging
 - ✅ Push notifications
 - ✅ Premium subscription UI
@@ -98,6 +117,7 @@ Build a real-time, location-based social connection app called "Here & Now". Cor
 - ✅ Test Tools for development
 - ✅ Admin reports inbox
 - ✅ Modern Action Sheets for Icebreaker and Chat Request responses (March 2026)
+- ✅ Continuous location tracking with auto venue detection
 
 ### Bug Fixes Applied
 - ✅ Check-in persistence (root cause: FastAPI route ordering in server.py)
@@ -137,4 +157,4 @@ Build a real-time, location-based social connection app called "Here & Now". Cor
 - REACT_APP_BACKEND_URL
 
 ---
-*Last Updated: March 15, 2026*
+*Last Updated: March 23, 2026*
