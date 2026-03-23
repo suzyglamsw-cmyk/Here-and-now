@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import axios from "axios";
 import { ArrowLeft, Loader2, Mail, CheckCircle } from "lucide-react";
 import { Logo, LogoIcon } from "../components/Logo";
+import { getErrorMessage } from "../utils/errorUtils";
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
@@ -31,7 +32,7 @@ const ForgotPassword = () => {
       }
       toast.success("Check your email for reset instructions");
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Failed to send reset email");
+      toast.error(getErrorMessage(error, "Failed to send reset email"));
     } finally {
       setLoading(false);
     }
@@ -53,7 +54,7 @@ const ForgotPassword = () => {
       toast.success("Password updated! You can now log in.");
       navigate("/login");
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Failed to reset password");
+      toast.error(getErrorMessage(error, "Failed to reset password"));
     } finally {
       setLoading(false);
     }

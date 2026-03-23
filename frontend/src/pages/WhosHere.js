@@ -35,6 +35,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { getErrorMessage } from "../utils/errorUtils";
 
 const ICEBREAKER_MESSAGES = [
   { id: 0, name: "Hello", icon: "👋" },
@@ -217,7 +218,7 @@ const WhosHere = () => {
       if (error.response?.data?.detail === "no_glances_remaining") {
         setShowUpgradePrompt(true);
       } else {
-        toast.error(error.response?.data?.detail || "Failed to send glance");
+        toast.error(getErrorMessage(error, "Failed to send glance"));
       }
     } finally {
       setGlancing(null);
@@ -264,7 +265,7 @@ const WhosHere = () => {
       setShowIcebreakerModal(false);
       setSelectedPerson(null);
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Failed to send icebreaker");
+      toast.error(getErrorMessage(error, "Failed to send icebreaker"));
     } finally {
       setSendingIcebreaker(false);
     }

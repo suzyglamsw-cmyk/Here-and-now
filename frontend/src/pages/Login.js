@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import axios from "axios";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Logo, LogoIcon } from "../components/Logo";
+import { getErrorMessage } from "../utils/errorUtils";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -34,7 +35,7 @@ const Login = () => {
       toast.success("Welcome back!");
       navigate("/venues");
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Invalid credentials");
+      toast.error(getErrorMessage(error, "Invalid credentials"));
     } finally {
       setLoading(false);
     }

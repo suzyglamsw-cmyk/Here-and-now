@@ -30,6 +30,7 @@ import Layout from "../components/Layout";
 import { Loader2, LogOut, Trash2, Eye, EyeOff, User, Shield, Crown, Coins, ChevronRight, FileText, Camera, Users, Wrench, AlertTriangle, Bell, Share2, QrCode, X } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { subscribeToPush, unsubscribeFromPush, isPushSupported, isSubscribedToPush } from "../utils/pushNotifications";
+import { getErrorMessage } from "../utils/errorUtils";
 
 const INTERESTS = [
   "Music", "Fitness", "Food", "Travel", "Art", 
@@ -225,7 +226,7 @@ const Settings = () => {
 
       toast.success("Photo uploaded!");
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Failed to upload photo");
+      toast.error(getErrorMessage(error, "Failed to upload photo"));
     } finally {
       setUploadingSlot(null);
     }
@@ -268,7 +269,7 @@ const Settings = () => {
       
       toast.success("Photo set as main!");
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Failed to set main photo");
+      toast.error(getErrorMessage(error, "Failed to set main photo"));
     } finally {
       setUploadingSlot(null);
     }

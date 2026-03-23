@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import axios from "axios";
 import { ArrowLeft, Loader2, Shield, AlertTriangle } from "lucide-react";
 import { Logo, LogoIcon } from "../components/Logo";
+import { getErrorMessage } from "../utils/errorUtils";
 
 // Blocked words/patterns for names
 const BLOCKED_PATTERNS = [
@@ -95,7 +96,7 @@ const Register = () => {
       toast.success("Account created! Let's set up your profile.");
       navigate("/profile-setup");
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Registration failed");
+      toast.error(getErrorMessage(error, "Registration failed"));
     } finally {
       setLoading(false);
     }

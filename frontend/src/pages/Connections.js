@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import axios from "axios";
 import Layout from "../components/Layout";
 import { MessageCircle, MapPin, Loader2, Users, Sparkles, Eye, Heart, Snowflake, UserPlus, Check, X, Clock, UserCheck, ArrowUpRight, ArrowDownLeft, MessageSquare, Trash2, Ban, UserMinus, MoreVertical, Wine } from "lucide-react";
+import { getErrorMessage } from "../utils/errorUtils";
 
 const ICEBREAKER_MESSAGES = [
   "Hello",
@@ -184,7 +185,7 @@ const Connections = () => {
       setActionSheet(null);
       fetchAllData();
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Failed to respond");
+      toast.error(getErrorMessage(error, "Failed to respond"));
     }
   };
 
@@ -238,7 +239,7 @@ const Connections = () => {
       setChatActionSheet(null);
       fetchAllData();
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Failed to respond");
+      toast.error(getErrorMessage(error, "Failed to respond"));
     }
   };
 

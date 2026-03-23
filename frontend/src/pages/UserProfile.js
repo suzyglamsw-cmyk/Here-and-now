@@ -7,6 +7,7 @@ import axios from "axios";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
 import { Eye, MessageCircle, Loader2, Heart, Crown, Coins, X, UserPlus, Snowflake } from "lucide-react";
+import { getErrorMessage } from "../utils/errorUtils";
 
 const UserProfile = () => {
   const { userId } = useParams();
@@ -52,7 +53,7 @@ const UserProfile = () => {
       if (error.response?.status === 429 || error.response?.data?.detail === "no_glances_remaining") {
         setShowUpgradePrompt(true);
       } else {
-        toast.error(error.response?.data?.detail || "Failed to send glance");
+        toast.error(getErrorMessage(error, "Failed to send glance"));
       }
     } finally {
       setGlancing(false);
