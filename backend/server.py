@@ -312,6 +312,29 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str
     display_name: str
+    age_confirmed: bool = False
+
+# Name validation - blocked patterns for PII and offensive content
+BLOCKED_NAME_PATTERNS = [
+    r'\d{5,}',  # 5+ consecutive digits (phone numbers)
+    r'@',  # Email addresses
+    r'\.com|\.net|\.org|\.io',  # URLs
+    r'http|www\.',  # URLs
+    r'instagram|snapchat|tiktok|twitter|facebook|whatsapp|telegram',  # Social handles
+    r'\b(sex|xxx|porn|nude|naked|horny|fuck|shit|ass|dick|cock|pussy|bitch|cunt|nigger|faggot)\b',  # Offensive words
+]
+
+def validate_display_name(name: str) -> tuple[bool, str]:
+    """Validate display name for PII and offensive content"""
+    import re
+    if not name or len(name.strip()) < 2:
+        return False, "Name must be at least 2 characters"
+    if len(name.strip()) > 20:
+        return False, "Name must be 20 characters or less"
+    for pattern in BLOCKED_NAME_PATTERNS:
+        if re.search(pattern, name, re.IGNORECASE):
+            return False, "Name contains blocked content. Please use your first name only."
+    return True, ""
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -558,6 +581,8 @@ class WhoIsHereUser(BaseModel):
     i_glanced_at: bool = False
     is_connected: bool = False
     is_revealed: bool = False
+    is_premium: bool = False  # For premium sorting
+    last_active_at: Optional[str] = None  # For activity filtering
 
 # Helper Functions
 def hash_password(password: str) -> str:
@@ -592,6 +617,15 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 # Auth Routes
 @api_router.post("/auth/register")
 async def register(data: UserCreate):
+    # Validate age confirmation (must be 18+)
+    if not data.age_confirmed:
+        raise HTTPException(status_code=400, detail="You must confirm you are 18 or older")
+    
+    # Validate display name
+    is_valid, error_msg = validate_display_name(data.display_name)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=error_msg)
+    
     existing = await db.users.find_one({"email": data.email})
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -603,6 +637,7 @@ async def register(data: UserCreate):
         "email": data.email,
         "password": hash_password(data.password),
         "display_name": data.display_name,
+        "original_display_name": data.display_name,  # Locked - cannot be changed
         "bio": "",
         "avatar_url": "",
         "photos": ["", "", ""],
@@ -622,6 +657,8 @@ async def register(data: UserCreate):
         "glances_reset_at": now.isoformat(),
         "profile_theme": None,
         "blocked_users": [],
+        "last_active_at": now.isoformat(),  # Track user activity
+        "age_confirmed": True,  # User confirmed 18+
         "created_at": now.isoformat()
     }
     await db.users.insert_one(user)
@@ -737,6 +774,15 @@ async def get_me(current_user: dict = Depends(get_current_user)):
 @api_router.put("/auth/profile")
 async def update_profile(data: UserProfile, current_user: dict = Depends(get_current_user)):
     update_data = data.model_dump(exclude_unset=True)
+    
+    # Prevent display_name from being changed after registration
+    # The original_display_name field is set once during registration and is immutable
+    if "display_name" in update_data:
+        original_name = current_user.get("original_display_name") or current_user.get("display_name")
+        if original_name and update_data["display_name"] != original_name:
+            # Silently revert to original name - don't allow changes
+            update_data["display_name"] = original_name
+    
     await db.users.update_one({"id": current_user["id"]}, {"$set": update_data})
     updated = await db.users.find_one({"id": current_user["id"]}, {"_id": 0, "password": 0})
     return updated
@@ -2404,12 +2450,23 @@ async def update_venue(venue_id: str, data: dict, current_user: dict = Depends(g
 
 # Who's Here Routes
 @api_router.get("/venues/{venue_id}/people", response_model=List[WhoIsHereUser])
-async def get_people_at_venue(venue_id: str, current_user: dict = Depends(get_current_user)):
+async def get_people_at_venue(
+    venue_id: str, 
+    last_active_filter: Optional[str] = None,  # "now" (<=2min), "recent" (<=10min), "hour" (<=60min), or None for all
+    current_user: dict = Depends(get_current_user)
+):
     # Check if current user has a profile photo - required to see others
     current_user_photos = current_user.get("photos", []) or []
     current_user_avatar = current_user.get("avatar_url", "")
     if not current_user_photos and not current_user_avatar:
         raise HTTPException(status_code=403, detail="Please upload a profile photo to see who's here")
+    
+    # Update current user's last_active_at
+    now = datetime.now(timezone.utc)
+    await db.users.update_one(
+        {"id": current_user["id"]},
+        {"$set": {"last_active_at": now.isoformat()}}
+    )
     
     checkins = await db.checkins.find({"venue_id": venue_id, "is_active": True}, {"_id": 0}).to_list(100)
     
@@ -2437,7 +2494,9 @@ async def get_people_at_venue(venue_id: str, current_user: dict = Depends(get_cu
                     "bio": "",
                     "age": fake_user.get("age"),
                     "interests": [],
-                    "is_visible": True
+                    "is_visible": True,
+                    "is_premium": fake_user.get("is_premium", False),
+                    "last_active_at": now.isoformat()  # Fake users are always "active now"
                 }
         
         if not user:
@@ -2448,6 +2507,23 @@ async def get_people_at_venue(venue_id: str, current_user: dict = Depends(get_cu
         user_avatar = user.get("avatar_url", "")
         if not user_photos and not user_avatar:
             continue
+        
+        # Apply last_active filter
+        user_last_active = user.get("last_active_at")
+        if last_active_filter and user_last_active:
+            try:
+                last_active_time = datetime.fromisoformat(user_last_active.replace("Z", "+00:00"))
+                minutes_ago = (now - last_active_time).total_seconds() / 60
+                
+                if last_active_filter == "now" and minutes_ago > 2:
+                    continue
+                elif last_active_filter == "recent" and minutes_ago > 10:
+                    continue
+                elif last_active_filter == "hour" and minutes_ago > 60:
+                    continue
+            except (ValueError, TypeError):
+                # If we can't parse the date, include the user
+                pass
         
         # Check glance status
         has_glanced_at_me = await db.glances.find_one({
@@ -2487,10 +2563,25 @@ async def get_people_at_venue(venue_id: str, current_user: dict = Depends(get_cu
             "has_glanced_at_me": has_glanced_at_me,
             "i_glanced_at": i_glanced_at,
             "is_connected": is_connected,
-            "is_revealed": is_revealed
+            "is_revealed": is_revealed,
+            "is_premium": user.get("is_premium", False),
+            "last_active_at": user.get("last_active_at")
         })
     
-    return people
+    # Sort: Premium users first, then by checked_in_at (most recent first)
+    people.sort(key=lambda x: (
+        not x.get("is_premium", False),  # Premium first (False < True, so we negate)
+        x.get("checked_in_at", "")  # Then by check-in time
+    ), reverse=False)
+    
+    # For stable sorting within premium/non-premium groups, sort by checked_in descending
+    premium = [p for p in people if p.get("is_premium")]
+    non_premium = [p for p in people if not p.get("is_premium")]
+    
+    premium.sort(key=lambda x: x.get("checked_in_at", ""), reverse=True)
+    non_premium.sort(key=lambda x: x.get("checked_in_at", ""), reverse=True)
+    
+    return premium + non_premium
 
 # Glance Routes
 @api_router.post("/glance")
@@ -3062,6 +3153,35 @@ async def get_connections(current_user: dict = Depends(get_current_user)):
     all_connections.sort(key=lambda x: x.get("connected_at", ""), reverse=True)
     
     return all_connections
+
+@api_router.delete("/connections/{user_id}/clear")
+async def clear_from_mutual_matches(user_id: str, current_user: dict = Depends(get_current_user)):
+    """
+    Clear a person from mutual matches without blocking or breaking chat.
+    This removes mutual glances and connection entries but preserves chat history.
+    """
+    # Remove glances in both directions
+    await db.glances.delete_many({
+        "$or": [
+            {"from_user_id": current_user["id"], "to_user_id": user_id},
+            {"from_user_id": user_id, "to_user_id": current_user["id"]}
+        ]
+    })
+    
+    # Remove from connections collection
+    await db.connections.delete_many({
+        "$or": [
+            {"user1_id": current_user["id"], "user2_id": user_id},
+            {"user1_id": user_id, "user2_id": current_user["id"]}
+        ]
+    })
+    
+    # Note: We intentionally do NOT delete:
+    # - Messages (chat history is preserved)
+    # - Icebreakers (acceptance history preserved)
+    # - Chat requests (acceptance history preserved)
+    
+    return {"message": "Cleared from mutual matches", "user_id": user_id}
 
 @api_router.get("/connections/mutual-glances")
 async def get_mutual_glances(current_user: dict = Depends(get_current_user)):

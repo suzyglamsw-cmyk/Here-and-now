@@ -457,15 +457,16 @@ const Settings = () => {
 
             <div className="space-y-2">
               <Label htmlFor="display_name" className="text-slate-300">
-                Display Name
+                Display Name <span className="text-amber-400 text-xs">(set at signup, cannot be changed)</span>
               </Label>
               <Input
                 data-testid="display-name-input"
                 id="display_name"
                 value={formData.display_name}
-                onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
-                className="h-12 bg-white/5 border-transparent focus:border-indigo-500 rounded-xl text-white"
+                disabled={true}
+                className="h-12 bg-white/5 border-transparent rounded-xl text-slate-400 cursor-not-allowed opacity-70"
               />
+              <p className="text-xs text-slate-500">Your name was set during registration and cannot be changed.</p>
             </div>
 
             <div className="space-y-2">

@@ -161,6 +161,26 @@ code {
     animation: live-pulse 1.5s ease-in-out infinite;
 }
 
+/* Motion blur effect for profile photos (directional blur) */
+.motion-blur {
+    filter: blur(8px);
+    -webkit-filter: blur(8px);
+    /* Directional motion effect achieved through transform */
+    transform: scale(1.05);
+    transition: all 0.3s ease;
+}
+
+.motion-blur-reveal {
+    filter: blur(0);
+    -webkit-filter: blur(0);
+    transform: scale(1);
+}
+
+/* Premium user badge glow */
+.premium-glow {
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
+}
+
 @layer base {
     [data-debug-wrapper="true"] {
         display: contents !important;

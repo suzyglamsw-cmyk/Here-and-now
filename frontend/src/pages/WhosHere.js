@@ -19,6 +19,9 @@ import {
   Crown,
   Coins,
   X,
+  Clock,
+  Filter,
+  ChevronDown,
 } from "lucide-react";
 import {
   Dialog,
@@ -40,6 +43,14 @@ const ICEBREAKER_MESSAGES = [
   { id: 3, name: "Can I buy you a drink?", icon: "🍸" },
 ];
 
+// Last Active filter options
+const LAST_ACTIVE_FILTERS = [
+  { value: null, label: "All users", icon: "👥" },
+  { value: "now", label: "Active now", subtext: "≤2 min", icon: "🟢" },
+  { value: "recent", label: "Active recently", subtext: "≤10 min", icon: "🟡" },
+  { value: "hour", label: "Active this hour", subtext: "≤60 min", icon: "🟠" },
+];
+
 const WhosHere = () => {
   const { venueId } = useParams();
   const navigate = useNavigate();
@@ -54,6 +65,8 @@ const WhosHere = () => {
   const [sendingIcebreaker, setSendingIcebreaker] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [glancesRemaining, setGlancesRemaining] = useState(5);
+  const [lastActiveFilter, setLastActiveFilter] = useState(null);
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
   const wsRef = useRef(null);
 
   useEffect(() => {
@@ -68,6 +81,11 @@ const WhosHere = () => {
       }
     };
   }, [venueId]);
+
+  // Refetch people when filter changes
+  useEffect(() => {
+    fetchPeople();
+  }, [lastActiveFilter]);
 
   const connectWebSocket = () => {
     const wsUrl = process.env.REACT_APP_BACKEND_URL.replace("https://", "wss://").replace("http://", "ws://");
@@ -152,7 +170,8 @@ const WhosHere = () => {
 
   const fetchPeople = async () => {
     try {
-      const response = await axios.get(`${API}/venues/${venueId}/people`);
+      const params = lastActiveFilter ? `?last_active_filter=${lastActiveFilter}` : '';
+      const response = await axios.get(`${API}/venues/${venueId}/people${params}`);
       setPeople(response.data);
     } catch (error) {
       toast.error("Failed to load people");
@@ -281,6 +300,44 @@ const WhosHere = () => {
                   </div>
                 </div>
               </div>
+              
+              {/* Last Active Filter */}
+              <DropdownMenu open={showFilterMenu} onOpenChange={setShowFilterMenu}>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    data-testid="filter-btn"
+                    variant="ghost"
+                    className="text-slate-400 hover:text-white hover:bg-white/10 gap-2"
+                  >
+                    <Filter className="w-4 h-4" />
+                    <span className="hidden sm:inline">
+                      {LAST_ACTIVE_FILTERS.find(f => f.value === lastActiveFilter)?.label || "Filter"}
+                    </span>
+                    <ChevronDown className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="bg-slate-900 border-white/10 w-48">
+                  {LAST_ACTIVE_FILTERS.map((filter) => (
+                    <DropdownMenuItem
+                      key={filter.value || "all"}
+                      data-testid={`filter-${filter.value || "all"}`}
+                      onClick={() => {
+                        setLastActiveFilter(filter.value);
+                        setShowFilterMenu(false);
+                      }}
+                      className={`text-slate-300 focus:text-white focus:bg-white/10 ${
+                        lastActiveFilter === filter.value ? "bg-white/10" : ""
+                      }`}
+                    >
+                      <span className="mr-2">{filter.icon}</span>
+                      <span className="flex-1">{filter.label}</span>
+                      {filter.subtext && (
+                        <span className="text-xs text-slate-500">{filter.subtext}</span>
+                      )}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
@@ -310,7 +367,7 @@ const WhosHere = () => {
                       : person.has_glanced_at_me
                       ? "bg-pink-500/10 border-pink-500/30 hover:border-pink-500/50"
                       : "bg-white/5 border-white/5 hover:border-white/20"
-                  }`}
+                  } ${person.is_premium ? "premium-glow" : ""}`}
                 >
                   {/* Avatar - tappable */}
                   <div className="relative mb-3">
@@ -328,7 +385,7 @@ const WhosHere = () => {
                           src={person.avatar_url}
                           alt={person.display_name}
                           className={`w-full h-full object-cover transition-all duration-300 ${
-                            person.is_revealed ? "" : "blur-[4px]"
+                            person.is_revealed ? "motion-blur-reveal" : "motion-blur"
                           }`}
                         />
                       ) : (
@@ -341,12 +398,17 @@ const WhosHere = () => {
                     </div>
 
                     {/* Status indicators */}
+                    {person.is_premium && (
+                      <div className="absolute -top-1 -left-1 w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center">
+                        <Crown className="w-3 h-3 text-white" />
+                      </div>
+                    )}
                     {person.has_glanced_at_me && !person.i_glanced_at && (
                       <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-pink-500 flex items-center justify-center animate-glance">
                         <Eye className="w-3 h-3 text-white" />
                       </div>
                     )}
-                    {person.is_revealed && (
+                    {person.is_revealed && !person.has_glanced_at_me && (
                       <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center">
                         <Sparkles className="w-3 h-3 text-white" />
                       </div>

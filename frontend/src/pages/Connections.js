@@ -5,7 +5,7 @@ import { useAuth, API } from "@/App";
 import { toast } from "sonner";
 import axios from "axios";
 import Layout from "../components/Layout";
-import { MessageCircle, MapPin, Loader2, Users, Sparkles, Eye, Heart, Snowflake, UserPlus, Check, X, Clock, UserCheck, ArrowUpRight, ArrowDownLeft, MessageSquare, Trash2, Ban } from "lucide-react";
+import { MessageCircle, MapPin, Loader2, Users, Sparkles, Eye, Heart, Snowflake, UserPlus, Check, X, Clock, UserCheck, ArrowUpRight, ArrowDownLeft, MessageSquare, Trash2, Ban, UserMinus, MoreVertical, Wine } from "lucide-react";
 
 const ICEBREAKER_MESSAGES = [
   "Hello",
@@ -29,6 +29,7 @@ const Connections = () => {
   const [loading, setLoading] = useState(true);
   const [actionSheet, setActionSheet] = useState(null); // For icebreaker actions
   const [chatActionSheet, setChatActionSheet] = useState(null); // For chat request actions
+  const [clearConfirmUser, setClearConfirmUser] = useState(null); // For clear from matches confirmation
   const [tab, setTab] = useState(searchParams.get("tab") || "messages"); // "messages" | "glances" | "icebreakers" | "chats" | "requests" | "friends" | "connections"
 
   useEffect(() => {
@@ -291,6 +292,18 @@ const Connections = () => {
     }
   };
 
+  // Clear a user from mutual matches without breaking chat
+  const handleClearFromMatches = async (userId, displayName) => {
+    try {
+      await axios.delete(`${API}/connections/${userId}/clear`);
+      toast.success(`${displayName} cleared from mutual matches`);
+      setClearConfirmUser(null);
+      fetchAllData();
+    } catch (error) {
+      toast.error("Failed to clear from matches");
+    }
+  };
+
   // Sort helper - most recent first
   const sortByDate = (items, dateField = "created_at") => {
     return [...items].sort((a, b) => {
@@ -529,7 +542,7 @@ const Connections = () => {
                         >
                           <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all">
                             {glance.avatar_url ? (
-                              <img src={glance.avatar_url} alt={glance.display_name} className={`w-full h-full object-cover ${!glance.is_mutual ? "blur-[4px]" : ""}`} />
+                              <img src={glance.avatar_url} alt={glance.display_name} className={`w-full h-full object-cover ${!glance.is_mutual ? "motion-blur" : "motion-blur-reveal"}`} />
                             ) : (
                               <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-pink-500 flex items-center justify-center">
                                 <span className="text-xl text-white">{glance.display_name?.charAt(0) || "?"}</span>
@@ -594,7 +607,7 @@ const Connections = () => {
                         >
                           <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all">
                             {glance.avatar_url ? (
-                              <img src={glance.avatar_url} alt={glance.display_name} className={`w-full h-full object-cover ${!glance.is_mutual ? "blur-[4px]" : ""}`} />
+                              <img src={glance.avatar_url} alt={glance.display_name} className={`w-full h-full object-cover ${!glance.is_mutual ? "motion-blur" : "motion-blur-reveal"}`} />
                             ) : (
                               <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center">
                                 <span className="text-xl text-slate-400">{glance.display_name?.charAt(0) || "?"}</span>
@@ -663,7 +676,7 @@ const Connections = () => {
                         >
                           <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-cyan-500 transition-all">
                             {ib.avatar_url ? (
-                              <img src={ib.avatar_url} alt={ib.display_name} className={`w-full h-full object-cover ${ib.status !== "accepted" ? "blur-[4px]" : ""}`} />
+                              <img src={ib.avatar_url} alt={ib.display_name} className={`w-full h-full object-cover ${ib.status !== "accepted" ? "motion-blur" : "motion-blur-reveal"}`} />
                             ) : (
                               <div className="w-full h-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center">
                                 <span className="text-xl text-white">{ib.display_name?.charAt(0) || "?"}</span>
@@ -724,7 +737,7 @@ const Connections = () => {
                         >
                           <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-cyan-500 transition-all">
                             {ib.avatar_url ? (
-                              <img src={ib.avatar_url} alt={ib.display_name} className={`w-full h-full object-cover ${ib.status !== "accepted" ? "blur-[4px]" : ""}`} />
+                              <img src={ib.avatar_url} alt={ib.display_name} className={`w-full h-full object-cover ${ib.status !== "accepted" ? "motion-blur" : "motion-blur-reveal"}`} />
                             ) : (
                               <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center">
                                 <span className="text-xl text-slate-400">{ib.display_name?.charAt(0) || "?"}</span>
@@ -801,7 +814,7 @@ const Connections = () => {
                         >
                           <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-pink-500 transition-all">
                             {request.avatar_url ? (
-                              <img src={request.avatar_url} alt={request.display_name} className={`w-full h-full object-cover ${request.status !== "accepted" ? "blur-[4px]" : ""}`} />
+                              <img src={request.avatar_url} alt={request.display_name} className={`w-full h-full object-cover ${request.status !== "accepted" ? "motion-blur" : "motion-blur-reveal"}`} />
                             ) : (
                               <div className="w-full h-full bg-gradient-to-br from-pink-500 to-indigo-500 flex items-center justify-center">
                                 <span className="text-xl text-white">{request.display_name?.charAt(0) || "?"}</span>
@@ -888,7 +901,7 @@ const Connections = () => {
                         >
                           <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-pink-500 transition-all">
                             {request.avatar_url ? (
-                              <img src={request.avatar_url} alt={request.display_name} className={`w-full h-full object-cover ${request.status !== "accepted" ? "blur-[4px]" : ""}`} />
+                              <img src={request.avatar_url} alt={request.display_name} className={`w-full h-full object-cover ${request.status !== "accepted" ? "motion-blur" : "motion-blur-reveal"}`} />
                             ) : (
                               <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center">
                                 <span className="text-xl text-slate-400">{request.display_name?.charAt(0) || "?"}</span>
@@ -1239,24 +1252,74 @@ const Connections = () => {
                     </div>
                   </div>
 
-                  {/* Action */}
-                  <Button
-                    data-testid={`chat-btn-${connection.user_id}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/chat/${connection.user_id}`);
-                    }}
-                    className="rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white"
-                  >
-                    <MessageCircle className="w-4 h-4 mr-2" />
-                    Chat
-                  </Button>
+                  {/* Actions */}
+                  <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      data-testid={`chat-btn-${connection.user_id}`}
+                      onClick={() => navigate(`/chat/${connection.user_id}`)}
+                      className="rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white"
+                    >
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      Chat
+                    </Button>
+                    <Button
+                      data-testid={`clear-match-btn-${connection.user_id}`}
+                      onClick={() => setClearConfirmUser(connection)}
+                      size="icon"
+                      variant="ghost"
+                      className="rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                    >
+                      <UserMinus className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
           )
         )}
       </div>
+
+      {/* Clear from Matches Confirmation Modal */}
+      {clearConfirmUser && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-in fade-in duration-200" 
+          onClick={() => setClearConfirmUser(null)}
+          data-testid="clear-confirm-modal"
+        >
+          <div 
+            className="w-full max-w-sm bg-slate-900 rounded-2xl p-6 mx-4 border border-white/10 animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 rounded-full bg-orange-500/20 flex items-center justify-center mx-auto mb-4">
+                <UserMinus className="w-8 h-8 text-orange-400" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Clear from Matches?</h3>
+              <p className="text-slate-400 text-sm">
+                Remove <span className="text-white font-medium">{clearConfirmUser.display_name}</span> from your mutual matches. Your chat history will be preserved.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Button
+                data-testid="confirm-clear-btn"
+                onClick={() => handleClearFromMatches(clearConfirmUser.user_id, clearConfirmUser.display_name)}
+                className="w-full h-12 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-semibold"
+              >
+                Clear from Matches
+              </Button>
+              <Button
+                data-testid="cancel-clear-btn"
+                onClick={() => setClearConfirmUser(null)}
+                variant="ghost"
+                className="w-full h-12 rounded-xl text-slate-300 hover:bg-white/5"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Icebreaker Action Sheet */}
       {actionSheet && (
@@ -1276,7 +1339,7 @@ const Connections = () => {
             <div className="text-center mb-6">
               <div className="w-20 h-20 rounded-full overflow-hidden mx-auto mb-3 ring-2 ring-cyan-500/50">
                 {actionSheet.avatar_url ? (
-                  <img src={actionSheet.avatar_url} alt="" className="w-full h-full object-cover blur-[4px]" />
+                  <img src={actionSheet.avatar_url} alt="" className="w-full h-full object-cover motion-blur" />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center">
                     <span className="text-2xl text-white font-bold">{actionSheet.display_name?.charAt(0)}</span>
@@ -1371,7 +1434,7 @@ const Connections = () => {
             <div className="text-center mb-6">
               <div className="w-20 h-20 rounded-full overflow-hidden mx-auto mb-3 ring-2 ring-indigo-500/50">
                 {chatActionSheet.avatar_url ? (
-                  <img src={chatActionSheet.avatar_url} alt="" className="w-full h-full object-cover blur-[4px]" />
+                  <img src={chatActionSheet.avatar_url} alt="" className="w-full h-full object-cover motion-blur" />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
                     <span className="text-2xl text-white font-bold">{chatActionSheet.display_name?.charAt(0)}</span>
