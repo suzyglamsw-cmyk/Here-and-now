@@ -2299,15 +2299,19 @@ async def seed_interactive_test_users(current_user: dict = Depends(get_current_u
         
         if existing:
             # Update existing user to ensure they're properly configured
+            # Include email and password reset in case they were created with old values
             await db.users.update_one(
                 {"id": config["id"]},
                 {"$set": {
+                    "email": config["email"],  # Update email in case it changed
+                    "password": hash_password("test123"),  # Reset password
                     "is_visible": True,
                     "is_premium": config["is_premium"],
                     "last_active_at": now.isoformat(),
                     "age": config["age"],
                     "bio": config["bio"],
                     "avatar_url": config["avatar_url"],
+                    "display_name": config["display_name"],
                 }}
             )
         else:
@@ -2478,6 +2482,43 @@ async def seed_interactive_test_users(current_user: dict = Depends(get_current_u
             "chat_request_from_c": not existing_chat_request
         },
         "current_user_checked_in": not current_checkin
+    }
+
+@api_router.post("/test/reset-test-user-passwords")
+async def reset_test_user_passwords():
+    """
+    Explicitly reset passwords for all test users to 'test123'.
+    This ensures they can be logged into for testing.
+    """
+    if not IS_TEST_BUILD:
+        raise HTTPException(status_code=403, detail="Test mode only")
+    
+    new_password_hash = hash_password("test123")
+    results = []
+    
+    for config in TEST_USERS_CONFIG:
+        # Update password for each test user
+        result = await db.users.update_one(
+            {"id": config["id"]},
+            {"$set": {"password": new_password_hash}}
+        )
+        
+        if result.modified_count > 0:
+            results.append({"email": config["email"], "status": "password_reset"})
+        else:
+            # User might not exist, try to find by email
+            result2 = await db.users.update_one(
+                {"email": config["email"]},
+                {"$set": {"password": new_password_hash}}
+            )
+            if result2.modified_count > 0:
+                results.append({"email": config["email"], "status": "password_reset_by_email"})
+            else:
+                results.append({"email": config["email"], "status": "user_not_found"})
+    
+    return {
+        "message": "Test user passwords reset to 'test123'",
+        "results": results
     }
 
 # Venue Routes
