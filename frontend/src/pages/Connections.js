@@ -7,6 +7,7 @@ import axios from "axios";
 import Layout from "../components/Layout";
 import { MessageCircle, MapPin, Loader2, Users, Sparkles, Eye, Heart, Snowflake, UserPlus, Check, X, Clock, UserCheck, ArrowUpRight, ArrowDownLeft, MessageSquare, Trash2, Ban, UserMinus, MoreVertical, Wine } from "lucide-react";
 import { getErrorMessage } from "../utils/errorUtils";
+import BlurredImage from "../components/BlurredImage";
 
 const ICEBREAKER_MESSAGES = [
   "Hello",
@@ -542,13 +543,13 @@ const Connections = () => {
                           onClick={() => navigate(`/profile/${glance.user_id}`)}
                         >
                           <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all">
-                            {glance.avatar_url ? (
-                              <img src={glance.avatar_url} alt={glance.display_name} className={`w-full h-full object-cover ${!glance.is_mutual ? "motion-blur-sm" : "motion-blur-reveal"}`} />
-                            ) : (
-                              <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-pink-500 flex items-center justify-center">
-                                <span className="text-xl text-white">{glance.display_name?.charAt(0) || "?"}</span>
-                              </div>
-                            )}
+                            <BlurredImage
+                              src={glance.avatar_url}
+                              alt={glance.display_name}
+                              isRevealed={glance.is_mutual}
+                              isThumbnail={true}
+                              fallbackInitial={glance.display_name?.charAt(0) || "?"}
+                            />
                           </div>
                           {glance.is_mutual && (
                             <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-pink-500 flex items-center justify-center">
@@ -607,13 +608,13 @@ const Connections = () => {
                           onClick={() => navigate(`/profile/${glance.user_id}`)}
                         >
                           <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all">
-                            {glance.avatar_url ? (
-                              <img src={glance.avatar_url} alt={glance.display_name} className={`w-full h-full object-cover ${!glance.is_mutual ? "motion-blur-sm" : "motion-blur-reveal"}`} />
-                            ) : (
-                              <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center">
-                                <span className="text-xl text-slate-400">{glance.display_name?.charAt(0) || "?"}</span>
-                              </div>
-                            )}
+                            <BlurredImage
+                              src={glance.avatar_url}
+                              alt={glance.display_name}
+                              isRevealed={glance.is_mutual}
+                              isThumbnail={true}
+                              fallbackInitial={glance.display_name?.charAt(0) || "?"}
+                            />
                           </div>
                           {glance.is_mutual && (
                             <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-pink-500 flex items-center justify-center">
@@ -676,13 +677,13 @@ const Connections = () => {
                           onClick={() => navigate(`/profile/${ib.user_id}`)}
                         >
                           <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-cyan-500 transition-all">
-                            {ib.avatar_url ? (
-                              <img src={ib.avatar_url} alt={ib.display_name} className={`w-full h-full object-cover ${ib.status !== "accepted" ? "motion-blur-sm" : "motion-blur-reveal"}`} />
-                            ) : (
-                              <div className="w-full h-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center">
-                                <span className="text-xl text-white">{ib.display_name?.charAt(0) || "?"}</span>
-                              </div>
-                            )}
+                            <BlurredImage
+                              src={ib.avatar_url}
+                              alt={ib.display_name}
+                              isRevealed={ib.status === "accepted"}
+                              isThumbnail={true}
+                              fallbackInitial={ib.display_name?.charAt(0) || "?"}
+                            />
                           </div>
                         </div>
                         <div className="flex-1 min-w-0">
@@ -737,13 +738,13 @@ const Connections = () => {
                           onClick={() => navigate(`/profile/${ib.user_id}`)}
                         >
                           <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-cyan-500 transition-all">
-                            {ib.avatar_url ? (
-                              <img src={ib.avatar_url} alt={ib.display_name} className={`w-full h-full object-cover ${ib.status !== "accepted" ? "motion-blur-sm" : "motion-blur-reveal"}`} />
-                            ) : (
-                              <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center">
-                                <span className="text-xl text-slate-400">{ib.display_name?.charAt(0) || "?"}</span>
-                              </div>
-                            )}
+                            <BlurredImage
+                              src={ib.avatar_url}
+                              alt={ib.display_name}
+                              isRevealed={ib.status === "accepted"}
+                              isThumbnail={true}
+                              fallbackInitial={ib.display_name?.charAt(0) || "?"}
+                            />
                           </div>
                         </div>
                         <div className="flex-1 min-w-0">
@@ -814,13 +815,13 @@ const Connections = () => {
                           onClick={() => navigate(`/profile/${request.user_id}`)}
                         >
                           <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-pink-500 transition-all">
-                            {request.avatar_url ? (
-                              <img src={request.avatar_url} alt={request.display_name} className={`w-full h-full object-cover ${request.status !== "accepted" ? "motion-blur-sm" : "motion-blur-reveal"}`} />
-                            ) : (
-                              <div className="w-full h-full bg-gradient-to-br from-pink-500 to-indigo-500 flex items-center justify-center">
-                                <span className="text-xl text-white">{request.display_name?.charAt(0) || "?"}</span>
-                              </div>
-                            )}
+                            <BlurredImage
+                              src={request.avatar_url}
+                              alt={request.display_name}
+                              isRevealed={request.status === "accepted"}
+                              isThumbnail={true}
+                              fallbackInitial={request.display_name?.charAt(0) || "?"}
+                            />
                           </div>
                         </div>
                         <div className="flex-1 min-w-0">
@@ -901,13 +902,13 @@ const Connections = () => {
                           onClick={() => navigate(`/profile/${request.user_id}`)}
                         >
                           <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-pink-500 transition-all">
-                            {request.avatar_url ? (
-                              <img src={request.avatar_url} alt={request.display_name} className={`w-full h-full object-cover ${request.status !== "accepted" ? "motion-blur-sm" : "motion-blur-reveal"}`} />
-                            ) : (
-                              <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center">
-                                <span className="text-xl text-slate-400">{request.display_name?.charAt(0) || "?"}</span>
-                              </div>
-                            )}
+                            <BlurredImage
+                              src={request.avatar_url}
+                              alt={request.display_name}
+                              isRevealed={request.status === "accepted"}
+                              isThumbnail={true}
+                              fallbackInitial={request.display_name?.charAt(0) || "?"}
+                            />
                           </div>
                         </div>
                         <div className="flex-1 min-w-0">
@@ -1339,13 +1340,13 @@ const Connections = () => {
             {/* User info */}
             <div className="text-center mb-6">
               <div className="w-20 h-20 rounded-full overflow-hidden mx-auto mb-3 ring-2 ring-cyan-500/50">
-                {actionSheet.avatar_url ? (
-                  <img src={actionSheet.avatar_url} alt="" className="w-full h-full object-cover motion-blur-sm" />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center">
-                    <span className="text-2xl text-white font-bold">{actionSheet.display_name?.charAt(0)}</span>
-                  </div>
-                )}
+                <BlurredImage
+                  src={actionSheet.avatar_url}
+                  alt={actionSheet.display_name}
+                  isRevealed={false}
+                  isThumbnail={true}
+                  fallbackInitial={actionSheet.display_name?.charAt(0)}
+                />
               </div>
               <h3 className="text-xl font-bold text-white">{actionSheet.display_name}</h3>
               <div className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/10 border border-cyan-500/20">
@@ -1434,13 +1435,13 @@ const Connections = () => {
             {/* User info */}
             <div className="text-center mb-6">
               <div className="w-20 h-20 rounded-full overflow-hidden mx-auto mb-3 ring-2 ring-indigo-500/50">
-                {chatActionSheet.avatar_url ? (
-                  <img src={chatActionSheet.avatar_url} alt="" className="w-full h-full object-cover motion-blur-sm" />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
-                    <span className="text-2xl text-white font-bold">{chatActionSheet.display_name?.charAt(0)}</span>
-                  </div>
-                )}
+                <BlurredImage
+                  src={chatActionSheet.avatar_url}
+                  alt={chatActionSheet.display_name}
+                  isRevealed={false}
+                  isThumbnail={true}
+                  fallbackInitial={chatActionSheet.display_name?.charAt(0)}
+                />
               </div>
               <h3 className="text-xl font-bold text-white">{chatActionSheet.display_name}</h3>
               <div className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20">

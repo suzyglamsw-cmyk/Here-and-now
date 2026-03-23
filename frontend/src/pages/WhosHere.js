@@ -36,6 +36,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { getErrorMessage } from "../utils/errorUtils";
+import BlurredImage from "../components/BlurredImage";
 
 const ICEBREAKER_MESSAGES = [
   { id: 0, name: "Hello", icon: "👋" },
@@ -381,21 +382,13 @@ const WhosHere = () => {
                           : ""
                       }`}
                     >
-                      {person.avatar_url ? (
-                        <img
-                          src={person.avatar_url}
-                          alt={person.display_name}
-                          className={`w-full h-full object-cover transition-all duration-300 ${
-                            person.is_revealed ? "motion-blur-reveal" : "motion-blur"
-                          }`}
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center">
-                          <span className="text-4xl text-slate-400">
-                            {(person.first_name || person.display_name?.split(' ')[0] || "?").charAt(0)}
-                          </span>
-                        </div>
-                      )}
+                      <BlurredImage
+                        src={person.avatar_url}
+                        alt={person.display_name}
+                        isRevealed={person.is_revealed}
+                        isThumbnail={false}
+                        fallbackInitial={(person.first_name || person.display_name?.split(' ')[0] || "?").charAt(0)}
+                      />
                     </div>
 
                     {/* Status indicators */}

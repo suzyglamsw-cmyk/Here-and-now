@@ -8,6 +8,7 @@ import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
 import { Eye, MessageCircle, Loader2, Heart, Crown, Coins, X, UserPlus, Snowflake } from "lucide-react";
 import { getErrorMessage } from "../utils/errorUtils";
+import BlurredImage from "../components/BlurredImage";
 
 const UserProfile = () => {
   const { userId } = useParams();
@@ -141,24 +142,16 @@ const UserProfile = () => {
 
         {/* Profile Card */}
         <div className="glass rounded-3xl overflow-hidden">
-          {/* Main Photo - blurred if not revealed */}
-          {mainPhoto ? (
-            <div className="aspect-square w-full max-h-96 overflow-hidden">
-              <img
-                src={mainPhoto}
-                alt={profile.display_name}
-                className={`w-full h-full object-cover transition-all duration-300 ${
-                  profile.is_revealed ? "" : "blur-[4px]"
-                }`}
-              />
-            </div>
-          ) : (
-            <div className="aspect-square w-full max-h-96 bg-slate-800 flex items-center justify-center">
-              <span className="text-6xl text-slate-600">
-                {profile.display_name?.charAt(0) || "?"}
-              </span>
-            </div>
-          )}
+          {/* Main Photo - dynamic blur based on image characteristics */}
+          <div className="aspect-square w-full max-h-96 overflow-hidden">
+            <BlurredImage
+              src={mainPhoto}
+              alt={profile.display_name}
+              isRevealed={profile.is_revealed}
+              isThumbnail={false}
+              fallbackInitial={profile.display_name?.charAt(0) || "?"}
+            />
+          </div>
 
           {/* Profile Info */}
           <div className="p-6">
