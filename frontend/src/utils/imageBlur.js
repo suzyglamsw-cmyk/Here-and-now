@@ -4,10 +4,12 @@
  */
 
 // Blur strength levels (in pixels)
+// Thumbnails: Allow vibe (silhouette, hair, posture) but hide facial features
+// Full-size: Stronger blur for privacy until mutual match
 export const BLUR_LEVELS = {
-  THUMBNAIL_LIGHT: 2,    // Small thumbnails, distant/full-body shots
-  THUMBNAIL_MEDIUM: 3,   // Small thumbnails, standard shots
-  THUMBNAIL_STRONG: 5,   // Small thumbnails, close-up shots
+  THUMBNAIL_LIGHT: 1,    // Small thumbnails, distant/full-body shots - show shape clearly
+  THUMBNAIL_MEDIUM: 2,   // Small thumbnails, standard shots - vibe visible, face hidden
+  THUMBNAIL_STRONG: 3,   // Small thumbnails, close-up shots - silhouette only
   FULL_LIGHT: 6,         // Full-size, distant/full-body shots
   FULL_MEDIUM: 8,        // Full-size, standard shots  
   FULL_STRONG: 12,       // Full-size, close-up shots
