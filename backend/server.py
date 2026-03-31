@@ -17,6 +17,8 @@ import json
 import httpx
 import base64
 import io
+from PIL import Image
+from PIL.ExifTags import TAGS
 from pywebpush import webpush, WebPushException
 from math import cos, radians
 
@@ -891,6 +893,76 @@ async def update_profile(data: UserProfile, current_user: dict = Depends(get_cur
 MAX_PHOTO_SIZE = 5 * 1024 * 1024
 ALLOWED_CONTENT_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"]
 
+# Photo age threshold (2 years)
+PHOTO_AGE_WARNING_YEARS = 2
+
+
+def extract_photo_creation_date(image_data: bytes) -> Optional[datetime]:
+    """
+    Extract the creation/taken date from image EXIF metadata.
+    
+    Returns:
+        datetime object if found, None if metadata is missing or unreadable.
+    """
+    try:
+        image = Image.open(io.BytesIO(image_data))
+        
+        # Try to get EXIF data
+        exif_data = image._getexif()
+        if not exif_data:
+            return None
+        
+        # EXIF tags for date/time
+        # 36867 = DateTimeOriginal (when photo was taken)
+        # 36868 = DateTimeDigitized
+        # 306 = DateTime (last modified)
+        date_tags = [36867, 36868, 306]
+        
+        for tag_id in date_tags:
+            if tag_id in exif_data:
+                date_str = exif_data[tag_id]
+                if date_str:
+                    # EXIF date format: "YYYY:MM:DD HH:MM:SS"
+                    try:
+                        return datetime.strptime(date_str, "%Y:%m:%d %H:%M:%S")
+                    except ValueError:
+                        # Try alternative formats
+                        try:
+                            return datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
+                        except ValueError:
+                            continue
+        
+        return None
+    except Exception as e:
+        # If anything goes wrong (corrupt image, no EXIF support, etc.), return None
+        logger.debug(f"Could not extract photo metadata: {e}")
+        return None
+
+
+def check_photo_age_warning(image_data: bytes) -> Optional[str]:
+    """
+    Check if photo metadata indicates the photo is older than 2 years.
+    
+    Returns:
+        Warning message if photo is old, None otherwise.
+        Never blocks uploads - this is just a soft prompt.
+    """
+    creation_date = extract_photo_creation_date(image_data)
+    
+    if creation_date is None:
+        # No metadata or unreadable - do nothing
+        return None
+    
+    # Calculate age
+    now = datetime.now()
+    age_years = (now - creation_date).days / 365.25
+    
+    if age_years > PHOTO_AGE_WARNING_YEARS:
+        return "This photo looks a little older. Want to add a more recent one?"
+    
+    return None
+
+
 @api_router.post("/photos/upload")
 async def upload_photo(
     file: UploadFile = File(...),
@@ -911,6 +983,9 @@ async def upload_photo(
     # Check file size
     if len(content) > MAX_PHOTO_SIZE:
         raise HTTPException(status_code=400, detail="File too large. Maximum 5MB.")
+    
+    # Check photo metadata age (soft warning, never blocks)
+    photo_age_warning = check_photo_age_warning(content)
     
     # Generate unique photo ID
     photo_id = str(uuid.uuid4())
@@ -957,12 +1032,19 @@ async def upload_photo(
         {"$set": update_data}
     )
     
-    return {
+    # Build response
+    response = {
         "photo_id": photo_id,
         "url": photo_url,
         "slot": slot,
         "message": "Photo uploaded successfully"
     }
+    
+    # Add soft warning if photo appears old (never blocks upload)
+    if photo_age_warning:
+        response["warning"] = photo_age_warning
+    
+    return response
 
 @api_router.get("/photos/{photo_id}")
 async def get_photo(photo_id: str):

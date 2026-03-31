@@ -92,7 +92,16 @@ Build a real-time, location-based social connection app called "Here & Now". Cor
 - **Notifications:** Generic notification without message preview
 - **Premium Features:** "Viewed" status with timestamp on sent icebreakers
 
-### 5. Glances
+### 8. Photo Upload Features
+
+#### Photo Metadata Age Detection (IMPLEMENTED)
+- Checks EXIF metadata for creation date on upload
+- If photo is older than 2 years, returns soft warning: "This photo looks a little older. Want to add a more recent one?"
+- If metadata is missing or unreadable: silently proceeds (no warning)
+- Never blocks uploads - purely informational
+- Photo age never shown to other users
+
+### 9. Glances
 - Send glances to users at the same venue
 - Daily limit: 5 glances for standard users, 20 for premium
 - Mutual glances create a connection
@@ -192,7 +201,6 @@ Build a real-time, location-based social connection app called "Here & Now". Cor
 ## Backlog / Future Tasks
 
 ### P1 - High Priority
-- Photo metadata age detection (> 2 years warning: "This photo looks a little older. Want to add a more recent one?")
 - Global placeholder/offensive-word filtering for ALL free-text fields (Bio, Presence Note, Celebrity Crush, Icebreakers)
 - Production API keys (Google Places, Google Play Billing)
 
