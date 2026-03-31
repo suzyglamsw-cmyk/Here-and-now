@@ -232,7 +232,6 @@ Comprehensive list including:
 
 ### P2 - Medium Priority
 - Backend monolith refactoring (`server.py` → modular APIRouter routes)
-- Default routing on login fix (`/venues` vs `/discovery`)
 - Cloud storage for photos (S3/GCS)
 
 ### P3 - Lower Priority

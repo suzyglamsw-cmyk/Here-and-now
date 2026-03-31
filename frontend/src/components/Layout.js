@@ -49,7 +49,7 @@ const Layout = ({ children, hideNav = false }) => {
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <div
             className="flex items-center gap-2 cursor-pointer"
-            onClick={() => navigate("/venues")}
+            onClick={() => navigate("/discovery")}
             data-testid="logo-btn"
           >
             <LogoIcon className="w-8 h-8" />
