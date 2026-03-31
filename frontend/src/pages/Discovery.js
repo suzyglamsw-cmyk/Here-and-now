@@ -21,6 +21,8 @@ import {
   Heart,
   X,
   ChevronDown,
+  Radio,
+  Navigation,
 } from "lucide-react";
 import {
   Dialog,
@@ -52,7 +54,9 @@ const Discovery = () => {
   const [people, setPeople] = useState([]);
   const [loading, setLoading] = useState(true);
   const [venue, setVenue] = useState(null);
+  const [venueLoading, setVenueLoading] = useState(true);
   const [proximityEchoes, setProximityEchoes] = useState([]);
+  const [hasLocationPermission, setHasLocationPermission] = useState(false);
   
   // Interaction states
   const [glancing, setGlancing] = useState(null);
@@ -60,10 +64,32 @@ const Discovery = () => {
   const [selectedPerson, setSelectedPerson] = useState(null);
   const [sendingIcebreaker, setSendingIcebreaker] = useState(false);
 
+  // Check location permission
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.permissions?.query({ name: 'geolocation' }).then((result) => {
+        setHasLocationPermission(result.state === 'granted');
+      }).catch(() => {
+        // Fallback: assume permission if geolocation is available
+        setHasLocationPermission(true);
+      });
+    }
+  }, []);
+
+  // Auto-navigate to /venues when Here & Now mode loads with no venue
+  useEffect(() => {
+    if (mode === "here" && !venueLoading && !venue) {
+      // No venue selected - navigate to venue picker
+      navigate("/venues");
+    }
+  }, [mode, venue, venueLoading, navigate]);
+
   useEffect(() => {
     if (mode === "here") {
       fetchCurrentVenue();
       fetchProximityEchoes();
+    } else {
+      setVenueLoading(false);
     }
     fetchPeople();
   }, [mode, radius]);
@@ -73,14 +99,30 @@ const Discovery = () => {
   }, [mode]);
 
   const fetchCurrentVenue = async () => {
+    setVenueLoading(true);
     try {
       const response = await axios.get(`${API}/checkin/current`);
-      if (response.data) {
+      // API returns { checked_in: boolean, checkin: {...}, venue: {...} }
+      if (response.data && response.data.checked_in && response.data.venue) {
+        // Transform to expected format
+        setVenue({
+          venue_id: response.data.checkin?.venue_id || response.data.venue?.id,
+          venue_name: response.data.venue?.name,
+          venue_type: response.data.venue?.type,
+          checked_in_at: response.data.checkin?.checked_in_at,
+          ...response.data.checkin
+        });
+      } else if (response.data && response.data.venue_id) {
+        // Legacy format support
         setVenue(response.data);
+      } else {
+        setVenue(null);
       }
     } catch (error) {
       // Not checked in anywhere
       setVenue(null);
+    } finally {
+      setVenueLoading(false);
     }
   };
 
@@ -338,15 +380,44 @@ const Discovery = () => {
             {/* Mode-specific header content */}
             {mode === "here" ? (
               <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-xl font-bold text-white">
-                    {venue?.venue_name || "Check in somewhere"}
-                  </h1>
-                  <div className="flex items-center gap-2 text-slate-400 text-sm">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span>{people.length} people here</span>
-                  </div>
+                <div className="flex-1">
+                  {venue ? (
+                    <>
+                      <h1 className="text-xl font-bold text-white">
+                        {venue.venue_name}
+                      </h1>
+                      <div className="flex items-center gap-2 text-slate-400 text-sm">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <span>{people.length} people here</span>
+                      </div>
+                      {/* Live Tracking Indicator */}
+                      {hasLocationPermission && (
+                        <div className="flex items-center gap-2 mt-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 w-fit">
+                          <Radio className="w-3 h-3 text-emerald-400 animate-pulse" />
+                          <span className="text-xs text-emerald-400 font-medium">Live tracking</span>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <h1 className="text-xl font-bold text-white">
+                        Check in somewhere
+                      </h1>
+                      <p className="text-slate-400 text-sm">
+                        Find a venue to see who's around
+                      </p>
+                    </>
+                  )}
                 </div>
+                {/* Always show venue picker button */}
+                <Button
+                  data-testid="check-in-btn"
+                  onClick={() => navigate("/venues")}
+                  className="rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white flex items-center gap-2"
+                >
+                  <Navigation className="w-4 h-4" />
+                  {venue ? "Change venue" : "Check in"}
+                </Button>
               </div>
             ) : (
               <div>
@@ -392,7 +463,7 @@ const Discovery = () => {
 
         {/* Content */}
         <div className="max-w-4xl mx-auto px-4 py-6">
-          {loading ? (
+          {loading || (mode === "here" && venueLoading) ? (
             <div className="flex justify-center py-20">
               <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
             </div>
@@ -400,18 +471,24 @@ const Discovery = () => {
             <div className="text-center py-20">
               <Users className="w-16 h-16 text-slate-600 mx-auto mb-4" />
               <h2 className="text-xl font-bold text-white mb-2">
-                {mode === "here" ? "No one's around" : "No one nearby"}
+                {mode === "here" 
+                  ? (venue ? "No one's around" : "Find a venue") 
+                  : "No one nearby"}
               </h2>
-              <p className="text-slate-400">
+              <p className="text-slate-400 mb-4">
                 {mode === "here"
-                  ? "No one's around at the moment. Try again soon or switch to Not Here."
+                  ? (venue 
+                      ? "No one's around at the moment. Try again soon or switch to Not Here."
+                      : "Check into a venue to see who's around.")
                   : "No one is near enough right now. Try widening your radius."}
               </p>
-              {mode === "here" && !venue && (
+              {mode === "here" && (
                 <Button
+                  data-testid="find-venue-btn"
                   onClick={() => navigate("/venues")}
-                  className="mt-4 rounded-xl bg-indigo-500 hover:bg-indigo-600"
+                  className="rounded-xl bg-indigo-500 hover:bg-indigo-600"
                 >
+                  <Navigation className="w-4 h-4 mr-2" />
                   Find a venue to check in
                 </Button>
               )}

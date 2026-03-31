@@ -109,6 +109,10 @@ const Venues = () => {
   useEffect(() => {
     if (routeLocation.pathname === '/venues') {
       fetchCurrentCheckin();
+      // Force re-fetch venues when navigating to this page
+      if (geoLocation) {
+        fetchNearbyVenues(geoLocation.lat, geoLocation.lng);
+      }
     }
   }, [routeLocation.pathname]);
 
