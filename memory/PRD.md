@@ -72,11 +72,38 @@ Build a real-time, location-based social connection app called "Here & Now". Cor
 - Logout
 - Delete Account
 
-### 6. Text Validation (GLOBAL)
-- Bio minimum 10 characters
-- Blocked placeholder patterns: "idk", "ask me", "tbc", "n/a", etc.
-- Offensive word filtering across all free-text fields
-- Warm, encouraging error messages
+### 6. Text Validation (GLOBAL) - IMPLEMENTED
+
+#### Placeholder Blocking
+Blocked patterns (case-insensitive):
+- "idk", "don't know", "ask me", "just ask", "fill in later"
+- "tbc", "tbd", "to be confirmed", "to be continued", "to be determined"
+- "none", "n/a", "na", "nothing", "blank", "empty"
+- "message me", "dm me", "text me", "later", "soon", "pending"
+- "hi", "hey", "hello", "test", "testing", "whatever", "meh"
+- Punctuation-only entries: "...", "-", "_", combinations
+
+#### Offensive Word Filtering
+Comprehensive list including:
+- Profanity, slurs, hate speech
+- Sexual content, violence references
+- Drug references
+
+#### PII Blocking
+- Phone numbers (5+ consecutive digits)
+- Email patterns, URLs, social media handles
+
+#### Warm Error Messages
+- Placeholder: "Try adding a short line that feels like you."
+- Offensive: "Let's keep it friendly and welcoming for everyone."
+- PII: "For safety, please don't share contact info here."
+- Too long: "Please keep it under X characters."
+
+#### Field-Specific Rules
+- **Bio**: minimum 10 characters, max 500
+- **Presence Note**: max 40 characters
+- **Celebrity Crush**: max 50 characters
+- **Icebreakers**: Use predefined messages (no free-text validation needed)
 
 ### 7. Social Interactions - Icebreaker System
 - **Sending:** Users can send predefined icebreaker messages ("Hello", "Fancy a chat?", etc.)
@@ -201,7 +228,6 @@ Build a real-time, location-based social connection app called "Here & Now". Cor
 ## Backlog / Future Tasks
 
 ### P1 - High Priority
-- Global placeholder/offensive-word filtering for ALL free-text fields (Bio, Presence Note, Celebrity Crush, Icebreakers)
 - Production API keys (Google Places, Google Play Billing)
 
 ### P2 - Medium Priority

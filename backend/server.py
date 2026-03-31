@@ -326,12 +326,107 @@ BLOCKED_NAME_PATTERNS = [
     r'\b(sex|xxx|porn|nude|naked|horny|fuck|shit|ass|dick|cock|pussy|bitch|cunt|nigger|faggot)\b',  # Offensive words
 ]
 
-# Placeholder text patterns to block in free-text fields
+# Comprehensive placeholder text patterns to block in free-text fields
 BLOCKED_PLACEHOLDER_PATTERNS = [
-    r'^idk$', r'^i don\'?t know$', r'^don\'?t know$', r'^ask me$', r'^fill in later$',
-    r'^tbc$', r'^to be confirmed$', r'^to be continued$', r'^none$', r'^n/?a$',
-    r'^\.+$', r'^-+$', r'^\s*$', r'^just ask$', r'^message me$', r'^later$',
+    # Exact matches (case-insensitive)
+    r'^idk$',
+    r'^i don\'?t know$',
+    r'^don\'?t know$',
+    r'^ask me$',
+    r'^just ask$',
+    r'^ask$',
+    r'^fill in later$',
+    r'^later$',
+    r'^tbc$',
+    r'^tbd$',
+    r'^to be confirmed$',
+    r'^to be continued$',
+    r'^to be determined$',
+    r'^to be decided$',
+    r'^none$',
+    r'^n/?a$',
+    r'^na$',
+    r'^nothing$',
+    r'^blank$',
+    r'^empty$',
+    r'^message me$',
+    r'^dm me$',
+    r'^text me$',
+    r'^hi$',
+    r'^hey$',
+    r'^hello$',
+    r'^test$',
+    r'^testing$',
+    r'^asdf+$',
+    r'^qwerty$',
+    r'^abc$',
+    r'^xyz$',
+    r'^whatever$',
+    r'^idc$',
+    r'^i don\'?t care$',
+    r'^meh$',
+    r'^hmm+$',
+    r'^uh+$',
+    r'^um+$',
+    r'^dunno$',
+    r'^no idea$',
+    r'^will fill$',
+    r'^will add$',
+    r'^coming soon$',
+    r'^soon$',
+    r'^pending$',
+    r'^wip$',
+    r'^work in progress$',
+    # Patterns for lazy entries
+    r'^\.+$',  # Just dots (., .., ...)
+    r'^-+$',   # Just dashes (-, --, ---)
+    r'^\s*$',  # Just whitespace
+    r'^_+$',   # Just underscores
+    r'^[\.\,\-_\s]+$',  # Combinations of punctuation only (escaped properly)
 ]
+
+# Comprehensive offensive word list for free-text validation
+OFFENSIVE_WORDS = [
+    # Profanity
+    'fuck', 'fucking', 'fucked', 'fucker', 'fucks',
+    'shit', 'shitty', 'bullshit',
+    'ass', 'asshole', 'asses',
+    'bitch', 'bitches', 'bitchy',
+    'damn', 'damned', 'goddamn',
+    'crap', 'crappy',
+    'piss', 'pissed',
+    'bastard', 'bastards',
+    'hell',
+    # Slurs and hate speech
+    'nigger', 'nigga', 'negro',
+    'faggot', 'fag', 'fags',
+    'retard', 'retarded',
+    'cunt', 'cunts',
+    'whore', 'slut', 'sluts',
+    'dyke', 'dykes',
+    'tranny', 'shemale',
+    'kike', 'spic', 'chink', 'gook', 'wetback',
+    # Sexual content
+    'sex', 'sexy', 'sexual',
+    'porn', 'porno', 'pornography',
+    'xxx', 'nsfw',
+    'nude', 'nudes', 'naked',
+    'horny', 'aroused',
+    'dick', 'dicks', 'cock', 'cocks',
+    'pussy', 'vagina', 'penis',
+    'boobs', 'tits', 'titties',
+    'masturbate', 'masturbation',
+    'orgasm', 'cum', 'cumming',
+    'blowjob', 'handjob',
+    'dildo', 'vibrator',
+    # Violence
+    'kill', 'killing', 'murder',
+    'rape', 'raping', 'rapist',
+    'suicide', 'suicidal',
+    # Drugs
+    'cocaine', 'heroin', 'meth', 'crack',
+]
+
 
 def validate_display_name(name: str) -> tuple[bool, str]:
     """Validate display name for PII and offensive content"""
@@ -345,31 +440,56 @@ def validate_display_name(name: str) -> tuple[bool, str]:
             return False, "Name contains blocked content. Please use your first name only."
     return True, ""
 
+
 def validate_free_text(text: str, field_name: str = "text", min_length: int = 0, max_length: int = 500) -> tuple[bool, str]:
-    """Validate free-text fields for placeholder text and offensive content"""
+    """
+    Validate free-text fields for placeholder text and offensive content.
+    
+    Fields covered: Bio, Presence Note, Celebrity Crush, and any future free-text fields.
+    
+    Returns warm, encouraging error messages to help users create authentic content.
+    """
     import re
+    
+    # Empty text handling
     if not text:
         if min_length > 0:
-            return False, f"Add a short line so people get a sense of your vibe."
+            return False, "Try adding a short line that feels like you."
         return True, ""
     
     text_stripped = text.strip()
     
+    # Check minimum length (primarily for Bio)
     if len(text_stripped) < min_length:
-        return False, f"Add a short line so people get a sense of your vibe."
+        return False, "Try adding a short line that feels like you."
     
+    # Check maximum length
     if len(text_stripped) > max_length:
         return False, f"Please keep it under {max_length} characters."
     
-    # Check for placeholder patterns
+    # Check for placeholder patterns (case-insensitive)
     for pattern in BLOCKED_PLACEHOLDER_PATTERNS:
         if re.match(pattern, text_stripped, re.IGNORECASE):
             return False, "Try adding a short line that feels like you."
     
-    # Check for offensive content
-    for pattern in BLOCKED_NAME_PATTERNS:
+    # Check for offensive words (word boundary matching)
+    text_lower = text_stripped.lower()
+    for word in OFFENSIVE_WORDS:
+        # Use word boundary to avoid false positives (e.g., "class" containing "ass")
+        if re.search(rf'\b{re.escape(word)}\b', text_lower):
+            return False, "Let's keep it friendly and welcoming for everyone."
+    
+    # Check for PII patterns (URLs, emails, social handles)
+    pii_patterns = [
+        r'\d{5,}',  # 5+ consecutive digits (phone numbers)
+        r'@[\w.]+',  # Email-like patterns
+        r'\.com|\.net|\.org|\.io',  # URLs
+        r'http|www\.',  # URLs
+        r'instagram|snapchat|tiktok|twitter|facebook|whatsapp|telegram|discord',  # Social handles
+    ]
+    for pattern in pii_patterns:
         if re.search(pattern, text_stripped, re.IGNORECASE):
-            return False, "Please keep it friendly and respectful."
+            return False, "For safety, please don't share contact info here."
     
     return True, ""
 
