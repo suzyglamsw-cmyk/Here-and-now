@@ -48,11 +48,13 @@ const Discovery = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   
-  // Mode: "here" or "not-here"
-  const [mode, setMode] = useState(searchParams.get("mode") || "here");
+  // Mode: null (selection), "here", or "not-here"
+  // Start with null if no mode in URL, otherwise use URL mode
+  const urlMode = searchParams.get("mode");
+  const [mode, setMode] = useState(urlMode || null);
   const [radius, setRadius] = useState("0-10");
   const [people, setPeople] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [venue, setVenue] = useState(null);
   const [venueLoading, setVenueLoading] = useState(true);
   const [proximityEchoes, setProximityEchoes] = useState([]);
@@ -70,33 +72,57 @@ const Discovery = () => {
       navigator.permissions?.query({ name: 'geolocation' }).then((result) => {
         setHasLocationPermission(result.state === 'granted');
       }).catch(() => {
-        // Fallback: assume permission if geolocation is available
         setHasLocationPermission(true);
       });
     }
   }, []);
 
-  // Auto-navigate to /venues when Here & Now mode loads with no venue
+  // Fetch venue status on mount (for mode selection logic)
+  useEffect(() => {
+    fetchCurrentVenue();
+  }, []);
+
+  // Safety redirect: ONLY when already in "here" mode with no venue
+  // This prevents dead-end states but doesn't affect mode selection
   useEffect(() => {
     if (mode === "here" && !venueLoading && !venue) {
-      // No venue selected - navigate to venue picker
       navigate("/venues");
     }
   }, [mode, venue, venueLoading, navigate]);
 
+  // Fetch data when mode changes
   useEffect(() => {
-    if (mode === "here") {
-      fetchCurrentVenue();
+    if (mode === "here" && venue) {
       fetchProximityEchoes();
-    } else {
-      setVenueLoading(false);
+      fetchPeople();
+    } else if (mode === "not-here") {
+      fetchPeople();
     }
-    fetchPeople();
-  }, [mode, radius]);
+  }, [mode, radius, venue]);
 
+  // Update URL when mode changes
   useEffect(() => {
-    setSearchParams({ mode });
+    if (mode) {
+      setSearchParams({ mode });
+    }
   }, [mode]);
+
+  // Handle mode selection
+  const handleSelectMode = (selectedMode) => {
+    if (selectedMode === "here") {
+      // Check if user has a venue
+      if (!venue && !venueLoading) {
+        // No venue - open venue picker
+        navigate("/venues");
+      } else {
+        // Has venue - go to Here & Now
+        setMode("here");
+      }
+    } else {
+      // Not Here - go directly
+      setMode("not-here");
+    }
+  };
 
   const fetchCurrentVenue = async () => {
     setVenueLoading(true);
@@ -348,34 +374,101 @@ const Discovery = () => {
   return (
     <Layout>
       <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
-        {/* Header with Tabs */}
-        <div className="sticky top-0 z-40 glass border-b border-white/5">
-          <div className="max-w-4xl mx-auto px-4 py-4">
-            {/* Mode Toggle Tabs */}
-            <div className="flex rounded-xl bg-white/5 p-1 mb-4">
+        {/* Mode Selection Screen - shown when no mode selected */}
+        {mode === null ? (
+          <div className="flex flex-col items-center justify-center min-h-[80vh] px-4">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-white mb-2">Discover</h1>
+              <p className="text-slate-400">How would you like to meet people?</p>
+            </div>
+            
+            <div className="w-full max-w-md space-y-4">
+              {/* Here & Now Option */}
               <button
-                data-testid="tab-here"
-                onClick={() => setMode("here")}
-                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
-                  mode === "here"
-                    ? "bg-indigo-500 text-white"
-                    : "text-slate-400 hover:text-white"
-                }`}
+                data-testid="select-here-now"
+                onClick={() => handleSelectMode("here")}
+                className="w-full p-6 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 hover:border-indigo-400/50 transition-all group"
               >
-                HERE & NOW
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-xl bg-indigo-500/20 flex items-center justify-center">
+                    <MapPin className="w-7 h-7 text-indigo-400" />
+                  </div>
+                  <div className="text-left flex-1">
+                    <h2 className="text-xl font-bold text-white group-hover:text-indigo-300 transition-colors">
+                      Here & Now
+                    </h2>
+                    <p className="text-slate-400 text-sm">
+                      {venue ? `You're at ${venue.venue_name}` : "Check into a venue to see who's there"}
+                    </p>
+                  </div>
+                  {venue && (
+                    <div className="flex items-center gap-1 text-emerald-400 text-sm">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      Active
+                    </div>
+                  )}
+                </div>
               </button>
+              
+              {/* Not Here Option */}
               <button
-                data-testid="tab-not-here"
-                onClick={() => setMode("not-here")}
-                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
-                  mode === "not-here"
-                    ? "bg-indigo-500 text-white"
-                    : "text-slate-400 hover:text-white"
-                }`}
+                data-testid="select-not-here"
+                onClick={() => handleSelectMode("not-here")}
+                className="w-full p-6 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-teal-500/20 border border-cyan-500/30 hover:border-cyan-400/50 transition-all group"
               >
-                NOT HERE
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-xl bg-cyan-500/20 flex items-center justify-center">
+                    <Users className="w-7 h-7 text-cyan-400" />
+                  </div>
+                  <div className="text-left flex-1">
+                    <h2 className="text-xl font-bold text-white group-hover:text-cyan-300 transition-colors">
+                      Not Here
+                    </h2>
+                    <p className="text-slate-400 text-sm">
+                      People nearby but not at the same place
+                    </p>
+                  </div>
+                </div>
               </button>
             </div>
+            
+            {venueLoading && (
+              <div className="mt-6 flex items-center gap-2 text-slate-500">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="text-sm">Checking venue status...</span>
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Header with Tabs */}
+            <div className="sticky top-0 z-40 glass border-b border-white/5">
+              <div className="max-w-4xl mx-auto px-4 py-4">
+                {/* Mode Toggle Tabs */}
+                <div className="flex rounded-xl bg-white/5 p-1 mb-4">
+                  <button
+                    data-testid="tab-here"
+                    onClick={() => handleSelectMode("here")}
+                    className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                      mode === "here"
+                        ? "bg-indigo-500 text-white"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    HERE & NOW
+                  </button>
+                  <button
+                    data-testid="tab-not-here"
+                    onClick={() => handleSelectMode("not-here")}
+                    className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                      mode === "not-here"
+                        ? "bg-indigo-500 text-white"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    NOT HERE
+                  </button>
+                </div>
 
             {/* Mode-specific header content */}
             {mode === "here" ? (
@@ -523,6 +616,8 @@ const Discovery = () => {
             </div>
           </DialogContent>
         </Dialog>
+          </>
+        )}
       </div>
     </Layout>
   );

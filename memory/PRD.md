@@ -12,7 +12,13 @@ Build a real-time, location-based social connection app called "Here & Now". Cor
 - User registration with display name (cannot be changed after creation)
 - Password reset flow
 
-### 2. Discovery Modes (FIXED & WORKING)
+### 2. Discovery Modes (WORKING)
+
+#### Mode Selection Screen
+- Shows on first load when no mode is selected in URL
+- Two beautiful cards: "Here & Now" and "Not Here"
+- Shows current venue status if checked in ("You're at [venue]" with Active badge)
+- User must manually choose a mode - no auto-redirect
 
 #### HERE & NOW Mode
 - Shows people physically nearby at the same venue
@@ -22,11 +28,13 @@ Build a real-time, location-based social connection app called "Here & Now". Cor
 - Presence Notes + Shy Indicator visible while blurred
 - Voice Intro locked until reveal
 - Safety Halo shown after reveal
-- **Auto-redirect to /venues** when no venue selected
-- **"Change venue" button** always navigates to venue picker
-- **Live tracking indicator** shown when checked in + location granted
+- **If no venue**: Clicking "Here & Now" navigates to /venues
+- **If has venue**: Goes directly to Here & Now mode
+- **Safety redirect**: Only when already IN Here & Now mode with no venue
+- "Change venue" button always available
+- "Live tracking" indicator shown when checked in + location granted
 
-#### NOT HERE Mode (NEW)
+#### NOT HERE Mode
 - Shows people nearby but not at the same place
 - **Radius selector**: 0–10 miles, 10–25 miles
 - Same interaction mechanics as Here & Now
