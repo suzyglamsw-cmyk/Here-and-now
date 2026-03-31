@@ -6448,7 +6448,16 @@ async def websocket_endpoint(websocket: WebSocket, venue_id: str, user_id: str):
     except WebSocketDisconnect:
         manager.disconnect(websocket, venue_id, user_id)
 
-# Include router
+# Include modular route files first (they take precedence)
+from routes.auth import router as auth_router
+from routes.photos import router as photos_router
+from routes.voice_intro import router as voice_intro_router
+
+app.include_router(auth_router, prefix="/api")
+app.include_router(photos_router, prefix="/api")
+app.include_router(voice_intro_router, prefix="/api")
+
+# Include main router (legacy routes)
 app.include_router(api_router)
 
 app.add_middleware(

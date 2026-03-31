@@ -154,6 +154,19 @@ Comprehensive list including:
 
 ## Technical Architecture
 
+### Backend Structure (Refactored)
+```
+/app/backend/
+├── server.py              # Main FastAPI app + remaining routes
+├── routes/
+│   ├── __init__.py
+│   ├── dependencies.py    # Shared models, utilities, db connection
+│   ├── auth.py           # /auth/* routes (register, login, profile, etc.)
+│   ├── photos.py         # /photos/* routes (upload, get, delete)
+│   └── voice_intro.py    # /profile/voice-intro routes
+└── tests/
+```
+
 ### Backend
 - FastAPI (Python)
 - MongoDB via motor
@@ -231,7 +244,6 @@ Comprehensive list including:
 - Production API keys (Google Places, Google Play Billing)
 
 ### P2 - Medium Priority
-- Backend monolith refactoring (`server.py` → modular APIRouter routes)
 - Cloud storage for photos (S3/GCS)
 
 ### P3 - Lower Priority
