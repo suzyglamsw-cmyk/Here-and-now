@@ -497,45 +497,61 @@ const Profile = () => {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 pb-24">
-        {/* Header */}
-        <div className="sticky top-0 z-40 glass border-b border-white/5">
-          <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between">
-            <h1 className="text-xl font-bold text-white">Profile</h1>
+      {/* Redesigned Profile Edit Screen */}
+      <div className="min-h-screen pb-24" style={{ background: 'linear-gradient(180deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%)' }}>
+        {/* Header with gradient underline */}
+        <div className="sticky top-0 z-40 backdrop-blur-xl bg-slate-950/80 border-b border-purple-500/20">
+          <div className="max-w-lg mx-auto px-5 py-5 flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-semibold text-white tracking-tight">Edit Your Profile</h1>
+              <div className="h-0.5 w-24 mt-1.5 rounded-full bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400" />
+            </div>
             <Button
               onClick={handleSave}
               disabled={saving}
-              className="rounded-xl bg-indigo-500 hover:bg-indigo-600"
+              className="px-6 h-11 rounded-full font-medium shadow-lg shadow-purple-500/20 transition-all hover:shadow-purple-500/30 hover:scale-105"
+              style={{ background: 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)' }}
+              data-testid="save-profile-btn"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
             </Button>
           </div>
         </div>
 
-        <div className="max-w-lg mx-auto px-4 py-6 space-y-8">
+        <div className="max-w-lg mx-auto px-5 py-8 space-y-10">
+          
           {/* Photos Section */}
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-white">Photos</h2>
-            <p className="text-sm text-slate-400">Try to choose photos that feel like you today.</p>
+          <section className="space-y-5">
+            <div>
+              <h2 className="text-lg font-medium text-white/90">Your Photos</h2>
+              <p className="text-sm text-purple-300/60 mt-1">Choose photos that feel like you today</p>
+            </div>
             
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-4">
               {/* Main Photo */}
               <div className="col-span-2 row-span-2">
                 <div
-                  className="aspect-[3/4] rounded-2xl bg-white/5 border-2 border-dashed border-white/20 overflow-hidden relative cursor-pointer hover:border-indigo-500/50 transition-all"
+                  className="aspect-[3/4] rounded-3xl overflow-hidden relative cursor-pointer transition-all duration-300 hover:scale-[1.02]"
+                  style={{ 
+                    background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(236, 72, 153, 0.1) 100%)',
+                    border: '2px dashed rgba(168, 85, 247, 0.3)',
+                    boxShadow: '0 4px 20px rgba(139, 92, 246, 0.1)'
+                  }}
                   onClick={() => fileInputRef.current?.click()}
                 >
                   {mainPhoto ? (
                     <img src={mainPhoto} alt="Main" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center text-slate-500">
-                      <Camera className="w-10 h-10 mb-2" />
-                      <span className="text-sm">Add main photo</span>
+                    <div className="w-full h-full flex flex-col items-center justify-center">
+                      <div className="w-16 h-16 rounded-full bg-purple-500/20 flex items-center justify-center mb-3">
+                        <Camera className="w-7 h-7 text-purple-400" />
+                      </div>
+                      <span className="text-sm text-purple-300/70">Add main photo</span>
                     </div>
                   )}
                   {uploadingPhoto === 0 && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                      <Loader2 className="w-8 h-8 animate-spin text-white" />
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center">
+                      <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
                     </div>
                   )}
                 </div>
@@ -552,7 +568,11 @@ const Profile = () => {
               {[1, 2].map((index) => (
                 <div
                   key={index}
-                  className="aspect-square rounded-xl bg-white/5 border-2 border-dashed border-white/20 overflow-hidden relative cursor-pointer hover:border-indigo-500/50 transition-all"
+                  className="aspect-square rounded-2xl overflow-hidden relative cursor-pointer transition-all duration-300 hover:scale-105"
+                  style={{ 
+                    background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(236, 72, 153, 0.1) 100%)',
+                    border: '2px dashed rgba(168, 85, 247, 0.25)',
+                  }}
                   onClick={() => {
                     const input = document.createElement("input");
                     input.type = "file";
@@ -564,231 +584,383 @@ const Profile = () => {
                   {formData.photos[index] ? (
                     <img src={formData.photos[index]} alt={`Photo ${index + 1}`} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-slate-500">
-                      <Plus className="w-6 h-6" />
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Plus className="w-6 h-6 text-purple-400/60" />
                     </div>
                   )}
                   {uploadingPhoto === index && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                      <Loader2 className="w-6 h-6 animate-spin text-white" />
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center">
+                      <Loader2 className="w-6 h-6 animate-spin text-purple-400" />
                     </div>
                   )}
                 </div>
               ))}
             </div>
-          </div>
+          </section>
 
-          {/* Preview My Profile Button */}
+          {/* Preview Button */}
           <Button
             onClick={() => setShowPreview(true)}
             variant="outline"
-            className="w-full h-12 rounded-xl bg-white/5 hover:bg-white/10 border-white/10 text-white"
+            className="w-full h-14 rounded-2xl bg-white/5 hover:bg-white/10 border-purple-400/20 text-white/90 font-medium transition-all hover:border-purple-400/40"
             data-testid="preview-profile-btn"
           >
-            <Eye className="w-5 h-5 mr-2" />
+            <Eye className="w-5 h-5 mr-2.5 text-purple-400" />
             Preview My Profile
           </Button>
 
-          {/* Display Name */}
-          <div className="space-y-2">
-            <Label className="text-slate-300">Display Name</Label>
-            <Input
-              value={formData.display_name}
-              disabled
-              className="h-12 bg-white/5 border-transparent rounded-xl text-slate-400 cursor-not-allowed"
-            />
-            <p className="text-xs text-slate-500">Your name was set during registration and cannot be changed.</p>
-          </div>
+          {/* Display Name (locked) */}
+          <section className="space-y-3">
+            <Label className="text-white/70 text-sm font-medium">Display Name</Label>
+            <div 
+              className="h-14 px-5 rounded-2xl flex items-center text-white/50 cursor-not-allowed"
+              style={{ 
+                background: 'rgba(255, 255, 255, 0.03)',
+                boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.1)'
+              }}
+            >
+              {formData.display_name}
+            </div>
+            <p className="text-xs text-purple-300/40 pl-1">Set during registration • cannot be changed</p>
+          </section>
 
-          {/* Bio */}
-          <div className="space-y-2">
-            <Label className="text-slate-300">Bio</Label>
+          {/* Bio Section */}
+          <section className="space-y-3">
+            <Label className="text-white/70 text-sm font-medium">About You</Label>
             <Textarea
               value={formData.bio}
               onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-              placeholder="Add a short line so people get a sense of your vibe..."
+              placeholder="Share a little about yourself..."
               maxLength={MAX_BIO_LENGTH}
-              className="min-h-24 bg-white/5 border-transparent focus:border-indigo-500 rounded-xl text-white resize-none"
+              className="min-h-28 px-5 py-4 rounded-2xl text-white resize-none placeholder:text-purple-300/30 focus:ring-2 focus:ring-purple-400/30 focus:border-transparent transition-all"
+              style={{ 
+                background: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid rgba(168, 85, 247, 0.15)',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+              }}
             />
-            <div className="flex justify-between text-xs text-slate-500">
-              <span>Minimum {MIN_BIO_LENGTH} characters</span>
-              <span>{formData.bio.length}/{MAX_BIO_LENGTH}</span>
+            <div className="flex justify-between text-xs px-1">
+              <span className="text-purple-300/40">Minimum {MIN_BIO_LENGTH} characters</span>
+              <span className="text-purple-300/40">{formData.bio.length}/{MAX_BIO_LENGTH}</span>
             </div>
-          </div>
+          </section>
 
-          {/* Connection Comfort Section */}
-          <div className="space-y-6">
-            <div className="border-t border-white/10 pt-6">
-              <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <Heart className="w-5 h-5 text-pink-400" />
-                Connection Comfort
-              </h2>
+          {/* Divider */}
+          <div className="h-px bg-gradient-to-r from-transparent via-purple-500/20 to-transparent" />
+
+          {/* Your Vibe Today Section */}
+          <section className="space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-pink-400" />
+              </div>
+              <div>
+                <h2 className="text-lg font-medium text-white/90">Your vibe today</h2>
+                <p className="text-sm text-purple-300/50">Help others feel your energy</p>
+              </div>
             </div>
 
             {/* Presence Note */}
-            <div className="space-y-2">
-              <Label className="text-slate-300">Presence Note</Label>
-              <p className="text-xs text-slate-500">A short note visible to others (even while blurred)</p>
+            <div className="space-y-2.5">
+              <Label className="text-white/60 text-sm">Presence Note</Label>
+              <p className="text-xs text-pink-300/50 pl-1">A tiny hint of who you are — even while blurred.</p>
               <Input
                 value={formData.presence_note}
                 onChange={(e) => setFormData({ ...formData, presence_note: e.target.value })}
                 placeholder="e.g., Here for good vibes..."
                 maxLength={MAX_PRESENCE_NOTE_LENGTH}
-                className="h-12 bg-white/5 border-transparent focus:border-indigo-500 rounded-xl text-white"
+                className="h-14 px-5 rounded-2xl text-white placeholder:text-purple-300/25 focus:ring-2 focus:ring-purple-400/30 focus:border-transparent"
+                style={{ 
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(168, 85, 247, 0.15)',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+                }}
               />
-              <div className="text-right text-xs text-slate-500">
+              <div className="text-right text-xs text-purple-300/40 pr-1">
                 {formData.presence_note.length}/{MAX_PRESENCE_NOTE_LENGTH}
               </div>
             </div>
 
+            {/* Shy Indicator - Pill Style Toggle */}
+            <div 
+              className="p-5 rounded-2xl transition-all"
+              style={{ 
+                background: formData.shy_indicator 
+                  ? 'linear-gradient(135deg, rgba(236, 72, 153, 0.15) 0%, rgba(168, 85, 247, 0.15) 100%)'
+                  : 'rgba(255, 255, 255, 0.03)',
+                border: formData.shy_indicator 
+                  ? '1px solid rgba(236, 72, 153, 0.3)'
+                  : '1px solid rgba(168, 85, 247, 0.1)'
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
+                    formData.shy_indicator ? 'bg-pink-500/30' : 'bg-white/5'
+                  }`}>
+                    <Heart className={`w-4 h-4 transition-colors ${formData.shy_indicator ? 'text-pink-400' : 'text-purple-400/50'}`} />
+                  </div>
+                  <div>
+                    <p className={`font-medium transition-colors ${formData.shy_indicator ? 'text-pink-200' : 'text-white/70'}`}>
+                      Shy to start
+                    </p>
+                    <p className="text-xs text-purple-300/40 mt-0.5">
+                      Show "May be shy to start" on your profile.
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Pill Toggle */}
+                <button
+                  onClick={() => setFormData({ ...formData, shy_indicator: !formData.shy_indicator })}
+                  className={`relative w-14 h-8 rounded-full transition-all duration-300 ${
+                    formData.shy_indicator 
+                      ? 'bg-gradient-to-r from-pink-500 to-purple-500 shadow-lg shadow-pink-500/30' 
+                      : 'bg-white/10'
+                  }`}
+                >
+                  <div 
+                    className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow-md transition-all duration-300 ${
+                      formData.shy_indicator ? 'left-7' : 'left-1'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+          </section>
+
+          {/* Divider */}
+          <div className="h-px bg-gradient-to-r from-transparent via-purple-500/20 to-transparent" />
+
+          {/* A Little Personality Section */}
+          <section className="space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+                <Heart className="w-5 h-5 text-purple-400" />
+              </div>
+              <div>
+                <h2 className="text-lg font-medium text-white/90">A little personality</h2>
+                <p className="text-sm text-purple-300/50">Fun details that spark conversation</p>
+              </div>
+            </div>
+
             {/* Celebrity Crush */}
-            <div className="space-y-2">
-              <Label className="text-slate-300">Celebrity Crush (optional)</Label>
+            <div className="space-y-2.5">
+              <Label className="text-white/60 text-sm">Celebrity Crush</Label>
+              <p className="text-xs text-pink-300/50 pl-1">Just for fun — who's your screen crush?</p>
               <Input
                 value={formData.celebrity_crush}
                 onChange={(e) => setFormData({ ...formData, celebrity_crush: e.target.value })}
                 placeholder="e.g., Timothée Chalamet"
                 maxLength={MAX_CELEBRITY_CRUSH_LENGTH}
-                className="h-12 bg-white/5 border-transparent focus:border-indigo-500 rounded-xl text-white"
+                className="h-14 px-5 rounded-2xl text-white placeholder:text-purple-300/25 focus:ring-2 focus:ring-purple-400/30 focus:border-transparent"
+                style={{ 
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(168, 85, 247, 0.15)',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+                }}
               />
             </div>
+          </section>
 
-            {/* Shy Indicator */}
-            <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
-              <div>
-                <p className="text-white font-medium">Shy Indicator</p>
-                <p className="text-xs text-slate-400">Show "May be shy to start" on your profile</p>
+          {/* Divider */}
+          <div className="h-px bg-gradient-to-r from-transparent via-purple-500/20 to-transparent" />
+
+          {/* Your Voice Section */}
+          <section className="space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500/20 to-indigo-500/20 flex items-center justify-center">
+                <Volume2 className="w-5 h-5 text-purple-400" />
               </div>
-              <Switch
-                checked={formData.shy_indicator}
-                onCheckedChange={(checked) => setFormData({ ...formData, shy_indicator: checked })}
-              />
+              <div>
+                <h2 className="text-lg font-medium text-white/90">Say hello in your own voice</h2>
+                <p className="text-sm text-purple-300/50">Your voice plays only after mutual curiosity.</p>
+              </div>
             </div>
-
-            {/* Voice Intro */}
-            <div className="space-y-3">
-              <Label className="text-slate-300">Voice Intro (5-10 seconds)</Label>
-              <p className="text-xs text-slate-500">Record a short voice message. Only plays after mutual curiosity.</p>
-              
-              {/* Mic Permission Denied Warning */}
-              {micPermissionDenied && (
-                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl">
-                  <p className="text-amber-300 text-sm">
-                    Microphone access was denied. Please enable it in your browser settings and refresh the page.
-                  </p>
-                </div>
-              )}
-              
-              {/* Uploading State */}
-              {uploadingVoice ? (
-                <div className="flex items-center gap-3 p-4 bg-indigo-500/10 border border-indigo-500/30 rounded-xl">
-                  <Loader2 className="w-5 h-5 text-indigo-400 animate-spin" />
-                  <span className="text-indigo-300">Uploading voice intro...</span>
-                </div>
-              ) : formData.voice_intro_url ? (
-                /* Voice Intro Recorded - with Play button */
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl">
-                    {/* Play/Pause Button */}
-                    <button
-                      onClick={playVoiceIntro}
-                      className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
-                        isPlayingVoice 
-                          ? "bg-emerald-500 text-white" 
-                          : "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
-                      }`}
-                    >
-                      {isPlayingVoice ? (
-                        <Pause className="w-5 h-5" />
-                      ) : (
-                        <Play className="w-5 h-5 ml-0.5" />
-                      )}
-                    </button>
-                    
-                    <div className="flex-1">
-                      <span className="text-emerald-300 font-medium">
-                        {isPlayingVoice ? "Playing..." : "Voice intro recorded"}
-                      </span>
-                      <p className="text-xs text-emerald-400/70">
-                        {isPlayingVoice ? "Tap to pause" : "Tap play to listen"}
-                      </p>
-                    </div>
-                    
-                    {/* Remove Button */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={removeVoiceIntro}
-                      disabled={isPlayingVoice}
-                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ) : recordingVoice ? (
-                /* Recording in Progress */
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
-                    <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center relative">
-                      <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-                    </div>
-                    <div className="flex-1">
-                      <span className="text-red-300 font-medium">Recording...</span>
-                      <p className="text-xs text-red-400/70">
-                        {recordingTime}s / 10s {recordingTime < 5 && "(min 5s)"}
-                      </p>
-                    </div>
-                    <span className="text-2xl font-mono text-red-400">{recordingTime}s</span>
-                  </div>
-                  
-                  {/* Progress Bar */}
-                  <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-red-500 to-red-400 transition-all duration-1000"
-                      style={{ width: `${(recordingTime / 10) * 100}%` }}
-                    />
-                  </div>
-                  
-                  <Button
-                    onClick={stopVoiceRecording}
-                    disabled={recordingTime < 5}
-                    className={`w-full h-12 rounded-xl ${
-                      recordingTime < 5
-                        ? "bg-slate-700 text-slate-400 cursor-not-allowed"
-                        : "bg-red-500 hover:bg-red-600 text-white"
+            
+            {/* Mic Permission Denied Warning */}
+            {micPermissionDenied && (
+              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-400/20">
+                <p className="text-amber-200/80 text-sm">
+                  Microphone access was denied. Please enable it in your browser settings.
+                </p>
+              </div>
+            )}
+            
+            {/* Voice Intro States */}
+            {uploadingVoice ? (
+              <div 
+                className="flex items-center gap-4 p-5 rounded-2xl"
+                style={{ 
+                  background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%)',
+                  border: '1px solid rgba(168, 85, 247, 0.2)'
+                }}
+              >
+                <Loader2 className="w-6 h-6 text-purple-400 animate-spin" />
+                <span className="text-purple-200">Saving your voice intro...</span>
+              </div>
+            ) : formData.voice_intro_url ? (
+              /* Voice Intro Recorded */
+              <div 
+                className="p-5 rounded-2xl"
+                style={{ 
+                  background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(168, 85, 247, 0.15) 100%)',
+                  border: '1px solid rgba(168, 85, 247, 0.25)'
+                }}
+              >
+                <div className="flex items-center gap-4">
+                  {/* Play Button with Glow */}
+                  <button
+                    onClick={playVoiceIntro}
+                    className={`relative w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 ${
+                      isPlayingVoice 
+                        ? 'bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg shadow-purple-500/40' 
+                        : 'bg-purple-500/20 hover:bg-purple-500/30'
                     }`}
                   >
-                    <MicOff className="w-5 h-5 mr-2" />
-                    {recordingTime < 5 ? `Wait ${5 - recordingTime}s more...` : "Stop & Save Recording"}
-                  </Button>
+                    {/* Glow ring when playing */}
+                    {isPlayingVoice && (
+                      <div className="absolute inset-0 rounded-full animate-ping bg-purple-500/30" />
+                    )}
+                    {isPlayingVoice ? (
+                      <Pause className="w-6 h-6 text-white relative z-10" />
+                    ) : (
+                      <Play className="w-6 h-6 text-purple-300 ml-0.5 relative z-10" />
+                    )}
+                  </button>
+                  
+                  <div className="flex-1">
+                    <span className={`font-medium ${isPlayingVoice ? 'text-purple-200' : 'text-white/80'}`}>
+                      {isPlayingVoice ? "Playing..." : "Voice intro ready"}
+                    </span>
+                    <p className="text-xs text-purple-300/50 mt-0.5">
+                      {isPlayingVoice ? "Tap to pause" : "Tap to preview"}
+                    </p>
+                  </div>
+                  
+                  {/* Remove Button */}
+                  <button
+                    onClick={removeVoiceIntro}
+                    disabled={isPlayingVoice}
+                    className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all disabled:opacity-50"
+                  >
+                    <X className="w-4 h-4 text-white/50" />
+                  </button>
                 </div>
-              ) : (
-                /* Start Recording Button */
-                <Button
-                  onClick={startVoiceRecording}
-                  disabled={micPermissionDenied}
-                  className="w-full h-12 rounded-xl bg-white/5 hover:bg-white/10 text-white border border-white/10"
+              </div>
+            ) : recordingVoice ? (
+              /* Recording in Progress - Soft Purple/Pink Style */
+              <div className="space-y-4">
+                <div 
+                  className="p-5 rounded-2xl"
+                  style={{ 
+                    background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.15) 0%, rgba(168, 85, 247, 0.15) 100%)',
+                    border: '1px solid rgba(236, 72, 153, 0.3)'
+                  }}
                 >
-                  <Mic className="w-5 h-5 mr-2" />
-                  Record Voice Intro
+                  <div className="flex items-center gap-4">
+                    {/* Animated Recording Ring */}
+                    <div className="relative w-14 h-14">
+                      <div className="absolute inset-0 rounded-full bg-gradient-to-br from-pink-500/30 to-purple-500/30 animate-pulse" />
+                      <div className="absolute inset-2 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center">
+                        <div className="w-3 h-3 rounded-full bg-white animate-pulse" />
+                      </div>
+                      {/* Outer glow rings */}
+                      <div className="absolute -inset-1 rounded-full border border-pink-400/20 animate-ping" style={{ animationDuration: '2s' }} />
+                    </div>
+                    
+                    <div className="flex-1">
+                      <span className="text-pink-200 font-medium">Recording...</span>
+                      <p className="text-xs text-purple-300/50 mt-0.5">
+                        {recordingTime < 5 ? `${5 - recordingTime}s more for minimum` : 'Ready to save'}
+                      </p>
+                    </div>
+                    
+                    <span className="text-3xl font-light text-pink-300/80 tabular-nums">{recordingTime}s</span>
+                  </div>
+                  
+                  {/* Minimal Waveform Bar */}
+                  <div className="mt-4 flex items-center justify-center gap-1 h-8">
+                    {[...Array(20)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="w-1 rounded-full bg-gradient-to-t from-pink-500 to-purple-400 transition-all duration-150"
+                        style={{ 
+                          height: `${Math.random() * 24 + 8}px`,
+                          opacity: 0.6 + Math.random() * 0.4,
+                          animation: `pulse ${0.3 + Math.random() * 0.4}s ease-in-out infinite alternate`
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Stop Button */}
+                <Button
+                  onClick={stopVoiceRecording}
+                  disabled={recordingTime < 5}
+                  className={`w-full h-14 rounded-2xl font-medium transition-all ${
+                    recordingTime < 5
+                      ? 'bg-white/5 text-white/30 cursor-not-allowed'
+                      : 'shadow-lg shadow-purple-500/20 hover:shadow-purple-500/30'
+                  }`}
+                  style={recordingTime >= 5 ? { 
+                    background: 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)' 
+                  } : {}}
+                >
+                  <MicOff className="w-5 h-5 mr-2" />
+                  {recordingTime < 5 ? `Wait ${5 - recordingTime}s more...` : "Stop & Save"}
                 </Button>
-              )}
-            </div>
-          </div>
+              </div>
+            ) : (
+              /* Start Recording Button */
+              <button
+                onClick={startVoiceRecording}
+                disabled={micPermissionDenied}
+                className="w-full h-16 rounded-2xl font-medium transition-all duration-300 flex items-center justify-center gap-3 group disabled:opacity-50"
+                style={{ 
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '2px dashed rgba(168, 85, 247, 0.3)',
+                }}
+              >
+                <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center group-hover:bg-purple-500/30 transition-all">
+                  <Mic className="w-5 h-5 text-purple-400" />
+                </div>
+                <span className="text-white/70 group-hover:text-white/90 transition-colors">
+                  Record Voice Intro
+                </span>
+              </button>
+            )}
+          </section>
+
+          {/* Divider */}
+          <div className="h-px bg-gradient-to-r from-transparent via-purple-500/20 to-transparent" />
 
           {/* Safety Halo */}
           {hasSafetyHalo && (
-            <div className="flex items-center gap-3 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl">
-              <Shield className="w-6 h-6 text-emerald-400" />
-              <div>
-                <p className="text-emerald-300 font-medium">Safety Halo Active</p>
-                <p className="text-xs text-emerald-400/70">
-                  Shown to others after mutual curiosity. Based on no reports and respectful behavior.
-                </p>
+            <section 
+              className="p-5 rounded-2xl"
+              style={{ 
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(45, 212, 191, 0.1) 100%)',
+                border: '1px solid rgba(16, 185, 129, 0.2)'
+              }}
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                  <Shield className="w-6 h-6 text-emerald-400" />
+                </div>
+                <div>
+                  <p className="text-emerald-200 font-medium">Safety Halo Active</p>
+                  <p className="text-xs text-emerald-300/50 mt-0.5">
+                    Visible after mutual curiosity • Based on respectful behavior
+                  </p>
+                </div>
               </div>
-            </div>
+            </section>
           )}
+          
+          {/* Bottom padding for save button area */}
+          <div className="h-4" />
         </div>
       </div>
 
