@@ -207,34 +207,13 @@ code {
     box-shadow: 0 0 30px rgba(231, 217, 255, 0.15), 0 0 0 4px rgba(168, 85, 247, 0.12), inset 0 1px 2px rgba(0, 0, 0, 0.08) !important;
 }
 
-/* GLOBAL INPUT OVERRIDE - High Contrast White Border */
+/* GLOBAL INPUT OVERRIDE - Transparent Background with White Border */
 input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
-textarea,
-input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]) *,
-textarea *,
-[class*="input"],
-[class*="Input"],
-[class*="textarea"],
-[class*="Textarea"] {
-    background: rgba(231, 217, 255, 0.28) !important;
-    border: 2px solid #FFFFFF !important;
-    border-color: #FFFFFF !important;
-    border-width: 2px !important;
-    border-style: solid !important;
-    border-radius: 20px !important;
-    padding: 16px 24px !important;
-    box-shadow: 0 0 24px rgba(231, 217, 255, 0.25), inset 0 2px 4px rgba(0, 0, 0, 0.12) !important;
+textarea {
+    background: transparent !important;
+    border: none !important;
     color: white !important;
     font-size: 16px !important;
-    outline: none !important;
-    transition: all 0.3s ease !important;
-}
-
-input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):focus,
-textarea:focus {
-    box-shadow: 0 0 36px rgba(231, 217, 255, 0.4), 0 0 0 3px rgba(255, 255, 255, 0.3), inset 0 2px 4px rgba(0, 0, 0, 0.12) !important;
-    border: 2px solid #FFFFFF !important;
-    border-color: #FFFFFF !important;
     outline: none !important;
 }
 

@@ -9,8 +9,7 @@ const Textarea = React.forwardRef(({ className, style, ...props }, ref) => {
         padding: '0',
         borderRadius: '20px',
         border: '2px solid #FFFFFF',
-        background: 'rgba(231, 217, 255, 0.28)',
-        boxShadow: '0 0 24px rgba(231, 217, 255, 0.25), inset 0 2px 4px rgba(0, 0, 0, 0.12)',
+        background: 'transparent',
         overflow: 'hidden',
       }}
     >
