@@ -634,12 +634,7 @@ const Profile = () => {
               onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
               placeholder="Share a little about yourself..."
               maxLength={MAX_BIO_LENGTH}
-              className="profile-input min-h-32 px-6 py-5 rounded-[20px] text-white resize-none transition-all duration-300"
-              style={{ 
-                background: 'rgba(231, 217, 255, 0.12)',
-                border: '2px solid rgba(243, 232, 255, 0.25)',
-                boxShadow: '0 0 24px rgba(231, 217, 255, 0.08), inset 0 1px 2px rgba(0, 0, 0, 0.08)',
-              }}
+              className="min-h-32 px-6 py-5 rounded-[20px] text-white"
             />
             <div className="flex justify-between text-xs px-1" style={{ color: '#E7D9FF', opacity: 0.7 }}>
               <span>Minimum {MIN_BIO_LENGTH} characters</span>
@@ -671,12 +666,7 @@ const Profile = () => {
                 onChange={(e) => setFormData({ ...formData, presence_note: e.target.value })}
                 placeholder="e.g., Here for good vibes..."
                 maxLength={MAX_PRESENCE_NOTE_LENGTH}
-                className="profile-input h-16 px-6 rounded-[20px] text-white transition-all duration-300"
-                style={{ 
-                  background: 'rgba(231, 217, 255, 0.12)',
-                  border: '2px solid rgba(243, 232, 255, 0.25)',
-                  boxShadow: '0 0 24px rgba(231, 217, 255, 0.08), inset 0 1px 2px rgba(0, 0, 0, 0.08)',
-                }}
+                className="h-16 px-6 rounded-[20px] text-white"
               />
               <div className="text-right text-xs pr-1" style={{ color: '#E7D9FF', opacity: 0.7 }}>
                 {formData.presence_note.length}/{MAX_PRESENCE_NOTE_LENGTH}
@@ -758,12 +748,7 @@ const Profile = () => {
                 onChange={(e) => setFormData({ ...formData, celebrity_crush: e.target.value })}
                 placeholder="e.g., Timothée Chalamet"
                 maxLength={MAX_CELEBRITY_CRUSH_LENGTH}
-                className="profile-input h-16 px-6 rounded-[20px] text-white transition-all duration-300"
-                style={{ 
-                  background: 'rgba(231, 217, 255, 0.12)',
-                  border: '2px solid rgba(243, 232, 255, 0.25)',
-                  boxShadow: '0 0 24px rgba(231, 217, 255, 0.08), inset 0 1px 2px rgba(0, 0, 0, 0.08)',
-                }}
+                className="h-16 px-6 rounded-[20px] text-white"
               />
             </div>
           </section>
