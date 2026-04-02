@@ -524,7 +524,7 @@ const Profile = () => {
           <section className="space-y-5">
             <div>
               <h2 className="text-lg font-medium text-white/90">Your Photos</h2>
-              <p className="text-sm text-purple-300/60 mt-1">Choose photos that feel like you today</p>
+              <p className="text-sm mt-1" style={{ color: '#E7D9FF' }}>Choose photos that feel like you today</p>
             </div>
             
             <div className="grid grid-cols-3 gap-4">
@@ -546,7 +546,7 @@ const Profile = () => {
                       <div className="w-16 h-16 rounded-full bg-purple-500/20 flex items-center justify-center mb-3">
                         <Camera className="w-7 h-7 text-purple-400" />
                       </div>
-                      <span className="text-sm text-purple-300/70">Add main photo</span>
+                      <span className="text-sm" style={{ color: '#E7D9FF' }}>Add main photo</span>
                     </div>
                   )}
                   {uploadingPhoto === 0 && (
@@ -621,7 +621,7 @@ const Profile = () => {
             >
               {formData.display_name}
             </div>
-            <p className="text-xs text-purple-300/40 pl-1">Set during registration • cannot be changed</p>
+            <p className="text-xs pl-1" style={{ color: '#E7D9FF', opacity: 0.7 }}>Set during registration • cannot be changed</p>
           </section>
 
           {/* Bio Section */}
@@ -639,9 +639,9 @@ const Profile = () => {
                 boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
               }}
             />
-            <div className="flex justify-between text-xs px-1">
-              <span className="text-purple-300/40">Minimum {MIN_BIO_LENGTH} characters</span>
-              <span className="text-purple-300/40">{formData.bio.length}/{MAX_BIO_LENGTH}</span>
+            <div className="flex justify-between text-xs px-1" style={{ color: '#E7D9FF', opacity: 0.7 }}>
+              <span>Minimum {MIN_BIO_LENGTH} characters</span>
+              <span>{formData.bio.length}/{MAX_BIO_LENGTH}</span>
             </div>
           </section>
 
@@ -656,14 +656,14 @@ const Profile = () => {
               </div>
               <div>
                 <h2 className="text-lg font-medium text-white/90">Your vibe today</h2>
-                <p className="text-sm text-purple-300/50">Help others feel your energy</p>
+                <p className="text-sm" style={{ color: '#E7D9FF', opacity: 0.8 }}>Help others feel your energy</p>
               </div>
             </div>
 
             {/* Presence Note */}
             <div className="space-y-2.5">
               <Label className="text-white/60 text-sm">Presence Note</Label>
-              <p className="text-xs text-pink-300/50 pl-1">A tiny hint of who you are — even while blurred.</p>
+              <p className="text-xs pl-1" style={{ color: '#E7D9FF' }}>A tiny hint of who you are — even while blurred.</p>
               <Input
                 value={formData.presence_note}
                 onChange={(e) => setFormData({ ...formData, presence_note: e.target.value })}
@@ -676,7 +676,7 @@ const Profile = () => {
                   boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
                 }}
               />
-              <div className="text-right text-xs text-purple-300/40 pr-1">
+              <div className="text-right text-xs pr-1" style={{ color: '#E7D9FF', opacity: 0.7 }}>
                 {formData.presence_note.length}/{MAX_PRESENCE_NOTE_LENGTH}
               </div>
             </div>
@@ -704,7 +704,7 @@ const Profile = () => {
                     <p className={`font-medium transition-colors ${formData.shy_indicator ? 'text-pink-200' : 'text-white/70'}`}>
                       Shy to start
                     </p>
-                    <p className="text-xs text-purple-300/40 mt-0.5">
+                    <p className="text-xs mt-0.5" style={{ color: '#E7D9FF', opacity: 0.7 }}>
                       Show "May be shy to start" on your profile.
                     </p>
                   </div>
@@ -740,14 +740,14 @@ const Profile = () => {
               </div>
               <div>
                 <h2 className="text-lg font-medium text-white/90">A little personality</h2>
-                <p className="text-sm text-purple-300/50">Fun details that spark conversation</p>
+                <p className="text-sm" style={{ color: '#E7D9FF', opacity: 0.8 }}>Fun details that spark conversation</p>
               </div>
             </div>
 
             {/* Celebrity Crush */}
             <div className="space-y-2.5">
               <Label className="text-white/60 text-sm">Celebrity Crush</Label>
-              <p className="text-xs text-pink-300/50 pl-1">Just for fun — who's your screen crush?</p>
+              <p className="text-xs pl-1" style={{ color: '#E7D9FF' }}>Just for fun — who's your screen crush?</p>
               <Input
                 value={formData.celebrity_crush}
                 onChange={(e) => setFormData({ ...formData, celebrity_crush: e.target.value })}
@@ -774,7 +774,7 @@ const Profile = () => {
               </div>
               <div>
                 <h2 className="text-lg font-medium text-white/90">Say hello in your own voice</h2>
-                <p className="text-sm text-purple-300/50">Your voice plays only after mutual curiosity.</p>
+                <p className="text-sm" style={{ color: '#E7D9FF', opacity: 0.8 }}>Your voice plays only after mutual curiosity.</p>
               </div>
             </div>
             
@@ -833,7 +833,7 @@ const Profile = () => {
                     <span className={`font-medium ${isPlayingVoice ? 'text-purple-200' : 'text-white/80'}`}>
                       {isPlayingVoice ? "Playing..." : "Voice intro ready"}
                     </span>
-                    <p className="text-xs text-purple-300/50 mt-0.5">
+                    <p className="text-xs mt-0.5" style={{ color: '#E7D9FF', opacity: 0.7 }}>
                       {isPlayingVoice ? "Tap to pause" : "Tap to preview"}
                     </p>
                   </div>
@@ -871,7 +871,7 @@ const Profile = () => {
                     
                     <div className="flex-1">
                       <span className="text-pink-200 font-medium">Recording...</span>
-                      <p className="text-xs text-purple-300/50 mt-0.5">
+                      <p className="text-xs mt-0.5" style={{ color: '#E7D9FF', opacity: 0.7 }}>
                         {recordingTime < 5 ? `${5 - recordingTime}s more for minimum` : 'Ready to save'}
                       </p>
                     </div>
@@ -951,7 +951,7 @@ const Profile = () => {
                 </div>
                 <div>
                   <p className="text-emerald-200 font-medium">Safety Halo Active</p>
-                  <p className="text-xs text-emerald-300/50 mt-0.5">
+                  <p className="text-xs mt-0.5" style={{ color: '#E7D9FF', opacity: 0.7 }}>
                     Visible after mutual curiosity • Based on respectful behavior
                   </p>
                 </div>
