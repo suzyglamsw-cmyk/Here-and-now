@@ -187,7 +187,7 @@ const Discovery = ({ defaultMode = null }) => {
     setLoading(true);
     try {
       let endpoint = mode === "here" 
-        ? `${API}/discovery/here-and-now`
+        ? `${API}/discovery/here`
         : `${API}/discovery/not-here?radius=${radius}`;
       
       const response = await axios.get(endpoint);
@@ -309,7 +309,7 @@ const Discovery = ({ defaultMode = null }) => {
                       Not Here
                     </h2>
                     <p className="text-slate-400 text-sm">
-                      People nearby but not at the same place
+                      People in the area but not at a venue
                     </p>
                   </div>
                 </div>
@@ -479,7 +479,7 @@ const Discovery = ({ defaultMode = null }) => {
             ) : (
               <div>
                 <p className="text-slate-400 text-sm mb-3">
-                  People who aren't here right now, but quite near.
+                  People nearby who aren't at a venue right now.
                 </p>
                 {/* Radius Selector */}
                 <div className="flex gap-2">
@@ -498,7 +498,6 @@ const Discovery = ({ defaultMode = null }) => {
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-slate-500 mt-2">Choose how near you want people to be</p>
               </div>
             )}
           </div>
