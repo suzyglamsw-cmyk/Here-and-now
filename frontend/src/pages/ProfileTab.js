@@ -680,12 +680,12 @@ const Profile = () => {
           {/* Quick Controls - Toggles at Top for Easy Access */}
           <section className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-500/20 to-slate-400/20 flex items-center justify-center">
-                <Users className="w-5 h-5 text-slate-300" />
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+                <Users className="w-5 h-5 text-purple-400" />
               </div>
               <div>
-                <h2 className="text-lg font-medium text-white/90">Quick controls</h2>
-                <p className="text-sm" style={{ color: '#E7D9FF', opacity: 0.8 }}>Toggle these anytime</p>
+                <h2 className="text-lg font-medium text-purple-100">Quick controls</h2>
+                <p className="text-sm text-purple-300/70">Toggle these anytime</p>
               </div>
             </div>
 
@@ -693,8 +693,8 @@ const Profile = () => {
             <div 
               className="p-5 rounded-[20px] transition-all duration-300"
               style={{ 
-                background: 'transparent',
-                border: '2px solid #FFFFFF',
+                background: 'rgba(139, 92, 246, 0.08)',
+                border: '2px solid rgba(168, 85, 247, 0.3)',
               }}
             >
               <div className="flex items-center justify-between">
@@ -705,10 +705,10 @@ const Profile = () => {
                     <Heart className={`w-4 h-4 transition-colors ${formData.shy_indicator ? 'text-pink-400' : 'text-purple-400/50'}`} />
                   </div>
                   <div>
-                    <p className={`font-medium transition-colors ${formData.shy_indicator ? 'text-pink-200' : 'text-white/70'}`}>
+                    <p className={`font-medium transition-colors ${formData.shy_indicator ? 'text-pink-200' : 'text-purple-200/70'}`}>
                       I'm feeling shy today
                     </p>
-                    <p className="text-xs mt-0.5" style={{ color: '#E7D9FF', opacity: 0.7 }}>
+                    <p className="text-xs mt-0.5 text-purple-300/60">
                       Shows "May be shy to start" on your profile
                     </p>
                   </div>
@@ -736,8 +736,8 @@ const Profile = () => {
             <div 
               className="p-5 rounded-[20px] transition-all duration-300"
               style={{ 
-                background: 'transparent',
-                border: '2px solid #FFFFFF',
+                background: 'rgba(139, 92, 246, 0.08)',
+                border: '2px solid rgba(168, 85, 247, 0.3)',
               }}
             >
               <div className="flex items-center justify-between">
@@ -752,10 +752,10 @@ const Profile = () => {
                     )}
                   </div>
                   <div>
-                    <p className={`font-medium transition-colors ${!user?.is_visible ? 'text-amber-200' : 'text-white/70'}`}>
+                    <p className={`font-medium transition-colors ${!user?.is_visible ? 'text-amber-200' : 'text-purple-200/70'}`}>
                       Hide me from discovery
                     </p>
-                    <p className="text-xs mt-0.5" style={{ color: '#E7D9FF', opacity: 0.7 }}>
+                    <p className="text-xs mt-0.5 text-purple-300/60">
                       {user?.is_visible ? "You're visible to others" : "You won't appear in discovery"}
                     </p>
                   </div>
@@ -785,51 +785,55 @@ const Profile = () => {
 
           {/* Display Name (locked) */}
           <section className="space-y-3">
-            <Label className="text-white/70 text-sm font-medium">Display Name</Label>
+            <Label className="text-purple-200/70 text-sm font-medium">Display Name</Label>
             <div 
               className="h-16 px-6 rounded-[20px] flex items-center cursor-not-allowed"
               style={{ 
-                background: 'transparent',
-                border: '2px solid #FFFFFF',
-                color: 'rgba(255, 255, 255, 0.5)'
+                background: 'rgba(139, 92, 246, 0.08)',
+                border: '2px solid rgba(168, 85, 247, 0.3)',
+                color: 'rgba(231, 217, 255, 0.6)'
               }}
             >
               {formData.display_name}
             </div>
-            <p className="text-xs pl-1" style={{ color: '#E7D9FF', opacity: 0.7 }}>Set during registration • cannot be changed</p>
+            <p className="text-xs pl-1 text-purple-300/60">Set during registration • cannot be changed</p>
           </section>
 
           {/* Age Display (DOB set at registration - not editable) */}
           <section className="space-y-3">
-            <Label className="text-white/70 text-sm font-medium">Age</Label>
+            <Label className="text-purple-200/70 text-sm font-medium">Age</Label>
             <div 
               className="h-14 px-6 rounded-[20px] flex items-center cursor-not-allowed"
               style={{ 
-                background: 'transparent',
-                border: '2px solid #FFFFFF',
-                color: 'rgba(255, 255, 255, 0.7)'
+                background: 'rgba(139, 92, 246, 0.08)',
+                border: '2px solid rgba(168, 85, 247, 0.3)',
+                color: 'rgba(231, 217, 255, 0.7)'
               }}
               data-testid="age-display"
             >
               {user?.age ? `${user.age} years old` : "Age not set"}
             </div>
-            <p className="text-xs pl-1" style={{ color: '#E7D9FF', opacity: 0.7 }}>
+            <p className="text-xs pl-1 text-purple-300/60">
               Set during registration • Only your age is shown to others
             </p>
           </section>
 
           {/* Bio Section */}
           <section className="space-y-3">
-            <Label className="text-white/70 text-sm font-medium">About You</Label>
+            <Label className="text-purple-200/70 text-sm font-medium">About You</Label>
             <Textarea
               value={formData.bio}
               onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
               placeholder="Share a little about yourself..."
               maxLength={MAX_BIO_LENGTH}
-              className="min-h-24 px-6 py-4 rounded-[20px] text-white"
+              className="min-h-24 px-6 py-4 rounded-[20px] text-white placeholder:text-purple-300/40"
+              style={{
+                background: 'rgba(139, 92, 246, 0.08)',
+                border: '2px solid rgba(168, 85, 247, 0.3)',
+              }}
               data-testid="bio-textarea"
             />
-            <div className="flex justify-between text-xs px-1" style={{ color: '#E7D9FF', opacity: 0.7 }}>
+            <div className="flex justify-between text-xs px-1 text-purple-300/60">
               <span>Minimum {MIN_BIO_LENGTH} characters</span>
               <span>{formData.bio.length}/{MAX_BIO_LENGTH}</span>
             </div>
@@ -837,17 +841,21 @@ const Profile = () => {
 
           {/* Presence Note - Compact */}
           <section className="space-y-3">
-            <Label className="text-white/70 text-sm font-medium">Presence Note</Label>
-            <p className="text-xs pl-1" style={{ color: '#E7D9FF' }}>A tiny hint of who you are — visible even while blurred</p>
+            <Label className="text-purple-200/70 text-sm font-medium">Presence Note</Label>
+            <p className="text-xs pl-1 text-purple-300/70">A tiny hint of who you are — visible even while blurred</p>
             <Input
               value={formData.presence_note}
               onChange={(e) => setFormData({ ...formData, presence_note: e.target.value })}
               placeholder="e.g., Here for good vibes..."
               maxLength={MAX_PRESENCE_NOTE_LENGTH}
-              className="h-14 px-6 rounded-[20px] text-white"
+              className="h-14 px-6 rounded-[20px] text-white placeholder:text-purple-300/40"
+              style={{
+                background: 'rgba(139, 92, 246, 0.08)',
+                border: '2px solid rgba(168, 85, 247, 0.3)',
+              }}
               data-testid="presence-note-input"
             />
-            <div className="text-right text-xs pr-1" style={{ color: '#E7D9FF', opacity: 0.7 }}>
+            <div className="text-right text-xs pr-1 text-purple-300/60">
               {formData.presence_note.length}/{MAX_PRESENCE_NOTE_LENGTH}
             </div>
           </section>
@@ -862,22 +870,22 @@ const Profile = () => {
                 <Target className="w-5 h-5 text-purple-400" />
               </div>
               <div>
-                <h2 className="text-lg font-medium text-white/90">Connection preferences</h2>
-                <p className="text-sm" style={{ color: '#E7D9FF', opacity: 0.8 }}>Help us find the right people for you</p>
+                <h2 className="text-lg font-medium text-purple-100">Connection preferences</h2>
+                <p className="text-sm text-purple-300/70">Help us find the right people for you</p>
               </div>
             </div>
 
             {/* Intent Dropdown */}
             <div className="space-y-2.5">
-              <Label className="text-white/60 text-sm">What are you here for?</Label>
+              <Label className="text-purple-200/70 text-sm">What are you here for?</Label>
               <div className="relative">
                 <select
                   value={formData.intent}
                   onChange={(e) => setFormData({ ...formData, intent: e.target.value })}
                   className="w-full h-14 px-6 pr-12 rounded-[20px] text-white appearance-none cursor-pointer"
                   style={{ 
-                    background: 'transparent',
-                    border: '2px solid #FFFFFF',
+                    background: 'rgba(139, 92, 246, 0.08)',
+                    border: '2px solid rgba(168, 85, 247, 0.3)',
                   }}
                   data-testid="intent-select"
                 >
@@ -887,23 +895,27 @@ const Profile = () => {
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50 pointer-events-none" />
+                <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-purple-400/50 pointer-events-none" />
               </div>
             </div>
 
             {/* My Type of Person - Compact */}
             <div className="space-y-2.5">
-              <Label className="text-white/60 text-sm">My type of person is...</Label>
-              <p className="text-xs pl-1" style={{ color: '#E7D9FF' }}>Describe who you click with (10-40 chars)</p>
+              <Label className="text-purple-200/70 text-sm">My type of person is...</Label>
+              <p className="text-xs pl-1 text-purple-300/70">Describe who you click with (10-40 chars)</p>
               <Input
                 value={formData.my_type_of_person}
                 onChange={(e) => setFormData({ ...formData, my_type_of_person: e.target.value })}
                 placeholder="e.g., Curious minds who love good banter"
                 maxLength={MAX_MY_TYPE_LENGTH}
-                className="h-14 px-6 rounded-[20px] text-white"
+                className="h-14 px-6 rounded-[20px] text-white placeholder:text-purple-300/40"
+                style={{
+                  background: 'rgba(139, 92, 246, 0.08)',
+                  border: '2px solid rgba(168, 85, 247, 0.3)',
+                }}
                 data-testid="my-type-input"
               />
-              <div className="flex justify-between text-xs px-1" style={{ color: '#E7D9FF', opacity: 0.7 }}>
+              <div className="flex justify-between text-xs px-1 text-purple-300/60">
                 <span>{formData.my_type_of_person.length < MIN_MY_TYPE_LENGTH ? `${MIN_MY_TYPE_LENGTH - formData.my_type_of_person.length} more needed` : '✓'}</span>
                 <span>{formData.my_type_of_person.length}/{MAX_MY_TYPE_LENGTH}</span>
               </div>
@@ -912,18 +924,18 @@ const Profile = () => {
             {/* Who I'm Open to Meeting (PRIVATE) */}
             <div className="space-y-2.5">
               <div className="flex items-center gap-2">
-                <Label className="text-white/60 text-sm">Who I'm open to meeting</Label>
+                <Label className="text-purple-200/70 text-sm">Who I'm open to meeting</Label>
                 <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 text-[10px] uppercase tracking-wide">Private</span>
               </div>
-              <p className="text-xs pl-1" style={{ color: '#E7D9FF' }}>Used for matching only — never shown on your profile</p>
+              <p className="text-xs pl-1 text-purple-300/70">Used for matching only — never shown on your profile</p>
               <div className="relative">
                 <select
                   value={formData.who_open_to_meeting}
                   onChange={(e) => setFormData({ ...formData, who_open_to_meeting: e.target.value })}
                   className="w-full h-14 px-6 pr-12 rounded-[20px] text-white appearance-none cursor-pointer"
                   style={{ 
-                    background: 'transparent',
-                    border: '2px solid #FFFFFF',
+                    background: 'rgba(139, 92, 246, 0.08)',
+                    border: '2px solid rgba(168, 85, 247, 0.3)',
                   }}
                   data-testid="open-to-meeting-select"
                 >
@@ -933,7 +945,7 @@ const Profile = () => {
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50 pointer-events-none" />
+                <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-purple-400/50 pointer-events-none" />
               </div>
             </div>
           </section>
@@ -948,14 +960,14 @@ const Profile = () => {
                 <Home className="w-5 h-5 text-teal-400" />
               </div>
               <div>
-                <h2 className="text-lg font-medium text-white/90">Home area</h2>
-                <p className="text-sm" style={{ color: '#E7D9FF', opacity: 0.8 }}>Where you're based (shown after reveal)</p>
+                <h2 className="text-lg font-medium text-purple-100">Home area</h2>
+                <p className="text-sm text-purple-300/70">Where you're based (shown after reveal)</p>
               </div>
             </div>
 
             {/* Country Picker */}
             <div className="space-y-2.5">
-              <Label className="text-white/60 text-sm">Country</Label>
+              <Label className="text-purple-200/70 text-sm">Country</Label>
               <div className="relative">
                 <select
                   value={formData.home_country}
@@ -968,8 +980,8 @@ const Profile = () => {
                   }}
                   className="w-full h-14 px-6 pr-12 rounded-[20px] text-white appearance-none cursor-pointer"
                   style={{ 
-                    background: 'transparent',
-                    border: '2px solid #FFFFFF',
+                    background: 'rgba(139, 92, 246, 0.08)',
+                    border: '2px solid rgba(168, 85, 247, 0.3)',
                   }}
                   data-testid="home-country-select"
                 >
@@ -980,22 +992,22 @@ const Profile = () => {
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50 pointer-events-none" />
+                <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-purple-400/50 pointer-events-none" />
               </div>
             </div>
 
             {/* Region Picker (only show if country selected) */}
             {formData.home_country && (
               <div className="space-y-2.5">
-                <Label className="text-white/60 text-sm">Region</Label>
+                <Label className="text-purple-200/70 text-sm">Region</Label>
                 <div className="relative">
                   <select
                     value={formData.home_region}
                     onChange={(e) => setFormData({ ...formData, home_region: e.target.value })}
                     className="w-full h-14 px-6 pr-12 rounded-[20px] text-white appearance-none cursor-pointer"
                     style={{ 
-                      background: 'transparent',
-                      border: '2px solid #FFFFFF',
+                      background: 'rgba(139, 92, 246, 0.08)',
+                      border: '2px solid rgba(168, 85, 247, 0.3)',
                     }}
                     data-testid="home-region-select"
                   >
@@ -1006,7 +1018,7 @@ const Profile = () => {
                       </option>
                     ))}
                   </select>
-                  <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50 pointer-events-none" />
+                  <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-purple-400/50 pointer-events-none" />
                 </div>
               </div>
             )}
@@ -1022,8 +1034,8 @@ const Profile = () => {
                 <Volume2 className="w-5 h-5 text-purple-400" />
               </div>
               <div>
-                <h2 className="text-lg font-medium text-white/90">Say hello in your own voice</h2>
-                <p className="text-sm" style={{ color: '#E7D9FF', opacity: 0.8 }}>Your voice plays only after mutual curiosity.</p>
+                <h2 className="text-lg font-medium text-purple-100">Say hello in your own voice</h2>
+                <p className="text-sm text-purple-300/70">Your voice plays only after mutual curiosity.</p>
               </div>
             </div>
             
@@ -1041,8 +1053,8 @@ const Profile = () => {
               <div 
                 className="flex items-center gap-4 p-5 rounded-2xl"
                 style={{ 
-                  background: 'transparent',
-                  border: '2px solid #FFFFFF'
+                  background: 'rgba(139, 92, 246, 0.08)',
+                  border: '2px solid rgba(168, 85, 247, 0.3)'
                 }}
               >
                 <Loader2 className="w-6 h-6 text-purple-400 animate-spin" />
@@ -1053,8 +1065,8 @@ const Profile = () => {
               <div 
                 className="p-5 rounded-2xl"
                 style={{ 
-                  background: 'transparent',
-                  border: '2px solid #FFFFFF'
+                  background: 'rgba(139, 92, 246, 0.08)',
+                  border: '2px solid rgba(168, 85, 247, 0.3)'
                 }}
               >
                 <div className="flex items-center gap-4">
@@ -1082,7 +1094,7 @@ const Profile = () => {
                     <span className={`font-medium ${isPlayingVoice ? 'text-purple-200' : 'text-white/80'}`}>
                       {isPlayingVoice ? "Playing..." : "Voice intro ready"}
                     </span>
-                    <p className="text-xs mt-0.5" style={{ color: '#E7D9FF', opacity: 0.7 }}>
+                    <p className="text-xs mt-0.5 text-purple-300/60">
                       {isPlayingVoice ? "Tap to pause" : "Tap to preview"}
                     </p>
                   </div>
@@ -1103,8 +1115,8 @@ const Profile = () => {
                 <div 
                   className="p-5 rounded-2xl"
                   style={{ 
-                    background: 'transparent',
-                    border: '2px solid #FFFFFF'
+                    background: 'rgba(139, 92, 246, 0.08)',
+                    border: '2px solid rgba(168, 85, 247, 0.3)'
                   }}
                 >
                   <div className="flex items-center gap-4">
@@ -1120,7 +1132,7 @@ const Profile = () => {
                     
                     <div className="flex-1">
                       <span className="text-pink-200 font-medium">Recording...</span>
-                      <p className="text-xs mt-0.5" style={{ color: '#E7D9FF', opacity: 0.7 }}>
+                      <p className="text-xs mt-0.5 text-purple-300/60">
                         {recordingTime < 5 ? `${5 - recordingTime}s more for minimum` : 'Ready to save'}
                       </p>
                     </div>
@@ -1168,14 +1180,14 @@ const Profile = () => {
                 disabled={micPermissionDenied}
                 className="w-full h-16 rounded-2xl font-medium transition-all duration-300 flex items-center justify-center gap-3 group disabled:opacity-50"
                 style={{ 
-                  background: 'transparent',
-                  border: '2px solid #FFFFFF',
+                  background: 'rgba(139, 92, 246, 0.08)',
+                  border: '2px solid rgba(168, 85, 247, 0.3)',
                 }}
               >
                 <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center group-hover:bg-purple-500/30 transition-all">
                   <Mic className="w-5 h-5 text-purple-400" />
                 </div>
-                <span className="text-white/70 group-hover:text-white/90 transition-colors">
+                <span className="text-purple-200/70 group-hover:text-purple-100 transition-colors">
                   Record Voice Intro
                 </span>
               </button>
@@ -1190,8 +1202,8 @@ const Profile = () => {
             <section 
               className="p-5 rounded-2xl"
               style={{ 
-                background: 'transparent',
-                border: '2px solid #FFFFFF'
+                background: 'rgba(16, 185, 129, 0.08)',
+                border: '2px solid rgba(16, 185, 129, 0.3)'
               }}
             >
               <div className="flex items-center gap-4">
@@ -1200,7 +1212,7 @@ const Profile = () => {
                 </div>
                 <div>
                   <p className="text-emerald-200 font-medium">Safety Halo Active</p>
-                  <p className="text-xs mt-0.5" style={{ color: '#E7D9FF', opacity: 0.7 }}>
+                  <p className="text-xs mt-0.5 text-purple-300/60">
                     Visible after mutual curiosity • Based on respectful behavior
                   </p>
                 </div>
@@ -1215,11 +1227,11 @@ const Profile = () => {
 
       {/* Profile Preview Modal */}
       {showPreview && (
-        <div className="fixed inset-0 z-50 bg-slate-950" data-testid="profile-preview-modal">
+        <div className="fixed inset-0 z-50" style={{ background: 'linear-gradient(135deg, #0f0a1a 0%, #1a0a2e 50%, #0f172a 100%)' }} data-testid="profile-preview-modal">
           {/* Header */}
-          <div className="sticky top-0 z-50 bg-slate-950/95 backdrop-blur border-b border-white/10">
+          <div className="sticky top-0 z-50 backdrop-blur" style={{ background: 'rgba(15, 10, 26, 0.95)', borderBottom: '1px solid rgba(168, 85, 247, 0.2)' }}>
             <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between">
-              <h1 className="text-lg font-bold text-white">Profile Preview</h1>
+              <h1 className="text-lg font-bold text-purple-100">Profile Preview</h1>
               <button
                 onClick={() => {
                   setShowPreview(false);
@@ -1228,22 +1240,23 @@ const Profile = () => {
                     previewAudioRef.current.pause();
                   }
                 }}
-                className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+                className="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
+                style={{ background: 'rgba(139, 92, 246, 0.15)' }}
                 data-testid="close-preview-btn"
               >
-                <X className="w-5 h-5 text-white" />
+                <X className="w-5 h-5 text-purple-300" />
               </button>
             </div>
             
             {/* Mode Toggle */}
             <div className="max-w-lg mx-auto px-4 pb-4">
-              <div className="flex bg-white/5 rounded-xl p-1">
+              <div className="flex rounded-xl p-1" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
                 <button
                   onClick={() => setPreviewMode("before")}
                   className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
                     previewMode === "before"
-                      ? "bg-indigo-500 text-white"
-                      : "text-slate-400 hover:text-white"
+                      ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
+                      : "text-purple-300/60 hover:text-purple-200"
                   }`}
                   data-testid="preview-before-tab"
                 >
@@ -1254,8 +1267,8 @@ const Profile = () => {
                   onClick={() => setPreviewMode("after")}
                   className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
                     previewMode === "after"
-                      ? "bg-indigo-500 text-white"
-                      : "text-slate-400 hover:text-white"
+                      ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
+                      : "text-purple-300/60 hover:text-purple-200"
                   }`}
                   data-testid="preview-after-tab"
                 >
@@ -1271,12 +1284,12 @@ const Profile = () => {
             {previewMode === "before" ? (
               /* PRE-REVEAL - Visible while blurred */
               <div className="space-y-6">
-                <p className="text-sm text-slate-400 text-center mb-6">
+                <p className="text-sm text-purple-300/60 text-center mb-6">
                   This is how others see you before mutual curiosity
                 </p>
                 
                 {/* Blurred Photo */}
-                <div className="relative aspect-[3/4] max-w-xs mx-auto rounded-2xl overflow-hidden bg-white/5">
+                <div className="relative aspect-[3/4] max-w-xs mx-auto rounded-2xl overflow-hidden" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
                   {mainPhoto ? (
                     <img 
                       src={mainPhoto} 
@@ -1285,7 +1298,7 @@ const Profile = () => {
                       style={{ filter: 'blur(8px)' }}
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-slate-500">
+                    <div className="w-full h-full flex items-center justify-center text-purple-400/50">
                       <User className="w-16 h-16" />
                     </div>
                   )}
@@ -1295,13 +1308,13 @@ const Profile = () => {
                   <div className="absolute bottom-0 left-0 right-0 p-4">
                     <div className="flex items-center gap-2">
                       <h3 className="text-xl font-bold text-white">{formData.display_name || "Your Name"}</h3>
-                      {user?.age && <span className="text-white/70">{user.age}</span>}
+                      {user?.age && <span className="text-purple-200/70">{user.age}</span>}
                     </div>
                     {formData.presence_note && (
-                      <p className="text-sm text-white/80 mt-1">{formData.presence_note}</p>
+                      <p className="text-sm text-purple-100/80 mt-1">{formData.presence_note}</p>
                     )}
                     {formData.shy_indicator && (
-                      <span className="inline-flex items-center gap-1 mt-2 px-2 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs">
+                      <span className="inline-flex items-center gap-1 mt-2 px-2 py-1 rounded-full bg-pink-500/20 text-pink-300 text-xs">
                         <Heart className="w-3 h-3" />
                         May be shy to start
                       </span>
@@ -1311,22 +1324,22 @@ const Profile = () => {
                 
                 {/* Hidden fields indicator */}
                 <div className="flex flex-wrap justify-center gap-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 text-slate-400 text-xs">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-purple-300/60 text-xs" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
                     <EyeOff className="w-3 h-3" />
                     Bio hidden
                   </div>
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 text-slate-400 text-xs">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-purple-300/60 text-xs" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
                     <EyeOff className="w-3 h-3" />
                     Type hidden
                   </div>
                   {formData.home_country && (
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 text-slate-400 text-xs">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-purple-300/60 text-xs" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
                       <EyeOff className="w-3 h-3" />
                       Location hidden
                     </div>
                   )}
                   {formData.voice_intro_url && (
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 text-slate-400 text-xs">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-purple-300/60 text-xs" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
                       <Volume2 className="w-3 h-3" />
                       Voice locked
                     </div>
@@ -1336,12 +1349,12 @@ const Profile = () => {
             ) : (
               /* POST-REVEAL - Full profile view after mutual curiosity */
               <div className="space-y-4">
-                <p className="text-sm text-slate-400 text-center mb-6">
+                <p className="text-sm text-purple-300/60 text-center mb-6">
                   This is how others see you after mutual curiosity
                 </p>
                 
                 {/* Full Photo */}
-                <div className="relative aspect-[3/4] max-w-xs mx-auto rounded-2xl overflow-hidden bg-white/5">
+                <div className="relative aspect-[3/4] max-w-xs mx-auto rounded-2xl overflow-hidden" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
                   {mainPhoto ? (
                     <img 
                       src={mainPhoto} 
@@ -1349,7 +1362,7 @@ const Profile = () => {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-slate-500">
+                    <div className="w-full h-full flex items-center justify-center text-purple-400/50">
                       <User className="w-16 h-16" />
                     </div>
                   )}
@@ -1359,10 +1372,10 @@ const Profile = () => {
                   <div className="absolute bottom-0 left-0 right-0 p-4">
                     <div className="flex items-center gap-2">
                       <h3 className="text-xl font-bold text-white">{formData.display_name || "Your Name"}</h3>
-                      {user?.age && <span className="text-white/70">{user.age}</span>}
+                      {user?.age && <span className="text-purple-200/70">{user.age}</span>}
                     </div>
                     {formData.presence_note && (
-                      <p className="text-sm text-white/80 mt-1">{formData.presence_note}</p>
+                      <p className="text-sm text-purple-100/80 mt-1">{formData.presence_note}</p>
                     )}
                     
                     {/* Safety Halo */}
@@ -1377,33 +1390,33 @@ const Profile = () => {
                 
                 {/* Bio */}
                 {formData.bio && (
-                  <div className="bg-white/5 rounded-xl p-4">
-                    <h4 className="text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wide">About</h4>
-                    <p className="text-white text-sm">{formData.bio}</p>
+                  <div className="rounded-xl p-4" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
+                    <h4 className="text-xs font-medium text-purple-300/60 mb-1.5 uppercase tracking-wide">About</h4>
+                    <p className="text-purple-100 text-sm">{formData.bio}</p>
                   </div>
                 )}
                 
                 {/* My Type of Person */}
                 {formData.my_type_of_person && (
-                  <div className="bg-white/5 rounded-xl p-4">
-                    <h4 className="text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wide">My type of person is</h4>
-                    <p className="text-white text-sm">{formData.my_type_of_person}</p>
+                  <div className="rounded-xl p-4" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
+                    <h4 className="text-xs font-medium text-purple-300/60 mb-1.5 uppercase tracking-wide">My type of person is</h4>
+                    <p className="text-purple-100 text-sm">{formData.my_type_of_person}</p>
                   </div>
                 )}
                 
                 {/* Intent */}
                 {formData.intent && (
-                  <div className="bg-white/5 rounded-xl p-4">
-                    <h4 className="text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wide">Here for</h4>
-                    <p className="text-white text-sm capitalize">{formData.intent.replace('_', ' ')}</p>
+                  <div className="rounded-xl p-4" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
+                    <h4 className="text-xs font-medium text-purple-300/60 mb-1.5 uppercase tracking-wide">Here for</h4>
+                    <p className="text-purple-100 text-sm capitalize">{formData.intent.replace('_', ' ')}</p>
                   </div>
                 )}
                 
                 {/* Home Area */}
                 {formData.home_country && (
-                  <div className="bg-white/5 rounded-xl p-4">
-                    <h4 className="text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wide">Based in</h4>
-                    <p className="text-white text-sm flex items-center gap-2">
+                  <div className="rounded-xl p-4" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
+                    <h4 className="text-xs font-medium text-purple-300/60 mb-1.5 uppercase tracking-wide">Based in</h4>
+                    <p className="text-purple-100 text-sm flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-teal-400" />
                       {formData.home_region ? `${formData.home_region}, ${formData.home_country}` : formData.home_country}
                     </p>
@@ -1412,8 +1425,8 @@ const Profile = () => {
                 
                 {/* Voice Intro */}
                 {formData.voice_intro_url && (
-                  <div className="bg-white/5 rounded-xl p-4">
-                    <h4 className="text-xs font-medium text-slate-400 mb-2 uppercase tracking-wide">Voice Intro</h4>
+                  <div className="rounded-xl p-4" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
+                    <h4 className="text-xs font-medium text-purple-300/60 mb-2 uppercase tracking-wide">Voice Intro</h4>
                     <button
                       onClick={() => {
                         if (!previewAudioRef.current) {
@@ -1436,12 +1449,13 @@ const Profile = () => {
                       }}
                       className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${
                         previewAudioPlaying 
-                          ? "bg-indigo-500 text-white" 
-                          : "bg-white/5 text-white hover:bg-white/10"
+                          ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white" 
+                          : "text-purple-200 hover:text-white"
                       }`}
+                      style={!previewAudioPlaying ? { background: 'rgba(139, 92, 246, 0.15)' } : {}}
                     >
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        previewAudioPlaying ? "bg-white/20" : "bg-indigo-500/20"
+                        previewAudioPlaying ? "bg-white/20" : "bg-purple-500/20"
                       }`}>
                         {previewAudioPlaying ? (
                           <Pause className="w-5 h-5" />
