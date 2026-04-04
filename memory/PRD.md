@@ -295,6 +295,11 @@ Comprehensive list including:
   - Photo upload/delete now call isolated API endpoints
   - Save button only validates text fields (bio, my_type_of_person)
   - Auto-saved indicator visible in photo section
+- ✅ Venue presence state-sync (April 2026)
+  - Fixed "0 people here" when user is checked in
+  - Self-card now injected into "Who's here" list immediately
+  - Tapping venue no longer triggers duplicate check-in
+  - Venue detail view receives same presence state as venue card
 
 ## Known Technical Debt
 

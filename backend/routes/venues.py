@@ -397,7 +397,7 @@ async def get_people_at_venue(
     last_active_filter: Optional[str] = None,
     current_user: dict = Depends(get_current_user)
 ):
-    """Get people checked in at a venue."""
+    """Get people checked in at a venue. Includes current user's self-card first."""
     # Check if current user has a profile photo
     current_user_photos = current_user.get("photos", []) or []
     current_user_avatar = current_user.get("avatar_url", "")
@@ -422,6 +422,32 @@ async def get_people_at_venue(
         {"id": current_user["id"]},
         {"$set": {"last_active_at": now.isoformat()}}
     )
+    
+    # Build the self card first (current user's own entry)
+    first_name = get_first_name(current_user.get("display_name", "You"))
+    self_card = {
+        "id": current_user["id"],
+        "display_name": current_user.get("display_name", "You"),
+        "first_name": first_name,
+        "age": current_user.get("age"),
+        "avatar_url": current_user.get("avatar_url", ""),
+        "bio": "",  # Don't show bio on self card
+        "interests": [],
+        "checked_in_at": current_checkin.get("checked_in_at"),
+        "has_glanced_at_me": False,
+        "i_glanced_at": False,
+        "is_connected": False,
+        "is_revealed": False,  # Always show as pre-reveal (blurred or silhouette)
+        "is_premium": current_user.get("is_premium", False),
+        "last_active_at": current_user.get("last_active_at"),
+        "presence_note": current_user.get("presence_note", ""),
+        "celebrity_crush": "",
+        "shy_indicator": current_user.get("shy_indicator", False),
+        "voice_intro_url": "",
+        "has_safety_halo": False,
+        "hide_photo_in_venues": current_user.get("hide_photo_in_venues", False),
+        "is_self": True,  # Mark as self card
+    }
     
     people = []
     for checkin in checkins:
@@ -471,7 +497,7 @@ async def get_people_at_venue(
                         continue
                     elif last_active_filter == "hour" and minutes_ago > 60:
                         continue
-                except:
+                except Exception:
                     pass
         
         # Check glance status
@@ -531,4 +557,8 @@ async def get_people_at_venue(
     premium.sort(key=lambda x: x.get("checked_in_at", ""), reverse=True)
     non_premium.sort(key=lambda x: x.get("checked_in_at", ""), reverse=True)
     
-    return premium + non_premium
+    # Build final result: self card first, then premium, then non-premium
+    result = [self_card]
+    result.extend(premium + non_premium)
+    
+    return result

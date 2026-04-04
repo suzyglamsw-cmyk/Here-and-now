@@ -22,6 +22,8 @@ import {
   Clock,
   Filter,
   ChevronDown,
+  MapPin,
+  User,
 } from "lucide-react";
 import {
   Dialog,
@@ -52,6 +54,13 @@ const LAST_ACTIVE_FILTERS = [
   { value: "recent", label: "Active recently", subtext: "≤10 min", icon: "🟡" },
   { value: "hour", label: "Active this hour", subtext: "≤60 min", icon: "🟠" },
 ];
+
+// Silhouette component for users who have "Hide photo in venues" enabled
+const SilhouetteAvatar = ({ className = "" }) => (
+  <div className={`w-full h-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center ${className}`}>
+    <User className="w-1/2 h-1/2 text-slate-500/60" strokeWidth={1.5} />
+  </div>
+);
 
 const WhosHere = () => {
   const { venueId } = useParams();
@@ -298,7 +307,7 @@ const WhosHere = () => {
                   <h1 className="text-xl font-bold text-white">{venue?.name || "Loading..."}</h1>
                   <div className="flex items-center gap-2 text-slate-400 text-sm">
                     <div className="w-2 h-2 rounded-full bg-emerald-500 animate-live" />
-                    <span>{people.length} people here</span>
+                    <span>{people.length} {people.length === 1 ? "person" : "people"} here</span>
                   </div>
                 </div>
               </div>
@@ -350,166 +359,20 @@ const WhosHere = () => {
             <div className="flex items-center justify-center py-20">
               <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
             </div>
-          ) : people.length === 0 ? (
-            <div className="text-center py-20">
-              <Users className="w-16 h-16 text-slate-700 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-white mb-2">No one else here yet</h2>
-              <p className="text-slate-400">Be the first to start connecting!</p>
-            </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {people.map((person) => (
-                <div
+                <PersonCard 
                   key={person.id}
-                  data-testid={`person-card-${person.id}`}
-                  onClick={() => navigate(`/profile/${person.id}`)}
-                  className={`user-card rounded-2xl p-4 border transition-all cursor-pointer ${
-                    person.is_revealed
-                      ? "bg-gradient-to-br from-indigo-500/10 to-pink-500/10 border-indigo-500/30 hover:border-indigo-500/50"
-                      : person.has_glanced_at_me
-                      ? "bg-pink-500/10 border-pink-500/30 hover:border-pink-500/50"
-                      : "bg-white/5 border-white/5 hover:border-white/20"
-                  } ${person.is_premium ? "premium-glow" : ""}`}
-                >
-                  {/* Avatar - tappable */}
-                  <div className="relative mb-3">
-                    <div
-                      className={`aspect-square rounded-2xl overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all ${
-                        person.is_revealed
-                          ? "avatar-ring-revealed"
-                          : person.has_glanced_at_me
-                          ? "avatar-ring-glanced animate-glance"
-                          : ""
-                      }`}
-                    >
-                      <BlurredImage
-                        src={person.avatar_url}
-                        alt={person.display_name}
-                        isRevealed={person.is_revealed}
-                        isThumbnail={false}
-                        fallbackInitial={(person.first_name || person.display_name?.split(' ')[0] || "?").charAt(0)}
-                      />
-                    </div>
-
-                    {/* Status indicators */}
-                    {person.is_premium && (
-                      <div className="absolute -top-1 -left-1 w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center">
-                        <Crown className="w-3 h-3 text-white" />
-                      </div>
-                    )}
-                    {person.has_glanced_at_me && !person.i_glanced_at && (
-                      <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-pink-500 flex items-center justify-center animate-glance">
-                        <Eye className="w-3 h-3 text-white" />
-                      </div>
-                    )}
-                    {person.is_revealed && !person.has_glanced_at_me && (
-                      <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center">
-                        <Sparkles className="w-3 h-3 text-white" />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Info */}
-                  <div className="text-center mb-3">
-                    <h3 className="font-semibold text-white truncate">
-                      {person.is_revealed 
-                        ? person.display_name 
-                        : `${person.first_name || person.display_name?.split(' ')[0] || "Someone"}${person.age ? `, ${person.age}` : ""}`
-                      }
-                    </h3>
-                    {person.is_revealed && person.bio && (
-                      <p className="text-slate-400 text-xs mt-1 line-clamp-2">{person.bio}</p>
-                    )}
-                    {person.has_glanced_at_me && !person.is_revealed && (
-                      <p className="text-pink-400 text-xs mt-1">Glanced at you</p>
-                    )}
-                  </div>
-
-                  {/* Interests */}
-                  {person.is_revealed && person.interests?.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-3 justify-center">
-                      {person.interests.slice(0, 3).map((interest) => (
-                        <span
-                          key={interest}
-                          className="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300"
-                        >
-                          {interest}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Actions - stop propagation to prevent card click */}
-                  <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                    {!person.i_glanced_at && (
-                      <Button
-                        data-testid={`glance-btn-${person.id}`}
-                        onClick={() => handleGlance(person.id)}
-                        disabled={glancing === person.id}
-                        size="sm"
-                        className="flex-1 h-9 rounded-xl bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 border-0"
-                      >
-                        {glancing === person.id ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Eye className="w-4 h-4" />
-                        )}
-                      </Button>
-                    )}
-                    <Button
-                      data-testid={`icebreaker-btn-${person.id}`}
-                      onClick={() => openIcebreakerModal(person)}
-                      size="sm"
-                      className="flex-1 h-9 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 border-0"
-                    >
-                      <Snowflake className="w-4 h-4" />
-                    </Button>
-                    {person.is_connected && (
-                      <Button
-                        data-testid={`chat-btn-${person.id}`}
-                        onClick={() => navigate(`/chat/${person.id}`)}
-                        size="sm"
-                        className="flex-1 h-9 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-400 border-0"
-                      >
-                        <MessageCircle className="w-4 h-4" />
-                      </Button>
-                    )}
-                    {/* Block/Report Menu */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-9 w-9 rounded-xl hover:bg-white/10"
-                          data-testid={`more-btn-${person.id}`}
-                        >
-                          <MoreVertical className="w-4 h-4 text-slate-400" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="bg-slate-900 border-white/10">
-                        <DropdownMenuItem 
-                          onClick={() => handleBlockUser(person.id)}
-                          className="text-slate-300 focus:text-white focus:bg-white/10"
-                          data-testid={`block-btn-${person.id}`}
-                        >
-                          <Ban className="w-4 h-4 mr-2" />
-                          Block
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => {
-                            setSelectedPerson(person);
-                            setShowReportModal(true);
-                          }}
-                          className="text-red-400 focus:text-red-300 focus:bg-red-500/10"
-                          data-testid={`report-btn-${person.id}`}
-                        >
-                          <Flag className="w-4 h-4 mr-2" />
-                          Report
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
+                  person={person}
+                  navigate={navigate}
+                  handleGlance={handleGlance}
+                  glancing={glancing}
+                  openIcebreakerModal={openIcebreakerModal}
+                  handleBlockUser={handleBlockUser}
+                  setSelectedPerson={setSelectedPerson}
+                  setShowReportModal={setShowReportModal}
+                />
               ))}
             </div>
           )}
@@ -630,6 +493,245 @@ const WhosHere = () => {
         )}
       </div>
     </Layout>
+  );
+};
+
+// ============================================================================
+// Person Card Component - handles both self-card and regular cards
+// ============================================================================
+const PersonCard = ({ 
+  person, 
+  navigate, 
+  handleGlance, 
+  glancing, 
+  openIcebreakerModal, 
+  handleBlockUser,
+  setSelectedPerson,
+  setShowReportModal
+}) => {
+  const isSelf = person.is_self === true;
+  
+  // Show silhouette for self if hide_photo_in_venues is ON
+  const showSilhouette = isSelf && person.hide_photo_in_venues;
+  
+  // Self card - special rendering
+  if (isSelf) {
+    return (
+      <div
+        data-testid="self-card"
+        onClick={() => navigate("/profile-tab")}
+        className="user-card rounded-2xl p-4 border-2 transition-all cursor-pointer bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border-indigo-500/50 hover:border-indigo-400"
+      >
+        {/* Avatar */}
+        <div className="relative mb-3">
+          <div className="aspect-square rounded-2xl overflow-hidden">
+            {showSilhouette ? (
+              <SilhouetteAvatar />
+            ) : (
+              <BlurredImage
+                src={person.avatar_url}
+                alt="You"
+                isRevealed={false}
+                isThumbnail={false}
+                fallbackInitial={(person.first_name || "Y").charAt(0)}
+              />
+            )}
+          </div>
+          
+          {/* "You're here" badge */}
+          <div className="absolute -top-2 -left-2 px-2 py-1 rounded-full bg-indigo-500 flex items-center gap-1 shadow-lg">
+            <MapPin className="w-3 h-3 text-white" />
+            <span className="text-xs text-white font-medium">You</span>
+          </div>
+          
+          {/* Premium badge */}
+          {person.is_premium && (
+            <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center">
+              <Crown className="w-3 h-3 text-white" />
+            </div>
+          )}
+        </div>
+
+        {/* Info */}
+        <div className="text-center mb-3">
+          <h3 className="font-semibold text-white truncate">You're here</h3>
+          {person.presence_note && (
+            <p className="text-slate-400 text-xs mt-1 line-clamp-2">{person.presence_note}</p>
+          )}
+        </div>
+
+        {/* Action - View Profile */}
+        <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+          <Button
+            data-testid="view-profile-btn"
+            onClick={() => navigate("/profile-tab")}
+            size="sm"
+            className="flex-1 h-9 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border-0"
+          >
+            <Eye className="w-4 h-4 mr-1" />
+            View profile
+          </Button>
+        </div>
+      </div>
+    );
+  }
+  
+  // Regular person card (non-self)
+  return (
+    <div
+      data-testid={`person-card-${person.id}`}
+      onClick={() => navigate(`/profile/${person.id}`)}
+      className={`user-card rounded-2xl p-4 border transition-all cursor-pointer ${
+        person.is_revealed
+          ? "bg-gradient-to-br from-indigo-500/10 to-pink-500/10 border-indigo-500/30 hover:border-indigo-500/50"
+          : person.has_glanced_at_me
+          ? "bg-pink-500/10 border-pink-500/30 hover:border-pink-500/50"
+          : "bg-white/5 border-white/5 hover:border-white/20"
+      } ${person.is_premium ? "premium-glow" : ""}`}
+    >
+      {/* Avatar - tappable */}
+      <div className="relative mb-3">
+        <div
+          className={`aspect-square rounded-2xl overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all ${
+            person.is_revealed
+              ? "avatar-ring-revealed"
+              : person.has_glanced_at_me
+              ? "avatar-ring-glanced animate-glance"
+              : ""
+          }`}
+        >
+          {person.hide_photo_in_venues ? (
+            <SilhouetteAvatar />
+          ) : (
+            <BlurredImage
+              src={person.avatar_url}
+              alt={person.display_name}
+              isRevealed={person.is_revealed}
+              isThumbnail={false}
+              fallbackInitial={(person.first_name || person.display_name?.split(' ')[0] || "?").charAt(0)}
+            />
+          )}
+        </div>
+
+        {/* Status indicators */}
+        {person.is_premium && (
+          <div className="absolute -top-1 -left-1 w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center">
+            <Crown className="w-3 h-3 text-white" />
+          </div>
+        )}
+        {person.has_glanced_at_me && !person.i_glanced_at && (
+          <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-pink-500 flex items-center justify-center animate-glance">
+            <Eye className="w-3 h-3 text-white" />
+          </div>
+        )}
+        {person.is_revealed && !person.has_glanced_at_me && (
+          <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center">
+            <Sparkles className="w-3 h-3 text-white" />
+          </div>
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="text-center mb-3">
+        <h3 className="font-semibold text-white truncate">
+          {person.is_revealed 
+            ? person.display_name 
+            : `${person.first_name || person.display_name?.split(' ')[0] || "Someone"}${person.age ? `, ${person.age}` : ""}`
+          }
+        </h3>
+        {person.is_revealed && person.bio && (
+          <p className="text-slate-400 text-xs mt-1 line-clamp-2">{person.bio}</p>
+        )}
+        {person.has_glanced_at_me && !person.is_revealed && (
+          <p className="text-pink-400 text-xs mt-1">Glanced at you</p>
+        )}
+      </div>
+
+      {/* Interests */}
+      {person.is_revealed && person.interests?.length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-3 justify-center">
+          {person.interests.slice(0, 3).map((interest) => (
+            <span
+              key={interest}
+              className="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300"
+            >
+              {interest}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Actions - stop propagation to prevent card click */}
+      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+        {!person.i_glanced_at && (
+          <Button
+            data-testid={`glance-btn-${person.id}`}
+            onClick={() => handleGlance(person.id)}
+            disabled={glancing === person.id}
+            size="sm"
+            className="flex-1 h-9 rounded-xl bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 border-0"
+          >
+            {glancing === person.id ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Eye className="w-4 h-4" />
+            )}
+          </Button>
+        )}
+        <Button
+          data-testid={`icebreaker-btn-${person.id}`}
+          onClick={() => openIcebreakerModal(person)}
+          size="sm"
+          className="flex-1 h-9 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 border-0"
+        >
+          <Snowflake className="w-4 h-4" />
+        </Button>
+        {person.is_connected && (
+          <Button
+            data-testid={`chat-btn-${person.id}`}
+            onClick={() => navigate(`/chat/${person.id}`)}
+            size="sm"
+            className="flex-1 h-9 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-400 border-0"
+          >
+            <MessageCircle className="w-4 h-4" />
+          </Button>
+        )}
+        {/* Block/Report Menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-9 w-9 rounded-xl hover:bg-white/10"
+              data-testid={`more-btn-${person.id}`}
+            >
+              <MoreVertical className="w-4 h-4 text-slate-400" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="bg-slate-900 border-white/10">
+            <DropdownMenuItem 
+              onClick={() => handleBlockUser(person.id)}
+              className="text-slate-300 focus:text-white focus:bg-white/10"
+              data-testid={`block-btn-${person.id}`}
+            >
+              <Ban className="w-4 h-4 mr-2" />
+              Block
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => {
+                setSelectedPerson(person);
+                setShowReportModal(true);
+              }}
+              className="text-red-400 focus:text-red-300 focus:bg-red-500/10"
+              data-testid={`report-btn-${person.id}`}
+            >
+              <Flag className="w-4 h-4 mr-2" />
+              Report
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
   );
 };
 

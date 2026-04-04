@@ -489,9 +489,21 @@ const Venues = () => {
 
                   <Button
                     data-testid={`checkin-btn-${venue.place_id || venue.id}`}
-                    onClick={() => handleCheckIn(venue.place_id || venue.id, venue)}
+                    onClick={() => {
+                      const venueId = venue.place_id || venue.id;
+                      // If already checked in at this venue, navigate to Who's Here instead
+                      if (currentCheckin?.checkin?.venue_id === venueId) {
+                        navigate(`/venue/${venueId}`);
+                      } else {
+                        handleCheckIn(venueId, venue);
+                      }
+                    }}
                     disabled={checkingIn === (venue.place_id || venue.id)}
-                    className="w-full h-11 rounded-xl bg-white text-slate-900 font-semibold hover:bg-slate-100 transition-all active:scale-[0.98]"
+                    className={`w-full h-11 rounded-xl font-semibold transition-all active:scale-[0.98] ${
+                      currentCheckin?.checkin?.venue_id === (venue.place_id || venue.id)
+                        ? "bg-indigo-500 text-white hover:bg-indigo-600"
+                        : "bg-white text-slate-900 hover:bg-slate-100"
+                    }`}
                   >
                     {checkingIn === (venue.place_id || venue.id) ? (
                       <>
@@ -499,7 +511,10 @@ const Venues = () => {
                         Checking in...
                       </>
                     ) : currentCheckin?.checkin?.venue_id === (venue.place_id || venue.id) ? (
-                      "You're Here"
+                      <>
+                        <Users className="w-4 h-4 mr-2" />
+                        You're Here — View
+                      </>
                     ) : (
                       "Check In"
                     )}
