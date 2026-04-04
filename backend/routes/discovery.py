@@ -75,7 +75,10 @@ async def get_people_not_here(
         {"$set": {"last_active_at": now.isoformat()}}
     )
     
-    # Find visible users with presence_status = "not_here" or not set
+    # Calculate 24-hour cutoff for Not Here visibility
+    not_here_cutoff = (now - timedelta(hours=24)).isoformat()
+    
+    # Find visible users with presence_status = "not_here" who were active in last 24 hours
     users = await db.users.find({
         "$and": [
             {
@@ -84,12 +87,9 @@ async def get_people_not_here(
                     {"visibility": {"$exists": False}, "is_visible": True}
                 ]
             },
-            {
-                "$or": [
-                    {"presence_status": "not_here"},
-                    {"presence_status": {"$exists": False}}
-                ]
-            }
+            {"presence_status": "not_here"},
+            # Only show users active in last 24 hours (Not Here expiry rule)
+            {"last_active_at": {"$gte": not_here_cutoff}}
         ],
         "id": {"$ne": current_user["id"]}
     }, {"_id": 0, "password": 0}).to_list(500)
@@ -221,6 +221,9 @@ async def get_people_here(
         {"$set": {"last_active_at": now.isoformat()}}
     )
     
+    # Calculate 1-hour cutoff for Here & Now visibility
+    here_now_cutoff = (now - timedelta(hours=1)).isoformat()
+    
     # Build the self card first (current user's own entry)
     self_card = None
     current_user_checkin = await db.checkins.find_one({
@@ -256,7 +259,7 @@ async def get_people_here(
             "is_self": True,  # Mark as self card
         }
     
-    # Find visible users with presence_status = "here"
+    # Find visible users with presence_status = "here" who were active in last 1 hour
     users = await db.users.find({
         "$and": [
             {
@@ -265,7 +268,9 @@ async def get_people_here(
                     {"visibility": {"$exists": False}, "is_visible": True}
                 ]
             },
-            {"presence_status": "here"}
+            {"presence_status": "here"},
+            # Only show users active in last 1 hour (inactivity auto-checkout rule)
+            {"last_active_at": {"$gte": here_now_cutoff}}
         ],
         "id": {"$ne": current_user["id"]}
     }, {"_id": 0, "password": 0}).to_list(500)

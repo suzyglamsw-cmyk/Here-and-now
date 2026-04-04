@@ -449,6 +449,9 @@ async def get_people_at_venue(
         "is_self": True,  # Mark as self card
     }
     
+    # Calculate 1-hour cutoff for inactivity
+    here_now_cutoff = (now - timedelta(hours=1)).isoformat()
+    
     people = []
     for checkin in checkins:
         if checkin["user_id"] == current_user["id"]:
@@ -466,6 +469,11 @@ async def get_people_at_venue(
                     user = fake_user.copy()
             if not user:
                 continue
+        
+        # Skip users inactive for more than 1 hour (auto-checkout rule)
+        user_last_active = user.get("last_active_at")
+        if user_last_active and user_last_active < here_now_cutoff:
+            continue
         
         # Skip hidden users
         if user.get("visibility") == "hidden":

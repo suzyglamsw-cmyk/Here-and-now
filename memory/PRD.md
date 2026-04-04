@@ -31,6 +31,9 @@ Build a real-time, location-based social connection app called "Here & Now". Cor
 - Venue presence determined by explicit "Here & Now" selection, NOT GPS
 - When `discovery_mode = null`, user is not in any mode
 - `discovery_mode` values: "here_now", "not_here", or null
+- **Manual checkout via "Not Here"**: Switching to Not Here automatically checks out from any venue
+- **Here & Now inactivity**: Users inactive for 1 hour are hidden from venue lists
+- **Not Here expiry**: Users inactive for 24 hours are hidden from Not Here discovery
 
 #### HERE & NOW Mode (`/discover/here`)
 - "Back to Discovery" button at top

@@ -34,7 +34,7 @@ async def set_discovery_mode(request: DiscoveryModeRequest, current_user: dict =
     """
     Set the user's discovery mode.
     - "here_now": User is in Here & Now mode (at a venue)
-    - "not_here": User is in Not Here mode (general discovery)
+    - "not_here": User is in Not Here mode (general discovery) - AUTO CHECKOUTS from any venue
     - null: User has not selected a mode (back to gateway)
     """
     valid_modes = ["here_now", "not_here", None]
@@ -54,6 +54,11 @@ async def set_discovery_mode(request: DiscoveryModeRequest, current_user: dict =
         update_data["presence_status"] = "here"
     elif request.mode == "not_here":
         update_data["presence_status"] = "not_here"
+        # IMPORTANT: Check out user from any venue when switching to "Not Here"
+        await db.checkins.update_many(
+            {"user_id": current_user["id"], "is_active": True},
+            {"$set": {"is_active": False, "checked_out_at": now.isoformat()}}
+        )
     
     await db.users.update_one(
         {"id": current_user["id"]},
