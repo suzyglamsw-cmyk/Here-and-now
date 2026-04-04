@@ -263,6 +263,10 @@ Comprehensive list including:
   - ✅ Extracted connections routes → /app/backend/routes/connections.py (698 lines)
   - ✅ Centralized shared models/helpers → /app/backend/routes/dependencies.py (748 lines)
   - ✅ All 30 endpoint tests passing
+- ✅ **Production API Keys Verified** (April 2026):
+  - ✅ Google Places API - Working with real venue data (20 venues, photos, ratings)
+  - ✅ Stripe Payments - LIVE mode (cs_live_ sessions, real price IDs)
+  - ⚠️ Google Play Billing - Not configured (requires service account JSON file)
 
 ### Bug Fixes Applied
 - ✅ Check-in persistence (root cause: FastAPI route ordering in server.py)
@@ -281,7 +285,7 @@ Comprehensive list including:
 ## Backlog / Future Tasks
 
 ### P1 - High Priority
-- Production API keys (Google Places, Google Play Billing)
+- Google Play Billing - Requires service account JSON credentials file from Google Play Console
 
 ### P2 - Medium Priority
 - Cloud storage for photos (S3/GCS)
