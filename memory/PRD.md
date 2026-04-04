@@ -300,6 +300,10 @@ Comprehensive list including:
   - Self-card now injected into "Who's here" list immediately
   - Tapping venue no longer triggers duplicate check-in
   - Venue detail view receives same presence state as venue card
+- ✅ Profile system fixes (April 2026)
+  - Profile preview now shows ALL photos in swipeable carousel (not just main photo)
+  - Required field validation: bio and "here to..." fields must be filled before saving
+  - Carousel includes navigation arrows and dot indicators for multiple photos
 
 ## Known Technical Debt
 

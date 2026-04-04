@@ -28,6 +28,8 @@ import {
   EyeOff,
   MapPin,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Home,
   Users,
   Target,
@@ -85,6 +87,7 @@ const Profile = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [previewMode, setPreviewMode] = useState("before");
   const [previewAudioPlaying, setPreviewAudioPlaying] = useState(false);
+  const [previewPhotoIndex, setPreviewPhotoIndex] = useState(0);
   const [hidePhotoInVenues, setHidePhotoInVenues] = useState(false);
   const [privacyLoading, setPrivacyLoading] = useState(false);
   const fileInputRef = useRef(null);
@@ -222,14 +225,24 @@ const Profile = () => {
     // Validation only runs on explicit Save button press
     // Photos are auto-saved independently, so we only validate text fields here
     
-    // Validate bio (only if user started entering something)
-    if (formData.bio && formData.bio.trim().length > 0 && formData.bio.trim().length < MIN_BIO_LENGTH) {
-      toast.error("Add a short line so people get a sense of your vibe.");
+    // Required field: bio (About me)
+    if (!formData.bio || formData.bio.trim().length === 0) {
+      toast.error("Please add something about yourself in the 'About me' field.");
       return;
     }
     
-    // Validate my_type_of_person (only if user started entering something)
-    if (formData.my_type_of_person && formData.my_type_of_person.trim().length > 0 && formData.my_type_of_person.trim().length < MIN_MY_TYPE_LENGTH) {
+    if (formData.bio.trim().length < MIN_BIO_LENGTH) {
+      toast.error("Add a short line so people get a sense of your vibe (at least 10 characters).");
+      return;
+    }
+    
+    // Required field: my_type_of_person (Here to...)
+    if (!formData.my_type_of_person || formData.my_type_of_person.trim().length === 0) {
+      toast.error("Please tell us who you click with in the 'Here to...' field.");
+      return;
+    }
+    
+    if (formData.my_type_of_person.trim().length < MIN_MY_TYPE_LENGTH) {
       toast.error("Tell us a bit more about who you click with (at least 10 characters).");
       return;
     }
@@ -620,6 +633,19 @@ const Profile = () => {
 
   const mainPhoto = formData.photos[0] || user?.avatar_url;
   const hasSafetyHalo = user?.reports_count === 0 && user?.blocks_received_count === 0;
+  
+  // Get all valid photos for carousel (filter out empty strings)
+  const allPhotos = formData.photos.filter(p => p && p.trim() !== '');
+  const hasMultiplePhotos = allPhotos.length > 1;
+  
+  // Carousel navigation handlers
+  const handleNextPhoto = () => {
+    setPreviewPhotoIndex((prev) => (prev + 1) % allPhotos.length);
+  };
+  
+  const handlePrevPhoto = () => {
+    setPreviewPhotoIndex((prev) => (prev - 1 + allPhotos.length) % allPhotos.length);
+  };
 
   return (
     <Layout>
@@ -764,7 +790,10 @@ const Profile = () => {
 
           {/* Preview Button */}
           <Button
-            onClick={() => setShowPreview(true)}
+            onClick={() => {
+              setPreviewPhotoIndex(0); // Reset to first photo when opening
+              setShowPreview(true);
+            }}
             variant="outline"
             className="w-full h-14 rounded-2xl bg-white/5 hover:bg-white/10 border-purple-400/20 text-white/90 font-medium transition-all hover:border-purple-400/40"
             data-testid="preview-profile-btn"
@@ -1400,7 +1429,10 @@ const Profile = () => {
             <div className="max-w-lg mx-auto px-4 pb-4">
               <div className="flex rounded-xl p-1" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
                 <button
-                  onClick={() => setPreviewMode("before")}
+                  onClick={() => {
+                    setPreviewMode("before");
+                    setPreviewPhotoIndex(0);
+                  }}
                   className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
                     previewMode === "before"
                       ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
@@ -1412,7 +1444,10 @@ const Profile = () => {
                   Before Reveal
                 </button>
                 <button
-                  onClick={() => setPreviewMode("after")}
+                  onClick={() => {
+                    setPreviewMode("after");
+                    setPreviewPhotoIndex(0);
+                  }}
                   className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
                     previewMode === "after"
                       ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
@@ -1436,13 +1471,13 @@ const Profile = () => {
                   This is how others see you before mutual curiosity
                 </p>
                 
-                {/* Blurred Photo */}
+                {/* Blurred Photo Carousel */}
                 <div className="relative aspect-[3/4] max-w-xs mx-auto rounded-2xl overflow-hidden" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
-                  {mainPhoto ? (
+                  {allPhotos.length > 0 ? (
                     <img 
-                      src={mainPhoto} 
+                      src={allPhotos[previewPhotoIndex] || mainPhoto} 
                       alt="Profile" 
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover transition-opacity duration-300"
                       style={{ filter: 'blur(8px)' }}
                     />
                   ) : (
@@ -1451,6 +1486,39 @@ const Profile = () => {
                     </div>
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                  
+                  {/* Carousel Navigation */}
+                  {hasMultiplePhotos && (
+                    <>
+                      <button
+                        onClick={handlePrevPhoto}
+                        className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 flex items-center justify-center text-white hover:bg-black/60 transition-colors"
+                        data-testid="carousel-prev"
+                      >
+                        <ChevronLeft className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={handleNextPhoto}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 flex items-center justify-center text-white hover:bg-black/60 transition-colors"
+                        data-testid="carousel-next"
+                      >
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
+                      
+                      {/* Photo indicator dots */}
+                      <div className="absolute bottom-16 left-0 right-0 flex justify-center gap-1.5">
+                        {allPhotos.map((_, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => setPreviewPhotoIndex(idx)}
+                            className={`w-2 h-2 rounded-full transition-colors ${
+                              idx === previewPhotoIndex ? 'bg-white' : 'bg-white/40'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
                   
                   {/* Pre-reveal Info Overlay */}
                   <div className="absolute bottom-0 left-0 right-0 p-4">
@@ -1501,13 +1569,13 @@ const Profile = () => {
                   This is how others see you after mutual curiosity
                 </p>
                 
-                {/* Full Photo */}
+                {/* Full Photo Carousel */}
                 <div className="relative aspect-[3/4] max-w-xs mx-auto rounded-2xl overflow-hidden" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
-                  {mainPhoto ? (
+                  {allPhotos.length > 0 ? (
                     <img 
-                      src={mainPhoto} 
+                      src={allPhotos[previewPhotoIndex] || mainPhoto} 
                       alt="Profile" 
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover transition-opacity duration-300"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-purple-400/50">
@@ -1515,6 +1583,39 @@ const Profile = () => {
                     </div>
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                  
+                  {/* Carousel Navigation */}
+                  {hasMultiplePhotos && (
+                    <>
+                      <button
+                        onClick={handlePrevPhoto}
+                        className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 flex items-center justify-center text-white hover:bg-black/60 transition-colors"
+                        data-testid="carousel-prev-post"
+                      >
+                        <ChevronLeft className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={handleNextPhoto}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 flex items-center justify-center text-white hover:bg-black/60 transition-colors"
+                        data-testid="carousel-next-post"
+                      >
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
+                      
+                      {/* Photo indicator dots */}
+                      <div className="absolute bottom-16 left-0 right-0 flex justify-center gap-1.5">
+                        {allPhotos.map((_, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => setPreviewPhotoIndex(idx)}
+                            className={`w-2 h-2 rounded-full transition-colors ${
+                              idx === previewPhotoIndex ? 'bg-white' : 'bg-white/40'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
                   
                   {/* Full Info Overlay */}
                   <div className="absolute bottom-0 left-0 right-0 p-4">
