@@ -27,6 +27,10 @@ import {
   Eye,
   EyeOff,
   MapPin,
+  ChevronDown,
+  Home,
+  Users,
+  Target,
 } from "lucide-react";
 
 const MAX_BIO_LENGTH = 500;
@@ -34,6 +38,23 @@ const MAX_PRESENCE_NOTE_LENGTH = 40;
 const MAX_MY_TYPE_LENGTH = 40;
 const MIN_MY_TYPE_LENGTH = 10;
 const MIN_BIO_LENGTH = 10;
+
+// Intent options
+const INTENT_OPTIONS = [
+  { value: "", label: "Select your intent..." },
+  { value: "dating", label: "Dating" },
+  { value: "friends", label: "Friends" },
+  { value: "open_to_both", label: "Open to both" },
+];
+
+// Who I'm open to meeting options (PRIVATE - for matching only)
+const OPEN_TO_MEETING_OPTIONS = [
+  { value: "", label: "Select..." },
+  { value: "men", label: "Men" },
+  { value: "women", label: "Women" },
+  { value: "everyone", label: "Everyone" },
+  { value: "prefer_not_to_say", label: "Prefer not to say" },
+];
 
 // Country and region data
 const COUNTRIES_REGIONS = {
@@ -656,6 +677,112 @@ const Profile = () => {
             Preview My Profile
           </Button>
 
+          {/* Quick Controls - Toggles at Top for Easy Access */}
+          <section className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-500/20 to-slate-400/20 flex items-center justify-center">
+                <Users className="w-5 h-5 text-slate-300" />
+              </div>
+              <div>
+                <h2 className="text-lg font-medium text-white/90">Quick controls</h2>
+                <p className="text-sm" style={{ color: '#E7D9FF', opacity: 0.8 }}>Toggle these anytime</p>
+              </div>
+            </div>
+
+            {/* Shy Indicator Toggle */}
+            <div 
+              className="p-5 rounded-[20px] transition-all duration-300"
+              style={{ 
+                background: 'transparent',
+                border: '2px solid #FFFFFF',
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
+                    formData.shy_indicator ? 'bg-pink-500/30' : 'bg-white/5'
+                  }`}>
+                    <Heart className={`w-4 h-4 transition-colors ${formData.shy_indicator ? 'text-pink-400' : 'text-purple-400/50'}`} />
+                  </div>
+                  <div>
+                    <p className={`font-medium transition-colors ${formData.shy_indicator ? 'text-pink-200' : 'text-white/70'}`}>
+                      I'm feeling shy today
+                    </p>
+                    <p className="text-xs mt-0.5" style={{ color: '#E7D9FF', opacity: 0.7 }}>
+                      Shows "May be shy to start" on your profile
+                    </p>
+                  </div>
+                </div>
+                
+                <button
+                  onClick={() => setFormData({ ...formData, shy_indicator: !formData.shy_indicator })}
+                  className={`relative w-14 h-8 rounded-full transition-all duration-300 ${
+                    formData.shy_indicator 
+                      ? 'bg-gradient-to-r from-pink-500 to-purple-500 shadow-lg shadow-pink-500/30' 
+                      : 'bg-white/10'
+                  }`}
+                  data-testid="shy-toggle"
+                >
+                  <div 
+                    className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow-md transition-all duration-300 ${
+                      formData.shy_indicator ? 'left-7' : 'left-1'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+
+            {/* Hide from Discovery Toggle */}
+            <div 
+              className="p-5 rounded-[20px] transition-all duration-300"
+              style={{ 
+                background: 'transparent',
+                border: '2px solid #FFFFFF',
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
+                    !user?.is_visible ? 'bg-amber-500/30' : 'bg-white/5'
+                  }`}>
+                    {user?.is_visible ? (
+                      <Eye className={`w-4 h-4 text-emerald-400`} />
+                    ) : (
+                      <EyeOff className={`w-4 h-4 text-amber-400`} />
+                    )}
+                  </div>
+                  <div>
+                    <p className={`font-medium transition-colors ${!user?.is_visible ? 'text-amber-200' : 'text-white/70'}`}>
+                      Hide me from discovery
+                    </p>
+                    <p className="text-xs mt-0.5" style={{ color: '#E7D9FF', opacity: 0.7 }}>
+                      {user?.is_visible ? "You're visible to others" : "You won't appear in discovery"}
+                    </p>
+                  </div>
+                </div>
+                
+                <button
+                  data-testid="visibility-toggle"
+                  onClick={handleToggleVisibility}
+                  className={`relative w-14 h-8 rounded-full transition-all duration-300 ${
+                    !user?.is_visible 
+                      ? 'bg-gradient-to-r from-amber-500 to-orange-500 shadow-lg shadow-amber-500/30' 
+                      : 'bg-white/10'
+                  }`}
+                >
+                  <div 
+                    className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow-md transition-all duration-300 ${
+                      !user?.is_visible ? 'left-7' : 'left-1'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+          </section>
+
+          {/* Divider */}
+          <div className="h-px bg-gradient-to-r from-transparent via-purple-500/20 to-transparent" />
+
           {/* Display Name (locked) */}
           <section className="space-y-3">
             <Label className="text-white/70 text-sm font-medium">Display Name</Label>
@@ -672,32 +799,22 @@ const Profile = () => {
             <p className="text-xs pl-1" style={{ color: '#E7D9FF', opacity: 0.7 }}>Set during registration • cannot be changed</p>
           </section>
 
-          {/* Date of Birth & Age */}
+          {/* Age Display (DOB set at registration - not editable) */}
           <section className="space-y-3">
-            <Label className="text-white/70 text-sm font-medium">Date of Birth</Label>
-            <div className="flex items-center gap-4">
-              <Input
-                type="date"
-                value={formData.date_of_birth}
-                onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
-                max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
-                className="flex-1 h-16 px-6 rounded-[20px] text-white"
-                data-testid="dob-input"
-              />
-              {user?.age && (
-                <div 
-                  className="h-16 px-6 rounded-[20px] flex items-center justify-center min-w-[100px]"
-                  style={{ 
-                    background: 'transparent',
-                    border: '2px solid #FFFFFF',
-                  }}
-                >
-                  <span className="text-white font-medium">{user.age} years</span>
-                </div>
-              )}
+            <Label className="text-white/70 text-sm font-medium">Age</Label>
+            <div 
+              className="h-14 px-6 rounded-[20px] flex items-center cursor-not-allowed"
+              style={{ 
+                background: 'transparent',
+                border: '2px solid #FFFFFF',
+                color: 'rgba(255, 255, 255, 0.7)'
+              }}
+              data-testid="age-display"
+            >
+              {user?.age ? `${user.age} years old` : "Age not set"}
             </div>
             <p className="text-xs pl-1" style={{ color: '#E7D9FF', opacity: 0.7 }}>
-              {user?.age ? `Your age (${user.age}) is shown to others • DOB is private` : 'Must be 18 or older'}
+              Set during registration • Only your age is shown to others
             </p>
           </section>
 
@@ -709,7 +826,8 @@ const Profile = () => {
               onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
               placeholder="Share a little about yourself..."
               maxLength={MAX_BIO_LENGTH}
-              className="min-h-32 px-6 py-5 rounded-[20px] text-white"
+              className="min-h-24 px-6 py-4 rounded-[20px] text-white"
+              data-testid="bio-textarea"
             />
             <div className="flex justify-between text-xs px-1" style={{ color: '#E7D9FF', opacity: 0.7 }}>
               <span>Minimum {MIN_BIO_LENGTH} characters</span>
@@ -717,167 +835,181 @@ const Profile = () => {
             </div>
           </section>
 
-          {/* Divider */}
-          <div className="h-px bg-gradient-to-r from-transparent via-purple-500/20 to-transparent" />
-
-          {/* Your Vibe Today Section */}
-          <section className="space-y-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-pink-400" />
-              </div>
-              <div>
-                <h2 className="text-lg font-medium text-white/90">Your vibe today</h2>
-                <p className="text-sm" style={{ color: '#E7D9FF', opacity: 0.8 }}>Help others feel your energy</p>
-              </div>
-            </div>
-
-            {/* Presence Note */}
-            <div className="space-y-2.5">
-              <Label className="text-white/60 text-sm">Presence Note</Label>
-              <p className="text-xs pl-1" style={{ color: '#E7D9FF' }}>A tiny hint of who you are — even while blurred.</p>
-              <Input
-                value={formData.presence_note}
-                onChange={(e) => setFormData({ ...formData, presence_note: e.target.value })}
-                placeholder="e.g., Here for good vibes..."
-                maxLength={MAX_PRESENCE_NOTE_LENGTH}
-                className="h-16 px-6 rounded-[20px] text-white"
-              />
-              <div className="text-right text-xs pr-1" style={{ color: '#E7D9FF', opacity: 0.7 }}>
-                {formData.presence_note.length}/{MAX_PRESENCE_NOTE_LENGTH}
-              </div>
-            </div>
-
-            {/* Shy Indicator - Pill Style Toggle */}
-            <div 
-              className="p-6 rounded-[20px] transition-all duration-300"
-              style={{ 
-                background: 'transparent',
-                border: '2px solid #FFFFFF',
-              }}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
-                    formData.shy_indicator ? 'bg-pink-500/30' : 'bg-white/5'
-                  }`}>
-                    <Heart className={`w-4 h-4 transition-colors ${formData.shy_indicator ? 'text-pink-400' : 'text-purple-400/50'}`} />
-                  </div>
-                  <div>
-                    <p className={`font-medium transition-colors ${formData.shy_indicator ? 'text-pink-200' : 'text-white/70'}`}>
-                      Shy to start
-                    </p>
-                    <p className="text-xs mt-0.5" style={{ color: '#E7D9FF', opacity: 0.7 }}>
-                      Show "May be shy to start" on your profile.
-                    </p>
-                  </div>
-                </div>
-                
-                {/* Pill Toggle */}
-                <button
-                  onClick={() => setFormData({ ...formData, shy_indicator: !formData.shy_indicator })}
-                  className={`relative w-14 h-8 rounded-full transition-all duration-300 ${
-                    formData.shy_indicator 
-                      ? 'bg-gradient-to-r from-pink-500 to-purple-500 shadow-lg shadow-pink-500/30' 
-                      : 'bg-white/10'
-                  }`}
-                >
-                  <div 
-                    className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow-md transition-all duration-300 ${
-                      formData.shy_indicator ? 'left-7' : 'left-1'
-                    }`}
-                  />
-                </button>
-              </div>
+          {/* Presence Note - Compact */}
+          <section className="space-y-3">
+            <Label className="text-white/70 text-sm font-medium">Presence Note</Label>
+            <p className="text-xs pl-1" style={{ color: '#E7D9FF' }}>A tiny hint of who you are — visible even while blurred</p>
+            <Input
+              value={formData.presence_note}
+              onChange={(e) => setFormData({ ...formData, presence_note: e.target.value })}
+              placeholder="e.g., Here for good vibes..."
+              maxLength={MAX_PRESENCE_NOTE_LENGTH}
+              className="h-14 px-6 rounded-[20px] text-white"
+              data-testid="presence-note-input"
+            />
+            <div className="text-right text-xs pr-1" style={{ color: '#E7D9FF', opacity: 0.7 }}>
+              {formData.presence_note.length}/{MAX_PRESENCE_NOTE_LENGTH}
             </div>
           </section>
 
           {/* Divider */}
           <div className="h-px bg-gradient-to-r from-transparent via-purple-500/20 to-transparent" />
 
-          {/* Profile Visibility Section */}
-          <section className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center">
-                {user?.is_visible ? (
-                  <Eye className="w-5 h-5 text-emerald-400" />
-                ) : (
-                  <EyeOff className="w-5 h-5 text-slate-400" />
-                )}
-              </div>
-              <div>
-                <h2 className="text-lg font-medium text-white/90">Profile Visibility</h2>
-                <p className="text-sm" style={{ color: '#E7D9FF', opacity: 0.8 }}>Control who can discover you</p>
-              </div>
-            </div>
-
-            {/* Visibility Toggle */}
-            <div 
-              className="p-6 rounded-[20px] transition-all duration-300"
-              style={{ 
-                background: 'transparent',
-                border: '2px solid #FFFFFF',
-              }}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex-1 pr-4">
-                  <p className="text-white font-medium mb-1">
-                    {user?.is_visible ? "Visible" : "Hidden"}
-                  </p>
-                  <p className="text-sm" style={{ color: '#E7D9FF', opacity: 0.7 }}>
-                    {user?.is_visible
-                      ? "You appear in discovery and nearby searches"
-                      : "You're hidden from all discovery features"}
-                  </p>
-                </div>
-                
-                {/* Pill Toggle */}
-                <button
-                  data-testid="visibility-toggle"
-                  onClick={handleToggleVisibility}
-                  className={`relative w-14 h-8 rounded-full transition-all duration-300 ${
-                    user?.is_visible 
-                      ? 'bg-gradient-to-r from-emerald-500 to-teal-500 shadow-lg shadow-emerald-500/30' 
-                      : 'bg-white/10'
-                  }`}
-                >
-                  <div 
-                    className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow-md transition-all duration-300 ${
-                      user?.is_visible ? 'left-7' : 'left-1'
-                    }`}
-                  />
-                </button>
-              </div>
-            </div>
-          </section>
-
-          {/* Divider */}
-          <div className="h-px bg-gradient-to-r from-transparent via-purple-500/20 to-transparent" />
-
-          {/* A Little Personality Section */}
+          {/* Connection Preferences Section */}
           <section className="space-y-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
-                <Heart className="w-5 h-5 text-purple-400" />
+                <Target className="w-5 h-5 text-purple-400" />
               </div>
               <div>
-                <h2 className="text-lg font-medium text-white/90">A little personality</h2>
-                <p className="text-sm" style={{ color: '#E7D9FF', opacity: 0.8 }}>Fun details that spark conversation</p>
+                <h2 className="text-lg font-medium text-white/90">Connection preferences</h2>
+                <p className="text-sm" style={{ color: '#E7D9FF', opacity: 0.8 }}>Help us find the right people for you</p>
               </div>
             </div>
 
-            {/* Celebrity Crush */}
+            {/* Intent Dropdown */}
             <div className="space-y-2.5">
-              <Label className="text-white/60 text-sm">Celebrity Crush</Label>
-              <p className="text-xs pl-1" style={{ color: '#E7D9FF' }}>Just for fun — who's your screen crush?</p>
-              <Input
-                value={formData.celebrity_crush}
-                onChange={(e) => setFormData({ ...formData, celebrity_crush: e.target.value })}
-                placeholder="e.g., Timothée Chalamet"
-                maxLength={MAX_CELEBRITY_CRUSH_LENGTH}
-                className="h-16 px-6 rounded-[20px] text-white"
-              />
+              <Label className="text-white/60 text-sm">What are you here for?</Label>
+              <div className="relative">
+                <select
+                  value={formData.intent}
+                  onChange={(e) => setFormData({ ...formData, intent: e.target.value })}
+                  className="w-full h-14 px-6 pr-12 rounded-[20px] text-white appearance-none cursor-pointer"
+                  style={{ 
+                    background: 'transparent',
+                    border: '2px solid #FFFFFF',
+                  }}
+                  data-testid="intent-select"
+                >
+                  {INTENT_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value} className="bg-slate-900 text-white">
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50 pointer-events-none" />
+              </div>
             </div>
+
+            {/* My Type of Person - Compact */}
+            <div className="space-y-2.5">
+              <Label className="text-white/60 text-sm">My type of person is...</Label>
+              <p className="text-xs pl-1" style={{ color: '#E7D9FF' }}>Describe who you click with (10-40 chars)</p>
+              <Input
+                value={formData.my_type_of_person}
+                onChange={(e) => setFormData({ ...formData, my_type_of_person: e.target.value })}
+                placeholder="e.g., Curious minds who love good banter"
+                maxLength={MAX_MY_TYPE_LENGTH}
+                className="h-14 px-6 rounded-[20px] text-white"
+                data-testid="my-type-input"
+              />
+              <div className="flex justify-between text-xs px-1" style={{ color: '#E7D9FF', opacity: 0.7 }}>
+                <span>{formData.my_type_of_person.length < MIN_MY_TYPE_LENGTH ? `${MIN_MY_TYPE_LENGTH - formData.my_type_of_person.length} more needed` : '✓'}</span>
+                <span>{formData.my_type_of_person.length}/{MAX_MY_TYPE_LENGTH}</span>
+              </div>
+            </div>
+
+            {/* Who I'm Open to Meeting (PRIVATE) */}
+            <div className="space-y-2.5">
+              <div className="flex items-center gap-2">
+                <Label className="text-white/60 text-sm">Who I'm open to meeting</Label>
+                <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 text-[10px] uppercase tracking-wide">Private</span>
+              </div>
+              <p className="text-xs pl-1" style={{ color: '#E7D9FF' }}>Used for matching only — never shown on your profile</p>
+              <div className="relative">
+                <select
+                  value={formData.who_open_to_meeting}
+                  onChange={(e) => setFormData({ ...formData, who_open_to_meeting: e.target.value })}
+                  className="w-full h-14 px-6 pr-12 rounded-[20px] text-white appearance-none cursor-pointer"
+                  style={{ 
+                    background: 'transparent',
+                    border: '2px solid #FFFFFF',
+                  }}
+                  data-testid="open-to-meeting-select"
+                >
+                  {OPEN_TO_MEETING_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value} className="bg-slate-900 text-white">
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50 pointer-events-none" />
+              </div>
+            </div>
+          </section>
+
+          {/* Divider */}
+          <div className="h-px bg-gradient-to-r from-transparent via-purple-500/20 to-transparent" />
+
+          {/* Home Area Section */}
+          <section className="space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500/20 to-emerald-500/20 flex items-center justify-center">
+                <Home className="w-5 h-5 text-teal-400" />
+              </div>
+              <div>
+                <h2 className="text-lg font-medium text-white/90">Home area</h2>
+                <p className="text-sm" style={{ color: '#E7D9FF', opacity: 0.8 }}>Where you're based (shown after reveal)</p>
+              </div>
+            </div>
+
+            {/* Country Picker */}
+            <div className="space-y-2.5">
+              <Label className="text-white/60 text-sm">Country</Label>
+              <div className="relative">
+                <select
+                  value={formData.home_country}
+                  onChange={(e) => {
+                    setFormData({ 
+                      ...formData, 
+                      home_country: e.target.value,
+                      home_region: "" // Reset region when country changes
+                    });
+                  }}
+                  className="w-full h-14 px-6 pr-12 rounded-[20px] text-white appearance-none cursor-pointer"
+                  style={{ 
+                    background: 'transparent',
+                    border: '2px solid #FFFFFF',
+                  }}
+                  data-testid="home-country-select"
+                >
+                  <option value="" className="bg-slate-900 text-white">Select country...</option>
+                  {Object.keys(COUNTRIES_REGIONS).map((country) => (
+                    <option key={country} value={country} className="bg-slate-900 text-white">
+                      {country}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Region Picker (only show if country selected) */}
+            {formData.home_country && (
+              <div className="space-y-2.5">
+                <Label className="text-white/60 text-sm">Region</Label>
+                <div className="relative">
+                  <select
+                    value={formData.home_region}
+                    onChange={(e) => setFormData({ ...formData, home_region: e.target.value })}
+                    className="w-full h-14 px-6 pr-12 rounded-[20px] text-white appearance-none cursor-pointer"
+                    style={{ 
+                      background: 'transparent',
+                      border: '2px solid #FFFFFF',
+                    }}
+                    data-testid="home-region-select"
+                  >
+                    <option value="" className="bg-slate-900 text-white">Select region...</option>
+                    {(COUNTRIES_REGIONS[formData.home_country] || []).map((region) => (
+                      <option key={region} value={region} className="bg-slate-900 text-white">
+                        {region}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50 pointer-events-none" />
+                </div>
+              </div>
+            )}
           </section>
 
           {/* Divider */}
@@ -1137,7 +1269,7 @@ const Profile = () => {
           {/* Preview Content */}
           <div className="max-w-lg mx-auto px-4 py-6 pb-24 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 140px)' }}>
             {previewMode === "before" ? (
-              /* Before Reveal - Blurred view */
+              /* PRE-REVEAL - Visible while blurred */
               <div className="space-y-6">
                 <p className="text-sm text-slate-400 text-center mb-6">
                   This is how others see you before mutual curiosity
@@ -1159,15 +1291,18 @@ const Profile = () => {
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                   
-                  {/* Limited Info Overlay */}
+                  {/* Pre-reveal Info Overlay */}
                   <div className="absolute bottom-0 left-0 right-0 p-4">
-                    <h3 className="text-xl font-bold text-white">{formData.display_name || "Your Name"}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-xl font-bold text-white">{formData.display_name || "Your Name"}</h3>
+                      {user?.age && <span className="text-white/70">{user.age}</span>}
+                    </div>
                     {formData.presence_note && (
                       <p className="text-sm text-white/80 mt-1">{formData.presence_note}</p>
                     )}
                     {formData.shy_indicator && (
                       <span className="inline-flex items-center gap-1 mt-2 px-2 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs">
-                        <Sparkles className="w-3 h-3" />
+                        <Heart className="w-3 h-3" />
                         May be shy to start
                       </span>
                     )}
@@ -1175,22 +1310,32 @@ const Profile = () => {
                 </div>
                 
                 {/* Hidden fields indicator */}
-                <div className="text-center space-y-3">
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 text-slate-400 text-sm">
-                    <EyeOff className="w-4 h-4" />
-                    Bio hidden until reveal
+                <div className="flex flex-wrap justify-center gap-2">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 text-slate-400 text-xs">
+                    <EyeOff className="w-3 h-3" />
+                    Bio hidden
                   </div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 text-slate-400 text-xs">
+                    <EyeOff className="w-3 h-3" />
+                    Type hidden
+                  </div>
+                  {formData.home_country && (
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 text-slate-400 text-xs">
+                      <EyeOff className="w-3 h-3" />
+                      Location hidden
+                    </div>
+                  )}
                   {formData.voice_intro_url && (
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 text-slate-400 text-sm">
-                      <Volume2 className="w-4 h-4" />
-                      Voice intro unlocks after reveal
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 text-slate-400 text-xs">
+                      <Volume2 className="w-3 h-3" />
+                      Voice locked
                     </div>
                   )}
                 </div>
               </div>
             ) : (
-              /* After Reveal - Full profile view */
-              <div className="space-y-6">
+              /* POST-REVEAL - Full profile view after mutual curiosity */
+              <div className="space-y-4">
                 <p className="text-sm text-slate-400 text-center mb-6">
                   This is how others see you after mutual curiosity
                 </p>
@@ -1212,7 +1357,10 @@ const Profile = () => {
                   
                   {/* Full Info Overlay */}
                   <div className="absolute bottom-0 left-0 right-0 p-4">
-                    <h3 className="text-xl font-bold text-white">{formData.display_name || "Your Name"}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-xl font-bold text-white">{formData.display_name || "Your Name"}</h3>
+                      {user?.age && <span className="text-white/70">{user.age}</span>}
+                    </div>
                     {formData.presence_note && (
                       <p className="text-sm text-white/80 mt-1">{formData.presence_note}</p>
                     )}
@@ -1230,23 +1378,42 @@ const Profile = () => {
                 {/* Bio */}
                 {formData.bio && (
                   <div className="bg-white/5 rounded-xl p-4">
-                    <h4 className="text-sm font-medium text-slate-400 mb-2">About</h4>
-                    <p className="text-white">{formData.bio}</p>
+                    <h4 className="text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wide">About</h4>
+                    <p className="text-white text-sm">{formData.bio}</p>
                   </div>
                 )}
                 
-                {/* Celebrity Crush */}
-                {formData.celebrity_crush && (
+                {/* My Type of Person */}
+                {formData.my_type_of_person && (
                   <div className="bg-white/5 rounded-xl p-4">
-                    <h4 className="text-sm font-medium text-slate-400 mb-2">Celebrity Crush</h4>
-                    <p className="text-white">{formData.celebrity_crush}</p>
+                    <h4 className="text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wide">My type of person is</h4>
+                    <p className="text-white text-sm">{formData.my_type_of_person}</p>
+                  </div>
+                )}
+                
+                {/* Intent */}
+                {formData.intent && (
+                  <div className="bg-white/5 rounded-xl p-4">
+                    <h4 className="text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wide">Here for</h4>
+                    <p className="text-white text-sm capitalize">{formData.intent.replace('_', ' ')}</p>
+                  </div>
+                )}
+                
+                {/* Home Area */}
+                {formData.home_country && (
+                  <div className="bg-white/5 rounded-xl p-4">
+                    <h4 className="text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wide">Based in</h4>
+                    <p className="text-white text-sm flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-teal-400" />
+                      {formData.home_region ? `${formData.home_region}, ${formData.home_country}` : formData.home_country}
+                    </p>
                   </div>
                 )}
                 
                 {/* Voice Intro */}
                 {formData.voice_intro_url && (
                   <div className="bg-white/5 rounded-xl p-4">
-                    <h4 className="text-sm font-medium text-slate-400 mb-3">Voice Intro</h4>
+                    <h4 className="text-xs font-medium text-slate-400 mb-2 uppercase tracking-wide">Voice Intro</h4>
                     <button
                       onClick={() => {
                         if (!previewAudioRef.current) {
@@ -1291,11 +1458,13 @@ const Profile = () => {
                 
                 {/* Shy Indicator */}
                 {formData.shy_indicator && (
-                  <div className="flex items-center gap-3 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-                    <Sparkles className="w-5 h-5 text-amber-400" />
-                    <span className="text-amber-300">May be shy to start</span>
+                  <div className="flex items-center gap-3 p-4 bg-pink-500/10 border border-pink-500/20 rounded-xl">
+                    <Heart className="w-5 h-5 text-pink-400" />
+                    <span className="text-pink-300 text-sm">May be shy to start</span>
                   </div>
                 )}
+                
+                {/* Note: who_open_to_meeting is NEVER shown - private matching only */}
               </div>
             )}
           </div>
