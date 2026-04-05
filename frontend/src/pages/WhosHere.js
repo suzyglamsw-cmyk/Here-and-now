@@ -550,11 +550,50 @@ const PersonCard = ({
               <Crown className="w-3 h-3 text-white" />
             </div>
           )}
+          
+          {/* Gender indicator - bottom left */}
+          {person.show_as && (
+            <div 
+              className={`absolute -bottom-1 -left-1 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shadow-md ${
+                person.show_as === "male" 
+                  ? "bg-blue-400/90 text-white" 
+                  : "bg-pink-400/90 text-white"
+              }`}
+              data-testid="self-gender-indicator"
+            >
+              {person.show_as === "male" ? "M" : "F"}
+            </div>
+          )}
+          
+          {/* Rainbow/OpenToAll indicators - bottom right */}
+          <div className="absolute -bottom-1 -right-1 flex gap-0.5">
+            {person.rainbow && (
+              <div 
+                className="w-5 h-5 rounded-full flex items-center justify-center shadow-md overflow-hidden"
+                style={{ 
+                  background: 'linear-gradient(135deg, #ef4444 0%, #f97316 20%, #eab308 40%, #22c55e 60%, #3b82f6 80%, #8b5cf6 100%)'
+                }}
+                data-testid="self-rainbow-indicator"
+              >
+                <div className="w-3 h-3 rounded-full bg-slate-900/40" />
+              </div>
+            )}
+            {person.open_to_all && (
+              <div 
+                className="w-5 h-5 rounded-full flex items-center justify-center shadow-md bg-amber-400/90"
+                data-testid="self-open-to-all-indicator"
+              >
+                <span className="text-[10px]">🤗</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Info */}
         <div className="text-center mb-3">
-          <h3 className="font-semibold text-white truncate">You're here</h3>
+          <h3 className="font-semibold text-white truncate">
+            You're here{person.age ? `, ${person.age}` : ""}
+          </h3>
           {person.presence_note && (
             <p className="text-slate-400 text-xs mt-1 line-clamp-2">{person.presence_note}</p>
           )}
@@ -673,7 +712,7 @@ const PersonCard = ({
       <div className="text-center mb-3">
         <h3 className="font-semibold text-white truncate">
           {person.is_revealed 
-            ? person.display_name 
+            ? `${person.display_name}${person.age ? `, ${person.age}` : ""}` 
             : `${person.first_name || person.display_name?.split(' ')[0] || "Someone"}${person.age ? `, ${person.age}` : ""}`
           }
         </h3>

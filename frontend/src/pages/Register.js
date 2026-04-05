@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth, API } from "@/App";
 import { toast } from "sonner";
 import axios from "axios";
-import { ArrowLeft, Loader2, Shield, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Loader2, Shield, AlertTriangle, User, Heart } from "lucide-react";
 import { Logo, LogoIcon } from "../components/Logo";
 import { getErrorMessage } from "../utils/errorUtils";
 
@@ -40,7 +40,7 @@ const Register = () => {
   const navigate = useNavigate();
   const { login, user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState("age-gate"); // "age-gate" | "register"
+  const [step, setStep] = useState("age-gate"); // "age-gate" | "register" | "gender"
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [nameError, setNameError] = useState(null);
   const [formData, setFormData] = useState({
@@ -48,6 +48,7 @@ const Register = () => {
     password: "",
     display_name: "",
     date_of_birth: "",
+    show_as: "", // Gender selection
   });
 
   useEffect(() => {
@@ -104,6 +105,16 @@ const Register = () => {
       return;
     }
     
+    // Go to gender selection step
+    setStep("gender");
+  };
+
+  const handleGenderSubmit = async () => {
+    if (!formData.show_as) {
+      toast.error("Please select how you'd like to appear");
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -112,10 +123,11 @@ const Register = () => {
         password: formData.password,
         display_name: formData.display_name,
         date_of_birth: formData.date_of_birth,
+        show_as: formData.show_as,
       });
       login(response.data.token, response.data.user);
-      toast.success("Account created! Let's get to know you.");
-      navigate("/onboarding-gender");
+      toast.success("Account created! Let's set up your profile.");
+      navigate("/profile-setup");
     } catch (error) {
       toast.error(getErrorMessage(error, "Registration failed"));
     } finally {
@@ -211,7 +223,7 @@ const Register = () => {
         <Button
           data-testid="back-btn"
           variant="ghost"
-          onClick={() => setStep("age-gate")}
+          onClick={() => step === "gender" ? setStep("register") : setStep("age-gate")}
           className="text-slate-400 hover:text-white hover:bg-white/10"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
@@ -228,87 +240,115 @@ const Register = () => {
             </div>
           </div>
 
-          <div className="glass rounded-2xl p-8">
-            <h1 className="text-2xl font-bold text-white text-center mb-2">Create your account</h1>
-            <p className="text-slate-400 text-center mb-8">Join the community</p>
-
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="display_name" className="text-slate-300">
-                  First Name <span className="text-amber-400 text-xs">(cannot be changed later)</span>
-                </Label>
-                <Input
-                  data-testid="display-name-input"
-                  id="display_name"
-                  type="text"
-                  placeholder="Your first name"
-                  value={formData.display_name}
-                  onChange={handleNameChange}
-                  required
-                  maxLength={20}
-                  className={`h-12 bg-white/5 border-transparent focus:border-indigo-500 rounded-xl text-white placeholder:text-slate-500 ${nameError ? 'border-red-500' : ''}`}
-                />
-                {nameError && (
-                  <p className="text-xs text-red-400">{nameError}</p>
-                )}
-                <p className="text-xs text-slate-500">Use your real first name. This will be visible to others.</p>
+          {/* Gender Selection Step */}
+          {step === "gender" ? (
+            <div className="glass rounded-2xl p-8">
+              <div className="flex justify-center mb-6">
+                <div className="w-16 h-16 rounded-full bg-purple-500/20 flex items-center justify-center">
+                  <User className="w-8 h-8 text-purple-400" />
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-slate-300">
-                  Email
-                </Label>
-                <Input
-                  data-testid="email-input"
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  required
-                  className="h-12 bg-white/5 border-transparent focus:border-indigo-500 rounded-xl text-white placeholder:text-slate-500"
-                />
+              <h1 className="text-2xl font-bold text-white text-center mb-2">
+                How would you like to appear?
+              </h1>
+              <p className="text-slate-400 text-center mb-8">
+                This helps us show you to the right people
+              </p>
+
+              {/* Gender Selection Cards */}
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                {/* Male Option */}
+                <button
+                  type="button"
+                  data-testid="gender-male-btn"
+                  onClick={() => setFormData({ ...formData, show_as: "male" })}
+                  className={`relative p-6 rounded-2xl border-2 transition-all duration-300 ${
+                    formData.show_as === "male"
+                      ? "border-blue-400 bg-blue-500/20"
+                      : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10"
+                  }`}
+                >
+                  <div className="flex flex-col items-center gap-3">
+                    <div
+                      className={`w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold transition-all ${
+                        formData.show_as === "male"
+                          ? "bg-blue-500/30 text-blue-300"
+                          : "bg-white/10 text-slate-400"
+                      }`}
+                    >
+                      M
+                    </div>
+                    <span
+                      className={`font-medium transition-colors ${
+                        formData.show_as === "male" ? "text-blue-200" : "text-slate-300"
+                      }`}
+                    >
+                      Male
+                    </span>
+                  </div>
+                  {formData.show_as === "male" && (
+                    <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
+                      <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                  )}
+                </button>
+
+                {/* Female Option */}
+                <button
+                  type="button"
+                  data-testid="gender-female-btn"
+                  onClick={() => setFormData({ ...formData, show_as: "female" })}
+                  className={`relative p-6 rounded-2xl border-2 transition-all duration-300 ${
+                    formData.show_as === "female"
+                      ? "border-pink-400 bg-pink-500/20"
+                      : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10"
+                  }`}
+                >
+                  <div className="flex flex-col items-center gap-3">
+                    <div
+                      className={`w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold transition-all ${
+                        formData.show_as === "female"
+                          ? "bg-pink-500/30 text-pink-300"
+                          : "bg-white/10 text-slate-400"
+                      }`}
+                    >
+                      F
+                    </div>
+                    <span
+                      className={`font-medium transition-colors ${
+                        formData.show_as === "female" ? "text-pink-200" : "text-slate-300"
+                      }`}
+                    >
+                      Female
+                    </span>
+                  </div>
+                  {formData.show_as === "female" && (
+                    <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-pink-500 flex items-center justify-center">
+                      <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                  )}
+                </button>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-slate-300">
-                  Password
-                </Label>
-                <Input
-                  data-testid="password-input"
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  required
-                  minLength={6}
-                  className="h-12 bg-white/5 border-transparent focus:border-indigo-500 rounded-xl text-white placeholder:text-slate-500"
-                />
-                <p className="text-xs text-slate-500">At least 6 characters</p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="date_of_birth" className="text-slate-300">
-                  Date of Birth
-                </Label>
-                <Input
-                  data-testid="dob-input"
-                  id="date_of_birth"
-                  type="date"
-                  value={formData.date_of_birth}
-                  onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
-                  required
-                  max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
-                  className="h-12 bg-white/5 border-transparent focus:border-indigo-500 rounded-xl text-white placeholder:text-slate-500"
-                />
-                <p className="text-xs text-slate-500">You must be 18 or older. Your age will be shown, but not your DOB.</p>
+              {/* Inclusivity Message */}
+              <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20 mb-6">
+                <div className="flex items-start gap-3">
+                  <Heart className="w-5 h-5 text-purple-400 shrink-0 mt-0.5" />
+                  <p className="text-purple-200/80 text-sm">
+                    We recognise that gender is personal and nuanced. This selection helps connect you with people looking for someone like you. Additional options are available in your profile settings.
+                  </p>
+                </div>
               </div>
 
               <Button
-                data-testid="register-submit-btn"
-                type="submit"
-                disabled={loading || nameError}
+                data-testid="gender-continue-btn"
+                onClick={handleGenderSubmit}
+                disabled={loading || !formData.show_as}
                 className="w-full h-12 rounded-xl bg-gradient-to-r from-indigo-500 to-pink-500 text-white font-bold hover:opacity-90 transition-all active:scale-[0.98] disabled:opacity-50"
               >
                 {loading ? (
@@ -320,19 +360,108 @@ const Register = () => {
                   "Create Account"
                 )}
               </Button>
-            </form>
+            </div>
+          ) : (
+            /* Registration Form */
+            <div className="glass rounded-2xl p-8">
+              <h1 className="text-2xl font-bold text-white text-center mb-2">Create your account</h1>
+              <p className="text-slate-400 text-center mb-8">Join the community</p>
 
-            <p className="text-center text-slate-400 mt-6">
-              Already have an account?{" "}
-              <Link
-                to="/login"
-                data-testid="login-link"
-                className="text-indigo-400 hover:text-indigo-300 font-medium"
-              >
-                Sign in
-              </Link>
-            </p>
-          </div>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="display_name" className="text-slate-300">
+                    First Name <span className="text-amber-400 text-xs">(cannot be changed later)</span>
+                  </Label>
+                  <Input
+                    data-testid="display-name-input"
+                    id="display_name"
+                    type="text"
+                    placeholder="Your first name"
+                    value={formData.display_name}
+                    onChange={handleNameChange}
+                    required
+                    maxLength={20}
+                    className={`h-12 bg-white/5 border-transparent focus:border-indigo-500 rounded-xl text-white placeholder:text-slate-500 ${nameError ? 'border-red-500' : ''}`}
+                  />
+                  {nameError && (
+                    <p className="text-xs text-red-400">{nameError}</p>
+                  )}
+                  <p className="text-xs text-slate-500">Use your real first name. This will be visible to others.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-slate-300">
+                    Email
+                  </Label>
+                  <Input
+                    data-testid="email-input"
+                    id="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    required
+                    className="h-12 bg-white/5 border-transparent focus:border-indigo-500 rounded-xl text-white placeholder:text-slate-500"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-slate-300">
+                    Password
+                  </Label>
+                  <Input
+                    data-testid="password-input"
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    required
+                    minLength={6}
+                    className="h-12 bg-white/5 border-transparent focus:border-indigo-500 rounded-xl text-white placeholder:text-slate-500"
+                  />
+                  <p className="text-xs text-slate-500">At least 6 characters</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="date_of_birth" className="text-slate-300">
+                    Date of Birth
+                  </Label>
+                  <Input
+                    data-testid="dob-input"
+                    id="date_of_birth"
+                    type="date"
+                    value={formData.date_of_birth}
+                    onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
+                    required
+                    max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
+                    className="h-12 bg-white/5 border-transparent focus:border-indigo-500 rounded-xl text-white placeholder:text-slate-500"
+                  />
+                  <p className="text-xs text-slate-500">You must be 18 or older. Your age will be shown, but not your DOB.</p>
+                </div>
+
+                <Button
+                  data-testid="register-submit-btn"
+                  type="submit"
+                  disabled={loading || nameError}
+                  className="w-full h-12 rounded-xl bg-gradient-to-r from-indigo-500 to-pink-500 text-white font-bold hover:opacity-90 transition-all active:scale-[0.98] disabled:opacity-50"
+                >
+                  Continue
+                </Button>
+              </form>
+
+              <p className="text-center text-slate-400 mt-6">
+                Already have an account?{" "}
+                <Link
+                  to="/login"
+                  data-testid="login-link"
+                  className="text-indigo-400 hover:text-indigo-300 font-medium"
+                >
+                  Sign in
+                </Link>
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -70,6 +70,7 @@ class UserCreate(BaseModel):
     password: str
     display_name: str
     date_of_birth: str = Field(..., description="Date of birth in YYYY-MM-DD format")
+    show_as: Optional[str] = ""  # Gender appearance: "male" or "female"
 
 class UserLogin(BaseModel):
     email: EmailStr

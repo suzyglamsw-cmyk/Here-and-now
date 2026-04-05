@@ -45,6 +45,12 @@ async def register(data: UserCreate):
     user_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc)
     age = calculate_age_from_dob(data.date_of_birth)
+    
+    # Validate and normalize show_as
+    show_as = ""
+    if data.show_as and data.show_as.lower() in ["male", "female"]:
+        show_as = data.show_as.lower()
+    
     user = {
         "id": user_id,
         "email": data.email,
@@ -60,9 +66,10 @@ async def register(data: UserCreate):
         "gender": "",
         "orientation": "",
         "relationship_status": "",
-        "show_as": "",  # Gender appearance: "male" or "female"
+        "show_as": show_as,  # Gender appearance: "male" or "female"
         "seeking": [],  # Multi-select: ["male"], ["female"], or ["male", "female"]
         "rainbow": False,  # LGBTQ+ visibility flag
+        "open_to_all": False,  # Open to everyone (overrides rainbow separation)
         "is_visible": False,
         "profile_complete": False,
         "is_premium": is_permanent_premium,
