@@ -98,6 +98,7 @@ class UserProfile(BaseModel):
     # Gender/Rainbow visibility fields
     show_as: Optional[str] = ""  # "male" or "female" - gender appearance
     rainbow: Optional[bool] = False  # LGBTQ+ visibility flag
+    open_to_all: Optional[bool] = False  # Open to everyone (overrides rainbow separation)
 
 class UserResponse(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -139,6 +140,7 @@ class UserResponse(BaseModel):
     # Gender/Rainbow visibility fields
     show_as: Optional[str] = ""  # "male" or "female" - gender appearance
     rainbow: Optional[bool] = False  # LGBTQ+ visibility flag
+    open_to_all: Optional[bool] = False  # Open to everyone (overrides rainbow separation)
 
 class PasswordResetRequest(BaseModel):
     email: EmailStr
@@ -538,6 +540,7 @@ class WhoIsHereUser(BaseModel):
     is_self: bool = False  # True if this is the current user's own card
     show_as: Optional[str] = ""  # "male" or "female" - gender appearance
     rainbow: bool = False  # LGBTQ+ visibility flag
+    open_to_all: bool = False  # Open to everyone (overrides rainbow separation)
 
 class GlanceCreate(BaseModel):
     to_user_id: str
@@ -762,17 +765,17 @@ def check_visibility_match(current_user: dict, other_user: dict) -> bool:
     """
     Check if other_user should be visible to current_user based on:
     1. Gender matching (seeking preferences) - bidirectional
-    2. Rainbow boundary rules - STRICT separation (no cross-visibility)
+    2. Visibility boundary rules (rainbow + openToAll)
     
     Returns True if other_user should be visible to current_user.
     
     Visibility rules:
     - User A sees User B only if:
       a) A's seeking includes B's show_as AND B's seeking includes A's show_as
-      b) Rainbow boundaries are strictly matched:
-         - Non-rainbow users ONLY see non-rainbow users
-         - Rainbow users ONLY see rainbow users
-         - NO cross-visibility in either direction
+      b) Visibility boundary rules:
+         - If openToAll=true (either user): Full visibility (overrides rainbow separation)
+         - If rainbow=false AND openToAll=false: ONLY see rainbow=false AND openToAll=false
+         - If rainbow=true AND openToAll=false: ONLY see rainbow=true AND openToAll=false
     """
     # Get current user's seeking preferences and show_as
     current_seeking = current_user.get("seeking", [])
@@ -798,11 +801,19 @@ def check_visibility_match(current_user: dict, other_user: dict) -> bool:
         if current_show_as not in other_seeking_lower:
             return False
     
-    # 2. Rainbow boundary check - STRICT separation (no cross-visibility)
+    # 2. Visibility boundary check (rainbow + openToAll)
     current_rainbow = current_user.get("rainbow", False)
+    current_open_to_all = current_user.get("open_to_all", False)
     other_rainbow = other_user.get("rainbow", False)
+    other_open_to_all = other_user.get("open_to_all", False)
     
-    # Rainbow users ONLY see rainbow users, non-rainbow ONLY see non-rainbow
+    # If EITHER user has openToAll=true, they can see/be seen by everyone
+    if current_open_to_all or other_open_to_all:
+        return True
+    
+    # Otherwise, strict rainbow separation applies
+    # rainbow=false AND openToAll=false ONLY sees rainbow=false AND openToAll=false
+    # rainbow=true AND openToAll=false ONLY sees rainbow=true AND openToAll=false
     if current_rainbow != other_rainbow:
         return False
     

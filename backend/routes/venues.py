@@ -562,6 +562,7 @@ async def get_people_at_venue(
             "hide_photo_in_venues": hide_photo,  # Used to show silhouette instead of blurred photo
             "show_as": user.get("show_as", ""),
             "rainbow": user.get("rainbow", False),
+            "open_to_all": user.get("open_to_all", False),
         })
     
     # Sort: Premium first, then by check-in time

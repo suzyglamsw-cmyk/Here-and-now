@@ -326,11 +326,17 @@ Comprehensive list including:
     - **Reset Logic**: Changing show_as clears seeking and intent, forces re-selection
   - **Visibility Rules (Bidirectional)**:
     - User A sees User B only if A's seeking includes B's show_as AND B's seeking includes A's show_as
-    - **Rainbow STRICT separation**: rainbow=true ONLY sees rainbow=true; rainbow=false ONLY sees rainbow=false
-    - NO cross-visibility between rainbow and non-rainbow users in either direction
+    - **Visibility boundary (rainbow + openToAll)**:
+      - If `rainbow=false` AND `openToAll=false`: ONLY see users with `rainbow=false` AND `openToAll=false`
+      - If `rainbow=true` AND `openToAll=false`: ONLY see users with `rainbow=true` AND `openToAll=false`
+      - If `openToAll=true` (regardless of rainbow): See BOTH rainbow and non-rainbow users, appear to everyone
+    - `openToAll=true` overrides strict separation and creates full visibility
   - **Thumbnail Indicators**:
     - Gender indicator: "M" (soft blue) or "F" (soft pink) badge on person cards
-    - Rainbow arc icon: Subtle rainbow gradient circle for rainbow=true users
+    - Rainbow icon (🌈): Shown if `rainbow=true` AND `openToAll=false`
+    - Open to all icon (🤗): Shown if `openToAll=true` AND `rainbow=false`
+    - Both icons (🌈🤗): Shown if `rainbow=true` AND `openToAll=true`
+    - No icon if both are false
     - Applied to Discovery.js and WhosHere.js PersonCard components
   - **Backend Implementation**:
     - `check_visibility_match()` function in dependencies.py

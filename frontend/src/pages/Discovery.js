@@ -751,18 +751,29 @@ const PersonCard = ({ person, onGlance, onIcebreaker, glancing, isVenueContext }
           </div>
         )}
         
-        {/* Rainbow indicator - next to gender */}
-        {person.rainbow && (
-          <div 
-            className="absolute bottom-14 left-9 w-6 h-6 rounded-full flex items-center justify-center shadow-lg overflow-hidden"
-            style={{ 
-              background: 'linear-gradient(135deg, #ef4444 0%, #f97316 20%, #eab308 40%, #22c55e 60%, #3b82f6 80%, #8b5cf6 100%)'
-            }}
-            data-testid={`rainbow-indicator-${person.id}`}
-          >
-            <div className="w-4 h-4 rounded-full bg-slate-900/50" />
-          </div>
-        )}
+        {/* Rainbow/OpenToAll indicators - next to gender */}
+        {/* Rule: rainbow only = 🌈, open_to_all only = 🤗, both = 🌈🤗, neither = nothing */}
+        <div className="absolute bottom-14 left-9 flex gap-1">
+          {person.rainbow && (
+            <div 
+              className="w-6 h-6 rounded-full flex items-center justify-center shadow-lg overflow-hidden"
+              style={{ 
+                background: 'linear-gradient(135deg, #ef4444 0%, #f97316 20%, #eab308 40%, #22c55e 60%, #3b82f6 80%, #8b5cf6 100%)'
+              }}
+              data-testid={`rainbow-indicator-${person.id}`}
+            >
+              <div className="w-4 h-4 rounded-full bg-slate-900/50" />
+            </div>
+          )}
+          {person.open_to_all && (
+            <div 
+              className="w-6 h-6 rounded-full flex items-center justify-center shadow-lg bg-amber-400/90"
+              data-testid={`open-to-all-indicator-${person.id}`}
+            >
+              <span className="text-xs">🤗</span>
+            </div>
+          )}
+        </div>
         
         {/* Safety Halo */}
         {person.has_safety_halo && person.is_revealed && (

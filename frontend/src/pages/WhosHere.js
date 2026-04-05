@@ -644,18 +644,29 @@ const PersonCard = ({
           </div>
         )}
         
-        {/* Rainbow indicator - bottom right */}
-        {person.rainbow && (
-          <div 
-            className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center shadow-md overflow-hidden"
-            style={{ 
-              background: 'linear-gradient(135deg, #ef4444 0%, #f97316 20%, #eab308 40%, #22c55e 60%, #3b82f6 80%, #8b5cf6 100%)'
-            }}
-            data-testid={`rainbow-indicator-${person.id}`}
-          >
-            <div className="w-3 h-3 rounded-full bg-slate-900/40" />
-          </div>
-        )}
+        {/* Rainbow/OpenToAll indicators - bottom right */}
+        {/* Rule: rainbow only = 🌈, open_to_all only = 🤗, both = 🌈🤗, neither = nothing */}
+        <div className="absolute -bottom-1 -right-1 flex gap-0.5">
+          {person.rainbow && (
+            <div 
+              className="w-5 h-5 rounded-full flex items-center justify-center shadow-md overflow-hidden"
+              style={{ 
+                background: 'linear-gradient(135deg, #ef4444 0%, #f97316 20%, #eab308 40%, #22c55e 60%, #3b82f6 80%, #8b5cf6 100%)'
+              }}
+              data-testid={`rainbow-indicator-${person.id}`}
+            >
+              <div className="w-3 h-3 rounded-full bg-slate-900/40" />
+            </div>
+          )}
+          {person.open_to_all && (
+            <div 
+              className="w-5 h-5 rounded-full flex items-center justify-center shadow-md bg-amber-400/90"
+              data-testid={`open-to-all-indicator-${person.id}`}
+            >
+              <span className="text-[10px]">🤗</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Info */}

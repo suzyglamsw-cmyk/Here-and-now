@@ -175,6 +175,7 @@ async def get_people_not_here(
             "distance_miles": round(distance, 1),
             "show_as": user.get("show_as", ""),
             "rainbow": user.get("rainbow", False),
+            "open_to_all": user.get("open_to_all", False),
         })
     
     # Sort: Premium first, then by distance

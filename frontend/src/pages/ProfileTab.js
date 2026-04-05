@@ -116,6 +116,7 @@ const Profile = () => {
     show_as: "",
     seeking: [],
     rainbow: false,
+    open_to_all: false,
   });
 
   // Track if show_as is being changed (to trigger reset warning)
@@ -139,6 +140,7 @@ const Profile = () => {
         show_as: user.show_as || "",
         seeking: user.seeking || [],
         rainbow: user.rainbow || false,
+        open_to_all: user.open_to_all || false,
       });
       setShowAsChanged(false);
       // Fetch privacy settings
@@ -302,6 +304,7 @@ const Profile = () => {
         show_as: formData.show_as,
         seeking: formData.seeking,
         rainbow: formData.rainbow,
+        open_to_all: formData.open_to_all,
       });
       
       updateUser(response.data);
@@ -1266,6 +1269,50 @@ const Profile = () => {
                   <div 
                     className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow-md transition-all duration-300 ${
                       formData.rainbow ? 'left-7' : 'left-1'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+
+            {/* Open to All Toggle */}
+            <div 
+              className="p-5 rounded-[20px] transition-all duration-300"
+              style={{ 
+                background: formData.open_to_all ? 'rgba(251, 191, 36, 0.15)' : 'rgba(139, 92, 246, 0.08)',
+                border: formData.open_to_all ? '2px solid rgba(251, 191, 36, 0.5)' : '2px solid rgba(168, 85, 247, 0.3)',
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3 flex-1 mr-4">
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
+                    formData.open_to_all ? 'bg-amber-500/30' : 'bg-white/5'
+                  }`}>
+                    <span className="text-lg">🤗</span>
+                  </div>
+                  <div>
+                    <p className={`font-medium transition-colors ${formData.open_to_all ? 'text-amber-100' : 'text-purple-200/70'}`}>
+                      Open to everyone
+                    </p>
+                    <p className="text-xs mt-0.5 text-purple-300/60">
+                      I'm happy to connect with anyone.
+                    </p>
+                  </div>
+                </div>
+                
+                <button
+                  type="button"
+                  data-testid="open-to-all-toggle"
+                  onClick={() => setFormData({ ...formData, open_to_all: !formData.open_to_all })}
+                  className={`relative w-14 h-8 rounded-full transition-all duration-300 ${
+                    formData.open_to_all 
+                      ? 'bg-gradient-to-r from-amber-400 to-orange-400 shadow-lg shadow-amber-500/30' 
+                      : 'bg-white/10'
+                  }`}
+                >
+                  <div 
+                    className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow-md transition-all duration-300 ${
+                      formData.open_to_all ? 'left-7' : 'left-1'
                     }`}
                   />
                 </button>

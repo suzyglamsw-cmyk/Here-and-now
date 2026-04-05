@@ -283,6 +283,10 @@ async def update_profile(data: UserProfile, current_user: dict = Depends(get_cur
     if "rainbow" in update_data:
         update_data["rainbow"] = bool(update_data["rainbow"])
     
+    # Validate open_to_all flag (boolean)
+    if "open_to_all" in update_data:
+        update_data["open_to_all"] = bool(update_data["open_to_all"])
+    
     # Remove celebrity_crush if present (deprecated field)
     if "celebrity_crush" in update_data:
         del update_data["celebrity_crush"]
