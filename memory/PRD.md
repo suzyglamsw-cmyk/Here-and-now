@@ -314,6 +314,28 @@ Comprehensive list including:
     - Photo 1 → photos[0], Photo 2 → photos[1], Photo 3 → photos[2]
   - **Premium badge now shows in self-preview** (both before and after reveal)
   - **Removed Safety Halo** from profile editor and preview (not needed for final product)
+- ✅ **Gender & Rainbow Visibility System (April 2026)**
+  - **Onboarding Gender Step**: New `/onboarding-gender` page after registration
+    - User selects how they appear: Male or Female
+    - Includes gentle inclusivity message
+    - Does NOT ask about rainbow at this stage
+  - **Profile Gender & Identity Section**:
+    - "I appear as" (show_as): Male/Female single-select buttons
+    - "I'm looking to meet" (seeking): Multi-select (can select Men, Women, or both)
+    - Rainbow toggle: "🌈 Rainbow / Rainbow-friendly" with description "I'm LGBTQ+ and/or open to seeing LGBTQ+ people."
+    - **Reset Logic**: Changing show_as clears seeking and intent, forces re-selection
+  - **Visibility Rules (Bidirectional)**:
+    - User A sees User B only if A's seeking includes B's show_as AND B's seeking includes A's show_as
+    - Non-rainbow users ONLY see non-rainbow users
+    - Rainbow users can see both but ONLY appear to other rainbow users
+  - **Thumbnail Indicators**:
+    - Gender indicator: "M" (soft blue) or "F" (soft pink) badge on person cards
+    - Rainbow arc icon: Subtle rainbow gradient circle for rainbow=true users
+    - Applied to Discovery.js and WhosHere.js PersonCard components
+  - **Backend Implementation**:
+    - `check_visibility_match()` function in dependencies.py
+    - Applied to: /discovery/not-here, /discovery/here, /venues/{id}/people
+    - WhoIsHereUser model includes show_as and rainbow fields
 
 ## Known Technical Debt
 
