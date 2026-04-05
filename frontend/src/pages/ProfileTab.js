@@ -1031,7 +1031,10 @@ const Profile = () => {
 
           {/* Bio Section (below Presence Note per user request) */}
           <section className="space-y-3">
-            <Label className="text-purple-200/70 text-sm font-medium">About You</Label>
+            <div>
+              <Label className="text-purple-200/70 text-sm font-medium">About You</Label>
+              <p className="text-xs pl-1 text-purple-300/60 mt-1">Information visible after mutual reveal</p>
+            </div>
             <Textarea
               value={formData.bio}
               onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
@@ -1315,7 +1318,7 @@ const Profile = () => {
               <Label className={`text-sm ${showAsChanged ? 'text-amber-300' : 'text-purple-200/70'}`}>
                 I'm looking to meet {showAsChanged && <span className="text-amber-400">*</span>}
               </Label>
-              <p className="text-xs pl-1 text-purple-300/70">Select one or both</p>
+              <p className="text-xs pl-1 text-purple-300/70">Select one <span className="underline">or</span> <span className="font-bold">both</span></p>
               <div className="flex gap-3">
                 <button
                   type="button"
