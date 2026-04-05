@@ -1495,24 +1495,21 @@ const Profile = () => {
 
           {/* NOTE: who_open_to_meeting is REMOVED - visibility controlled by seeking, rainbow, openToAll */}
 
-          {/* Divider */}
-          <div className="h-px bg-gradient-to-r from-transparent via-purple-500/20 to-transparent" />
-
-          {/* Home Area Section */}
-          <section className="space-y-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500/20 to-emerald-500/20 flex items-center justify-center">
-                <Home className="w-5 h-5 text-teal-400" />
+          {/* Home Area Section - Compact */}
+          <section className="space-y-3 mt-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500/20 to-emerald-500/20 flex items-center justify-center">
+                <Home className="w-4 h-4 text-teal-400" />
               </div>
               <div>
-                <h2 className="text-lg font-medium text-purple-100">Home area</h2>
-                <p className="text-sm text-purple-300/70">Where you're based (shown after reveal)</p>
+                <h2 className="text-base font-medium text-purple-100">Home area</h2>
+                <p className="text-xs text-purple-300/70">Where you're based (shown after reveal)</p>
               </div>
             </div>
 
             {/* Country Picker */}
-            <div className="space-y-2.5">
-              <Label className="text-purple-200/70 text-sm">Country</Label>
+            <div className="space-y-1.5">
+              <Label className="text-purple-200/70 text-xs">Country</Label>
               <div className="relative">
                 <select
                   value={formData.home_country}
@@ -1523,7 +1520,7 @@ const Profile = () => {
                       home_region: "" // Reset region when country changes
                     });
                   }}
-                  className="w-full h-14 px-6 pr-12 rounded-[20px] text-white appearance-none cursor-pointer"
+                  className="w-full h-10 px-4 pr-10 rounded-[16px] text-sm text-white appearance-none cursor-pointer"
                   style={{ 
                     background: 'rgba(139, 92, 246, 0.08)',
                     border: '2px solid rgba(168, 85, 247, 0.3)',
@@ -1537,19 +1534,19 @@ const Profile = () => {
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-purple-400/50 pointer-events-none" />
+                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-400/50 pointer-events-none" />
               </div>
             </div>
 
             {/* Region Picker (only show if country selected) */}
             {formData.home_country && (
-              <div className="space-y-2.5">
-                <Label className="text-purple-200/70 text-sm">Region</Label>
+              <div className="space-y-1.5">
+                <Label className="text-purple-200/70 text-xs">Region</Label>
                 <div className="relative">
                   <select
                     value={formData.home_region}
                     onChange={(e) => setFormData({ ...formData, home_region: e.target.value })}
-                    className="w-full h-14 px-6 pr-12 rounded-[20px] text-white appearance-none cursor-pointer"
+                    className="w-full h-10 px-4 pr-10 rounded-[16px] text-sm text-white appearance-none cursor-pointer"
                     style={{ 
                       background: 'rgba(139, 92, 246, 0.08)',
                       border: '2px solid rgba(168, 85, 247, 0.3)',
@@ -1563,7 +1560,7 @@ const Profile = () => {
                       </option>
                     ))}
                   </select>
-                  <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-purple-400/50 pointer-events-none" />
+                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-400/50 pointer-events-none" />
                 </div>
               </div>
             )}
