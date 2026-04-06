@@ -313,6 +313,16 @@ Comprehensive list including:
   - ✅ Discovery cards show Glance and Icebreaker buttons pre-reveal
   - ✅ Discovery cards show "Sent" state when icebreaker already sent
   - ✅ Message button locked with "Reveal via mutual glance or responded icebreaker to unlock" message
+- ✅ **Cloud Photo Storage (Amazon S3 via Emergent Object Storage)** (April 2026):
+  - ✅ All profile photos uploaded to cloud storage (no local/temp storage)
+  - ✅ Server-side blurring: Creates both clear and blurred versions on upload
+  - ✅ `/api/photos/serve/{photo_id}` - Serves clear version (for revealed profiles)
+  - ✅ `/api/photos/serve/{photo_id}?blur=true` - Serves blurred version (for pre-reveal)
+  - ✅ Discovery endpoints return avatar URLs with `?blur=true` for pre-reveal profiles
+  - ✅ Frontend BlurredImage component updated to use server-side blurred images
+  - ✅ Legacy base64 photos in MongoDB still work (backward compatible)
+  - ✅ Photo deletion is soft delete (preserves cloud storage for audit)
+  - ✅ AI moderation runs before upload (blocks QR codes, screenshots, inappropriate content)
 
 ### Bug Fixes Applied
 - ✅ Check-in persistence (root cause: FastAPI route ordering in server.py)
@@ -406,4 +416,4 @@ Comprehensive list including:
 - REACT_APP_BACKEND_URL
 
 ---
-*Last Updated: April 6, 2026 - Reveal Logic V2*
+*Last Updated: April 6, 2026 - Cloud Photo Storage*
