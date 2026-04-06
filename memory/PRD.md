@@ -323,6 +323,18 @@ Comprehensive list including:
   - ✅ Legacy base64 photos in MongoDB still work (backward compatible)
   - ✅ Photo deletion is soft delete (preserves cloud storage for audit)
   - ✅ AI moderation runs before upload (blocks QR codes, screenshots, inappropriate content)
+- ✅ **Block & Safety System** (April 2026):
+  - ✅ **Block button on main profile** (pre-reveal and post-reveal)
+  - ✅ **Bilateral blocking**: Both users added to each other's blocked lists
+  - ✅ Block removes from discovery, matches, recents, and chat for both users
+  - ✅ Block clears all notifications and chat facilities
+  - ✅ Blocked profile shows "Unavailable" with soft message
+  - ✅ Blocked users get soft error: "Sorry, this user is unavailable right now."
+  - ✅ **Blocked Users list in Settings → Safety** with Unblock option
+  - ✅ **Unblock restores visibility** but NOT previous match/reveal/chat state
+  - ✅ **Matches section updated**: "Stay Matched & Clear" (soft archive) and "Unmatch & Clear" (hard reset)
+  - ✅ **Note added**: "Unmatching does not block. To block a user, visit their profile."
+  - ✅ Unmatch endpoint removes connections/glances without blocking
 
 ### Bug Fixes Applied
 - ✅ Check-in persistence (root cause: FastAPI route ordering in server.py)
@@ -416,4 +428,4 @@ Comprehensive list including:
 - REACT_APP_BACKEND_URL
 
 ---
-*Last Updated: April 6, 2026 - Cloud Photo Storage*
+*Last Updated: April 6, 2026 - Block & Safety System*
