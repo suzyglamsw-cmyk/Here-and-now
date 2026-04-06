@@ -22,6 +22,7 @@ from PIL.ExifTags import TAGS
 from pywebpush import webpush, WebPushException
 from math import cos, radians
 import stripe
+from routes.dependencies import check_visibility_match
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -3438,10 +3439,8 @@ async def get_people_at_venue(
         if not user_photos and not user_avatar:
             continue
         
-        # Dating compatibility filter
-        # If current user's intent is "dating" or "open_to_both", apply matching logic
-        # If current user's intent is "friends", show everyone (no filtering)
-        if not check_dating_compatibility(current_user, user):
+        # Visibility check using new system (gender, seeking, rainbow, openToAll)
+        if not check_visibility_match(current_user, user):
             continue
         
         # Apply last_active filter
@@ -3624,10 +3623,8 @@ async def get_people_not_here(
         if distance < min_miles or distance > max_miles:
             continue
         
-        # Dating compatibility filter
-        # If current user's intent is "dating" or "open_to_both", apply matching logic
-        # If current user's intent is "friends", show everyone (no filtering)
-        if not check_dating_compatibility(current_user, user):
+        # Visibility check using new system (gender, seeking, rainbow, openToAll)
+        if not check_visibility_match(current_user, user):
             continue
         
         # Check glance status
@@ -3764,10 +3761,8 @@ async def get_people_here(
         if distance > 25:
             continue
         
-        # Dating compatibility filter
-        # If current user's intent is "dating" or "open_to_both", apply matching logic
-        # If current user's intent is "friends", show everyone (no filtering)
-        if not check_dating_compatibility(current_user, user):
+        # Visibility check using new system (gender, seeking, rainbow, openToAll)
+        if not check_visibility_match(current_user, user):
             continue
         
         # Check glance status
