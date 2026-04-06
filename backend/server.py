@@ -4908,26 +4908,27 @@ async def get_user_profile(user_id: str, current_user: dict = Depends(get_curren
     friend_request_sent = existing_friend is not None and existing_friend.get("status") == "pending" and existing_friend.get("user1_id") == current_user["id"]
     friend_request_received = existing_friend is not None and existing_friend.get("status") == "pending" and existing_friend.get("user2_id") == current_user["id"]
     
-    # Determine if profile photo should be revealed (STRICT: accepted icebreaker/chat request ONLY)
-    # Reveal happens ONLY when:
-    # 1. An icebreaker was accepted (either direction)
-    # 2. OR a chat request was accepted (either direction)
-    # 3. OR users are already friends
-    # Note: Glances do NOT trigger reveal - they are soft interest indicators only
+    # Determine if profile photo should be revealed
+    # REVEAL TRIGGERS (either one triggers reveal for BOTH users):
+    # 1. Mutual glance (both users glanced at each other)
+    # 2. Accepted icebreaker (icebreaker sent + response accepted)
+    # 3. Accepted chat request
+    # 4. Already friends
     # Note: Presence/venue status NEVER triggers reveal
-    is_revealed = is_friend
+    is_revealed = is_mutual or is_friend
     
-    # Check accepted icebreaker (either direction = mutual interest = reveal)
-    accepted_icebreaker = await db.icebreakers.find_one({
-        "$or": [
-            {"from_user_id": current_user["id"], "to_user_id": user_id, "status": "accepted"},
-            {"from_user_id": user_id, "to_user_id": current_user["id"], "status": "accepted"}
-        ]
-    })
-    if accepted_icebreaker:
-        is_revealed = True
+    # Check accepted icebreaker (either direction = reveal)
+    if not is_revealed:
+        accepted_icebreaker = await db.icebreakers.find_one({
+            "$or": [
+                {"from_user_id": current_user["id"], "to_user_id": user_id, "status": "accepted"},
+                {"from_user_id": user_id, "to_user_id": current_user["id"], "status": "accepted"}
+            ]
+        })
+        if accepted_icebreaker:
+            is_revealed = True
     
-    # Check accepted chat request (either direction = mutual interest = reveal)
+    # Check accepted chat request (either direction = reveal)
     if not is_revealed:
         accepted_chat = await db.chat_requests.find_one({
             "$or": [

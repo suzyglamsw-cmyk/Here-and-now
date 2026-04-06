@@ -558,8 +558,12 @@ async def get_people_at_venue(
             "status": "pending"
         }) is not None
         
-        # STRICT REVEAL LOGIC: Icebreaker/chat request acceptance ONLY
-        # Glances and presence/venue status do NOT trigger reveal
+        # REVEAL LOGIC - Two triggers:
+        # 1. Mutual glance (both users glanced at each other)
+        # 2. Accepted icebreaker/chat request (creates connection)
+        # Note: Presence/venue status NEVER triggers reveal
+        is_mutual_glance = has_glanced_at_me and i_glanced_at
+        
         # Check for accepted icebreaker (either direction)
         accepted_icebreaker = await db.icebreakers.find_one({
             "$or": [
@@ -576,8 +580,8 @@ async def get_people_at_venue(
             ]
         })
         
-        # Revealed ONLY if accepted icebreaker/chat request OR connected (which happens after acceptance)
-        is_revealed = bool(accepted_icebreaker) or bool(accepted_chat) or is_connected
+        # Revealed if: mutual glance OR accepted icebreaker/chat OR connected
+        is_revealed = is_mutual_glance or bool(accepted_icebreaker) or bool(accepted_chat) or is_connected
         
         first_name = get_first_name(user.get("display_name", "Someone"))
         

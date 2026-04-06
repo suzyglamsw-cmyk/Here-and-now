@@ -956,10 +956,35 @@ const PersonCard = ({ person, onGlance, onIcebreaker, glancing, isVenueContext }
       
       {/* Actions */}
       <div className="p-3 flex gap-2">
-        {/* Pre-reveal state: Show Icebreaker as primary action (triggers reveal) */}
+        {/* Pre-reveal state: Show Glance and Icebreaker buttons (both can trigger reveal) */}
         {!person.is_revealed ? (
           <>
-            {/* Icebreaker Button - Primary Action for Reveal */}
+            {/* Glance Button - Can trigger reveal via mutual glance */}
+            <Button
+              size="sm"
+              variant="ghost"
+              className={`flex-1 ${
+                person.i_glanced_at
+                  ? "bg-pink-500/20 text-pink-400"
+                  : "bg-white/5 text-slate-300 hover:bg-white/10"
+              }`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onGlance(person.id);
+              }}
+              disabled={glancing === person.id || person.i_glanced_at}
+            >
+              {glancing === person.id ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <Eye className="w-4 h-4 mr-1" />
+                  {person.i_glanced_at ? "Glanced" : "Glance"}
+                </>
+              )}
+            </Button>
+            
+            {/* Icebreaker Button - Can trigger reveal via response */}
             {person.icebreaker_sent ? (
               <Button
                 size="sm"
@@ -985,41 +1010,17 @@ const PersonCard = ({ person, onGlance, onIcebreaker, glancing, isVenueContext }
             ) : (
               <Button
                 size="sm"
-                className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:opacity-90"
+                variant="ghost"
+                className="flex-1 bg-white/5 text-slate-300 hover:bg-white/10"
                 onClick={(e) => {
                   e.stopPropagation();
                   onIcebreaker(person);
                 }}
               >
                 <Snowflake className="w-4 h-4 mr-1" />
-                Icebreaker
+                Ice
               </Button>
             )}
-            
-            {/* Glance Button - Soft interest indicator (does NOT trigger reveal) */}
-            <Button
-              size="sm"
-              variant="ghost"
-              className={`flex-1 ${
-                person.i_glanced_at
-                  ? "bg-pink-500/20 text-pink-400"
-                  : "bg-white/5 text-slate-300 hover:bg-white/10"
-              }`}
-              onClick={(e) => {
-                e.stopPropagation();
-                onGlance(person.id);
-              }}
-              disabled={glancing === person.id || person.i_glanced_at}
-            >
-              {glancing === person.id ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <>
-                  <Eye className="w-4 h-4 mr-1" />
-                  {person.i_glanced_at ? "Glanced" : "Glance"}
-                </>
-              )}
-            </Button>
           </>
         ) : person.is_connected ? (
           /* Post-reveal AND connected: Show Message button */
