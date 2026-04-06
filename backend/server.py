@@ -755,6 +755,7 @@ class WhoIsHereUser(BaseModel):
     # Safety Halo (shown after reveal)
     has_safety_halo: bool = False
     distance_miles: Optional[float] = None  # For Not Here mode
+    is_self: bool = False  # Flag to identify current user in feed
 
 def calculate_safety_halo(user_data: dict) -> bool:
     """Calculate if user qualifies for Safety Halo badge"""
@@ -3562,13 +3563,14 @@ async def get_people_not_here(
         if not user_lat or not user_lng:
             raise HTTPException(status_code=400, detail="Location required. Please enable GPS to see nearby users.")
     
-    # Parse radius - two options: 0-10 or 10-25 miles
-    if radius == "10-25":
-        min_miles = 10
-        max_miles = 25
-    else:  # Default to 0-10
+    # Parse radius - can be 0-10, 10-25, 0-25, 0-50, or 0-100 miles
+    try:
+        parts = radius.split("-")
+        min_miles = int(parts[0]) if len(parts) > 0 else 0
+        max_miles = int(parts[1]) if len(parts) > 1 else 25
+    except:
         min_miles = 0
-        max_miles = 10
+        max_miles = 25  # Default to 0-25 miles
     
     now = datetime.now(timezone.utc)
     
@@ -3580,12 +3582,14 @@ async def get_people_not_here(
     
     # Find visible users - must have visibility="visible" OR is_visible=True (backward compat)
     # AND presence_status = "not_here" (or not set, defaulting to not_here)
+    # NOTE: Include current user in the feed (they can see themselves)
     users = await db.users.find({
         "$and": [
             {
                 "$or": [
                     {"visibility": "visible"},
-                    {"visibility": {"$exists": False}, "is_visible": True}
+                    {"visibility": {"$exists": False}, "is_visible": True},
+                    {"visibility": {"$exists": False}, "is_visible": {"$exists": False}}  # No visibility set = visible by default
                 ]
             },
             {
@@ -3594,64 +3598,81 @@ async def get_people_not_here(
                     {"presence_status": {"$exists": False}}  # Default to not_here
                 ]
             }
-        ],
-        "id": {"$ne": current_user["id"]}
+        ]
+        # Removed: "id": {"$ne": current_user["id"]} - include current user in feed
     }, {"_id": 0, "password": 0}).to_list(500)
     
     people = []
+    current_user_entry = None  # Track current user separately
+    
     for user in users:
-        # Skip users with hidden visibility
-        if user.get("visibility") == "hidden":
+        is_self = user["id"] == current_user["id"]
+        
+        if is_self:
+            logger.info(f"Found SELF in query: {user.get('display_name')}")
+        
+        # Skip users with hidden visibility (but not self)
+        if not is_self and user.get("visibility") == "hidden":
             continue
             
-        # Skip users without photos
+        # Skip users without photos (but not self)
         user_photos = user.get("photos", []) or []
         user_avatar = user.get("avatar_url", "")
-        if not user_photos and not user_avatar:
+        if not is_self and not user_photos and not user_avatar:
             continue
         
         # Calculate distance (need user location)
         target_lat = user.get("lat")
         target_lng = user.get("lng")
         
-        if not target_lat or not target_lng:
-            continue  # Skip users without location
+        # For self, distance is 0
+        if is_self:
+            distance = 0
+        elif not target_lat or not target_lng:
+            continue  # Skip other users without location
+        else:
+            distance = calculate_distance_miles(user_lat, user_lng, target_lat, target_lng)
         
-        distance = calculate_distance_miles(user_lat, user_lng, target_lat, target_lng)
-        
-        # Filter by radius
-        if distance < min_miles or distance > max_miles:
+        # Filter by radius (but not self - always include self)
+        if not is_self and (distance < min_miles or distance > max_miles):
             continue
         
-        # Visibility check using new system (gender, seeking, rainbow, openToAll)
-        if not check_visibility_match(current_user, user):
+        # Visibility check using new system - skip for self
+        if not is_self and not check_visibility_match(current_user, user):
             continue
         
-        # Check glance status
-        has_glanced_at_me = await db.glances.find_one({
-            "from_user_id": user["id"],
-            "to_user_id": current_user["id"]
-        }) is not None
-        
-        i_glanced_at = await db.glances.find_one({
-            "from_user_id": current_user["id"],
-            "to_user_id": user["id"]
-        }) is not None
-        
-        # Check connection status
-        is_connected = await db.connections.find_one({
-            "$or": [
-                {"user1_id": current_user["id"], "user2_id": user["id"]},
-                {"user1_id": user["id"], "user2_id": current_user["id"]}
-            ]
-        }) is not None
-        
-        # Revealed if mutual glance or connected
-        is_revealed = (has_glanced_at_me and i_glanced_at) or is_connected
+        # For self, mark as revealed and set special flags
+        if is_self:
+            has_glanced_at_me = False
+            i_glanced_at = False
+            is_connected = False
+            is_revealed = True  # Always revealed to self
+        else:
+            # Check glance status
+            has_glanced_at_me = await db.glances.find_one({
+                "from_user_id": user["id"],
+                "to_user_id": current_user["id"]
+            }) is not None
+            
+            i_glanced_at = await db.glances.find_one({
+                "from_user_id": current_user["id"],
+                "to_user_id": user["id"]
+            }) is not None
+            
+            # Check connection status
+            is_connected = await db.connections.find_one({
+                "$or": [
+                    {"user1_id": current_user["id"], "user2_id": user["id"]},
+                    {"user1_id": user["id"], "user2_id": current_user["id"]}
+                ]
+            }) is not None
+            
+            # Revealed if mutual glance or connected
+            is_revealed = (has_glanced_at_me and i_glanced_at) or is_connected
         
         first_name = get_first_name(user.get("display_name", "Someone"))
         
-        people.append({
+        entry = {
             "id": user["id"],
             "display_name": user["display_name"] if is_revealed else first_name,
             "first_name": first_name,
@@ -3672,16 +3693,28 @@ async def get_people_not_here(
             "voice_intro_url": user.get("voice_intro_url", "") if is_revealed else "",
             "has_safety_halo": calculate_safety_halo(user) if is_revealed else False,
             "distance_miles": round(distance, 1),
-        })
+            "is_self": is_self,  # Flag to identify current user in feed
+        }
+        
+        if is_self:
+            current_user_entry = entry
+        else:
+            people.append(entry)
     
-    # Sort: Premium first, then by distance
+    # Sort: Current user first, then Premium, then by distance
     premium = [p for p in people if p.get("is_premium")]
     non_premium = [p for p in people if not p.get("is_premium")]
     
     premium.sort(key=lambda x: x.get("distance_miles", 999))
     non_premium.sort(key=lambda x: x.get("distance_miles", 999))
     
-    return premium + non_premium
+    # Put current user at the beginning if they exist
+    result = []
+    if current_user_entry:
+        result.append(current_user_entry)
+    result.extend(premium + non_premium)
+    
+    return result
 
 @api_router.get("/discovery/here", response_model=List[WhoIsHereUser])
 async def get_people_here(
