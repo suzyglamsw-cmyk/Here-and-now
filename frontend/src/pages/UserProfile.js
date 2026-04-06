@@ -469,7 +469,7 @@ const UserProfile = () => {
               {(!profile.can_message || !profile.can_add_friend) && !profile.is_friend && (
                 <p className="text-center text-slate-500 text-xs px-4">
                   {!profile.is_revealed 
-                    ? "Mutual reveal required. Send a glance, icebreaker, or chat request."
+                    ? "Send an Icebreaker to show interest. Reveal happens when they respond."
                     : "Unlocks after an icebreaker or chat request is accepted."
                   }
                 </p>

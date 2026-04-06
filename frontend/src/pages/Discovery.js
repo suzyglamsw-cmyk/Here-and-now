@@ -956,9 +956,47 @@ const PersonCard = ({ person, onGlance, onIcebreaker, glancing, isVenueContext }
       
       {/* Actions */}
       <div className="p-3 flex gap-2">
-        {/* Pre-reveal state: Show Glance and Icebreaker buttons */}
+        {/* Pre-reveal state: Show Icebreaker as primary action (triggers reveal) */}
         {!person.is_revealed ? (
           <>
+            {/* Icebreaker Button - Primary Action for Reveal */}
+            {person.icebreaker_sent ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="flex-1 bg-amber-500/20 text-amber-400 cursor-default"
+                disabled
+              >
+                <Snowflake className="w-4 h-4 mr-1" />
+                Sent
+              </Button>
+            ) : person.icebreaker_received ? (
+              <Button
+                size="sm"
+                className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-500 text-white animate-pulse"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/profile/${person.id}`);
+                }}
+              >
+                <Snowflake className="w-4 h-4 mr-1" />
+                Reply
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:opacity-90"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onIcebreaker(person);
+                }}
+              >
+                <Snowflake className="w-4 h-4 mr-1" />
+                Icebreaker
+              </Button>
+            )}
+            
+            {/* Glance Button - Soft interest indicator (does NOT trigger reveal) */}
             <Button
               size="sm"
               variant="ghost"
@@ -981,18 +1019,6 @@ const PersonCard = ({ person, onGlance, onIcebreaker, glancing, isVenueContext }
                   {person.i_glanced_at ? "Glanced" : "Glance"}
                 </>
               )}
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="flex-1 bg-white/5 text-slate-300 hover:bg-white/10"
-              onClick={(e) => {
-                e.stopPropagation();
-                onIcebreaker(person);
-              }}
-            >
-              <Snowflake className="w-4 h-4 mr-1" />
-              Ice
             </Button>
           </>
         ) : person.is_connected ? (

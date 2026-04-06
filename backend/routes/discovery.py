@@ -140,8 +140,10 @@ async def get_people_not_here(
             i_glanced_at = False
             is_connected = False
             is_revealed = False  # Self should see their card as others see it (blurred/pre-reveal)
+            icebreaker_sent = False
+            icebreaker_received = False
         else:
-            # Check glance status
+            # Check glance status (soft interest indicator, does NOT trigger reveal)
             has_glanced_at_me = await db.glances.find_one({
                 "from_user_id": user["id"],
                 "to_user_id": current_user["id"]
@@ -152,7 +154,7 @@ async def get_people_not_here(
                 "to_user_id": user["id"]
             }) is not None
             
-            # Check connection status
+            # Check connection status (created when icebreaker/chat request is accepted)
             is_connected = await db.connections.find_one({
                 "$or": [
                     {"user1_id": current_user["id"], "user2_id": user["id"]},
@@ -160,8 +162,38 @@ async def get_people_not_here(
                 ]
             }) is not None
             
-            # Revealed if mutual glance or connected
-            is_revealed = (has_glanced_at_me and i_glanced_at) or is_connected
+            # Check icebreaker status
+            icebreaker_sent = await db.icebreakers.find_one({
+                "from_user_id": current_user["id"],
+                "to_user_id": user["id"]
+            }) is not None
+            
+            icebreaker_received = await db.icebreakers.find_one({
+                "from_user_id": user["id"],
+                "to_user_id": current_user["id"],
+                "status": "pending"
+            }) is not None
+            
+            # STRICT REVEAL LOGIC: Icebreaker/chat request acceptance ONLY
+            # Glances and presence/venue status do NOT trigger reveal
+            # Check for accepted icebreaker (either direction)
+            accepted_icebreaker = await db.icebreakers.find_one({
+                "$or": [
+                    {"from_user_id": current_user["id"], "to_user_id": user["id"], "status": "accepted"},
+                    {"from_user_id": user["id"], "to_user_id": current_user["id"], "status": "accepted"}
+                ]
+            })
+            
+            # Check for accepted chat request (either direction)
+            accepted_chat = await db.chat_requests.find_one({
+                "$or": [
+                    {"from_user_id": current_user["id"], "to_user_id": user["id"], "status": "accepted"},
+                    {"from_user_id": user["id"], "to_user_id": current_user["id"], "status": "accepted"}
+                ]
+            })
+            
+            # Revealed ONLY if accepted icebreaker/chat request OR connected (which happens after acceptance)
+            is_revealed = bool(accepted_icebreaker) or bool(accepted_chat) or is_connected
         
         first_name = get_first_name(user.get("display_name", "Someone"))
         
@@ -201,6 +233,8 @@ async def get_people_not_here(
             "open_to_all": user.get("open_to_all", False),
             "intent": user.get("intent", ""),
             "is_self": is_self,
+            "icebreaker_sent": icebreaker_sent,
+            "icebreaker_received": icebreaker_received,
         }
         
         if is_self:
@@ -364,7 +398,7 @@ async def get_people_here(
         if not check_visibility_match(current_user, user):
             continue
         
-        # Check glance status
+        # Check glance status (soft interest indicator, does NOT trigger reveal)
         has_glanced_at_me = await db.glances.find_one({
             "from_user_id": user["id"],
             "to_user_id": current_user["id"]
@@ -382,7 +416,38 @@ async def get_people_here(
             ]
         }) is not None
         
-        is_revealed = (has_glanced_at_me and i_glanced_at) or is_connected
+        # Check icebreaker status
+        icebreaker_sent = await db.icebreakers.find_one({
+            "from_user_id": current_user["id"],
+            "to_user_id": user["id"]
+        }) is not None
+        
+        icebreaker_received = await db.icebreakers.find_one({
+            "from_user_id": user["id"],
+            "to_user_id": current_user["id"],
+            "status": "pending"
+        }) is not None
+        
+        # STRICT REVEAL LOGIC: Icebreaker/chat request acceptance ONLY
+        # Glances and presence/venue status do NOT trigger reveal
+        # Check for accepted icebreaker (either direction)
+        accepted_icebreaker = await db.icebreakers.find_one({
+            "$or": [
+                {"from_user_id": current_user["id"], "to_user_id": user["id"], "status": "accepted"},
+                {"from_user_id": user["id"], "to_user_id": current_user["id"], "status": "accepted"}
+            ]
+        })
+        
+        # Check for accepted chat request (either direction)
+        accepted_chat = await db.chat_requests.find_one({
+            "$or": [
+                {"from_user_id": current_user["id"], "to_user_id": user["id"], "status": "accepted"},
+                {"from_user_id": user["id"], "to_user_id": current_user["id"], "status": "accepted"}
+            ]
+        })
+        
+        # Revealed ONLY if accepted icebreaker/chat request OR connected (which happens after acceptance)
+        is_revealed = bool(accepted_icebreaker) or bool(accepted_chat) or is_connected
         
         first_name = get_first_name(user.get("display_name", "Someone"))
         
@@ -433,6 +498,8 @@ async def get_people_here(
             "show_as": user.get("show_as", ""),
             "rainbow": user.get("rainbow", False),
             "open_to_all": user.get("open_to_all", False),
+            "icebreaker_sent": icebreaker_sent,
+            "icebreaker_received": icebreaker_received,
         })
     
     # Sort: Premium first, then by distance

@@ -756,6 +756,15 @@ class WhoIsHereUser(BaseModel):
     has_safety_halo: bool = False
     distance_miles: Optional[float] = None  # For Not Here mode
     is_self: bool = False  # Flag to identify current user in feed
+    # Icebreaker states for reveal logic
+    icebreaker_sent: bool = False  # True if current user sent icebreaker to this user
+    icebreaker_received: bool = False  # True if this user sent pending icebreaker to current user
+    # Venue-specific fields
+    hide_photo_in_venues: bool = False  # Show silhouette instead of blurred photo
+    show_as: Optional[str] = ""  # "male" or "female" - gender appearance
+    rainbow: bool = False  # LGBTQ+ visibility flag
+    open_to_all: bool = False  # Open to everyone (overrides rainbow separation)
+    intent: Optional[str] = ""  # "dating", "friends", "open_to_both"
 
 def calculate_safety_halo(user_data: dict) -> bool:
     """Calculate if user qualifies for Safety Halo badge"""
@@ -4899,34 +4908,35 @@ async def get_user_profile(user_id: str, current_user: dict = Depends(get_curren
     friend_request_sent = existing_friend is not None and existing_friend.get("status") == "pending" and existing_friend.get("user1_id") == current_user["id"]
     friend_request_received = existing_friend is not None and existing_friend.get("status") == "pending" and existing_friend.get("user2_id") == current_user["id"]
     
-    # Determine if profile photo should be revealed (STRICT: mutual glance ONLY, or accepted request)
+    # Determine if profile photo should be revealed (STRICT: accepted icebreaker/chat request ONLY)
     # Reveal happens ONLY when:
-    # 1. Mutual glance exists (both users glanced at each other)
-    # 2. OR an icebreaker/chat request was accepted (which creates a connection)
-    is_revealed = is_mutual or is_friend
+    # 1. An icebreaker was accepted (either direction)
+    # 2. OR a chat request was accepted (either direction)
+    # 3. OR users are already friends
+    # Note: Glances do NOT trigger reveal - they are soft interest indicators only
+    # Note: Presence/venue status NEVER triggers reveal
+    is_revealed = is_friend
     
-    # Check if there's an accepted request (icebreaker or chat) that should trigger reveal
+    # Check accepted icebreaker (either direction = mutual interest = reveal)
+    accepted_icebreaker = await db.icebreakers.find_one({
+        "$or": [
+            {"from_user_id": current_user["id"], "to_user_id": user_id, "status": "accepted"},
+            {"from_user_id": user_id, "to_user_id": current_user["id"], "status": "accepted"}
+        ]
+    })
+    if accepted_icebreaker:
+        is_revealed = True
+    
+    # Check accepted chat request (either direction = mutual interest = reveal)
     if not is_revealed:
-        # Check accepted icebreaker
-        accepted_icebreaker = await db.icebreakers.find_one({
+        accepted_chat = await db.chat_requests.find_one({
             "$or": [
                 {"from_user_id": current_user["id"], "to_user_id": user_id, "status": "accepted"},
                 {"from_user_id": user_id, "to_user_id": current_user["id"], "status": "accepted"}
             ]
         })
-        if accepted_icebreaker:
+        if accepted_chat:
             is_revealed = True
-        
-        # Check accepted chat request
-        if not is_revealed:
-            accepted_chat = await db.chat_requests.find_one({
-                "$or": [
-                    {"from_user_id": current_user["id"], "to_user_id": user_id, "status": "accepted"},
-                    {"from_user_id": user_id, "to_user_id": current_user["id"], "status": "accepted"}
-                ]
-            })
-            if accepted_chat:
-                is_revealed = True
     
     # Check if icebreaker or chat request was already sent (for UI state)
     icebreaker_sent = await db.icebreakers.find_one({
@@ -4937,6 +4947,13 @@ async def get_user_profile(user_id: str, current_user: dict = Depends(get_curren
     chat_request_sent = await db.chat_requests.find_one({
         "from_user_id": current_user["id"],
         "to_user_id": user_id
+    }) is not None
+    
+    # Check if we received an icebreaker from them (pending)
+    icebreaker_received = await db.icebreakers.find_one({
+        "from_user_id": user_id,
+        "to_user_id": current_user["id"],
+        "status": "pending"
     }) is not None
     
     # Return full profile data
@@ -4966,6 +4983,7 @@ async def get_user_profile(user_id: str, current_user: dict = Depends(get_curren
         "friend_request_received": friend_request_received,
         "unlock_reason": unlock_reason,
         "icebreaker_sent": icebreaker_sent,
+        "icebreaker_received": icebreaker_received,
         "chat_request_sent": chat_request_sent
     }
 

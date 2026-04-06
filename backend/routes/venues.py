@@ -546,8 +546,38 @@ async def get_people_at_venue(
             ]
         }) is not None
         
-        # Revealed if mutual glance or connected
-        is_revealed = (has_glanced_at_me and i_glanced_at) or is_connected
+        # Check icebreaker status
+        icebreaker_sent = await db.icebreakers.find_one({
+            "from_user_id": current_user["id"],
+            "to_user_id": user["id"]
+        }) is not None
+        
+        icebreaker_received = await db.icebreakers.find_one({
+            "from_user_id": user["id"],
+            "to_user_id": current_user["id"],
+            "status": "pending"
+        }) is not None
+        
+        # STRICT REVEAL LOGIC: Icebreaker/chat request acceptance ONLY
+        # Glances and presence/venue status do NOT trigger reveal
+        # Check for accepted icebreaker (either direction)
+        accepted_icebreaker = await db.icebreakers.find_one({
+            "$or": [
+                {"from_user_id": current_user["id"], "to_user_id": user["id"], "status": "accepted"},
+                {"from_user_id": user["id"], "to_user_id": current_user["id"], "status": "accepted"}
+            ]
+        })
+        
+        # Check for accepted chat request (either direction)
+        accepted_chat = await db.chat_requests.find_one({
+            "$or": [
+                {"from_user_id": current_user["id"], "to_user_id": user["id"], "status": "accepted"},
+                {"from_user_id": user["id"], "to_user_id": current_user["id"], "status": "accepted"}
+            ]
+        })
+        
+        # Revealed ONLY if accepted icebreaker/chat request OR connected (which happens after acceptance)
+        is_revealed = bool(accepted_icebreaker) or bool(accepted_chat) or is_connected
         
         first_name = get_first_name(user.get("display_name", "Someone"))
         
@@ -589,6 +619,8 @@ async def get_people_at_venue(
             "rainbow": user.get("rainbow", False),
             "open_to_all": user.get("open_to_all", False),
             "intent": user.get("intent", ""),
+            "icebreaker_sent": icebreaker_sent,
+            "icebreaker_received": icebreaker_received,
         })
     
     # Sort: Premium first, then by check-in time

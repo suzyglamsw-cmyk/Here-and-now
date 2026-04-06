@@ -560,6 +560,8 @@ class WhoIsHereUser(BaseModel):
     rainbow: bool = False  # LGBTQ+ visibility flag
     open_to_all: bool = False  # Open to everyone (overrides rainbow separation)
     intent: Optional[str] = ""  # "dating", "friends", "open_to_both"
+    icebreaker_sent: bool = False  # True if current user sent icebreaker to this user
+    icebreaker_received: bool = False  # True if this user sent pending icebreaker to current user
 
 class GlanceCreate(BaseModel):
     to_user_id: str

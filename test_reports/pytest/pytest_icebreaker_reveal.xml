@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="9" skipped="3" tests="12" time="10.149" timestamp="2026-04-06T21:35:16.797181+00:00" hostname="agent-env-f7e5acf8-7c70-40b6-840f-2eb5a03f7fa5"><testcase classname="backend.tests.test_icebreaker_reveal_logic.TestIcebreakerRevealLogic" name="test_01_no_interaction_not_revealed" time="0.321"><skipped type="pytest.skip" message="Could not create/login User A: {&quot;detail&quot;:&quot;Invalid credentials&quot;}">/app/backend/tests/test_icebreaker_reveal_logic.py:100: Could not create/login User A: {"detail":"Invalid credentials"}</skipped></testcase><testcase classname="backend.tests.test_icebreaker_reveal_logic.TestIcebreakerRevealLogic" name="test_02_one_sided_glance_not_revealed" time="1.427"><failure message="AssertionError: Glance failed: {&quot;detail&quot;:&quot;Not Found&quot;}&#10;assert 404 in [200, 201]&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_icebreaker_reveal_logic.py:121: in test_02_one_sided_glance_not_revealed
+    assert resp.status_code in [200, 201], f"Glance failed: {resp.text}"
+E   AssertionError: Glance failed: {"detail":"Not Found"}
+E   assert 404 in [200, 201]
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_icebreaker_reveal_logic.TestIcebreakerRevealLogic" name="test_03_mutual_glance_not_revealed" time="1.319"><failure message="AssertionError: Glance back failed: {&quot;detail&quot;:&quot;Not Found&quot;}&#10;assert 404 in [200, 201]&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_icebreaker_reveal_logic.py:139: in test_03_mutual_glance_not_revealed
+    assert resp.status_code in [200, 201], f"Glance back failed: {resp.text}"
+E   AssertionError: Glance back failed: {"detail":"Not Found"}
+E   assert 404 in [200, 201]
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_icebreaker_reveal_logic.TestIcebreakerRevealLogic" name="test_04_sending_icebreaker_not_revealed" time="0.234"><skipped type="pytest.skip" message="Could not create/login User A: {&quot;detail&quot;:&quot;Invalid credentials&quot;}">/app/backend/tests/test_icebreaker_reveal_logic.py:151: Could not create/login User A: {"detail":"Invalid credentials"}</skipped></testcase><testcase classname="backend.tests.test_icebreaker_reveal_logic.TestIcebreakerRevealLogic" name="test_05_receiving_icebreaker_shows_pending" time="1.293"><failure message="AssertionError: Should have pending icebreaker from User A&#10;assert 0 &gt; 0&#10; +  where 0 = len([])">backend/tests/test_icebreaker_reveal_logic.py:186: in test_05_receiving_icebreaker_shows_pending
+    assert len(from_user_a) &gt; 0, "Should have pending icebreaker from User A"
+E   AssertionError: Should have pending icebreaker from User A
+E   assert 0 &gt; 0
+E    +  where 0 = len([])</failure></testcase><testcase classname="backend.tests.test_icebreaker_reveal_logic.TestIcebreakerRevealLogic" name="test_06_accepting_icebreaker_reveals_both_users" time="1.336"><failure message="AssertionError: Should have pending icebreaker from User A&#10;assert 0 &gt; 0&#10; +  where 0 = len([])">backend/tests/test_icebreaker_reveal_logic.py:209: in test_06_accepting_icebreaker_reveals_both_users
+    assert len(from_user_a) &gt; 0, "Should have pending icebreaker from User A"
+E   AssertionError: Should have pending icebreaker from User A
+E   assert 0 &gt; 0
+E    +  where 0 = len([])</failure></testcase><testcase classname="backend.tests.test_icebreaker_reveal_logic.TestIcebreakerRevealLogic" name="test_07_self_card_shows_not_revealed" time="1.351"><failure message="AttributeError: 'list' object has no attribute 'get'">backend/tests/test_icebreaker_reveal_logic.py:249: in test_07_self_card_shows_not_revealed
+    users = data.get("users", [])
+            ^^^^^^^^
+E   AttributeError: 'list' object has no attribute 'get'</failure></testcase><testcase classname="backend.tests.test_icebreaker_reveal_logic.TestDiscoveryIcebreakerStates" name="test_discovery_not_here_returns_icebreaker_states" time="0.378"><failure message="AttributeError: 'list' object has no attribute 'get'">backend/tests/test_icebreaker_reveal_logic.py:292: in test_discovery_not_here_returns_icebreaker_states
+    users = data.get("users", [])
+            ^^^^^^^^
+E   AttributeError: 'list' object has no attribute 'get'</failure></testcase><testcase classname="backend.tests.test_icebreaker_reveal_logic.TestDiscoveryIcebreakerStates" name="test_discovery_here_returns_icebreaker_states" time="0.383"><failure message="AttributeError: 'list' object has no attribute 'get'">backend/tests/test_icebreaker_reveal_logic.py:311: in test_discovery_here_returns_icebreaker_states
+    users = data.get("users", [])
+            ^^^^^^^^
+E   AttributeError: 'list' object has no attribute 'get'</failure></testcase><testcase classname="backend.tests.test_icebreaker_reveal_logic.TestMessageButtonStates" name="test_message_disabled_when_not_revealed" time="1.383"><failure message="AssertionError: Failed to get profile: {&quot;detail&quot;:&quot;Not Found&quot;}&#10;assert 404 == 200&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_icebreaker_reveal_logic.py:406: in test_message_disabled_when_not_revealed
+    assert resp.status_code == 200, f"Failed to get profile: {resp.text}"
+E   AssertionError: Failed to get profile: {"detail":"Not Found"}
+E   assert 404 == 200
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_icebreaker_reveal_logic.TestMessageButtonStates" name="test_message_enabled_after_icebreaker_accepted" time="0.174"><skipped type="pytest.skip" message="Could not create/login User C: {&quot;detail&quot;:&quot;Invalid credentials&quot;}">/app/backend/tests/test_icebreaker_reveal_logic.py:413: Could not create/login User C: {"detail":"Invalid credentials"}</skipped></testcase><testcase classname="backend.tests.test_icebreaker_reveal_logic.TestVenueIcebreakerStates" name="test_venue_people_returns_icebreaker_states" time="0.387"><failure message="KeyError: 0">backend/tests/test_icebreaker_reveal_logic.py:494: in test_venue_people_returns_icebreaker_states
+    venue_id = venues[0].get("id")
+               ^^^^^^^^^
+E   KeyError: 0</failure></testcase></testsuite></testsuites>
