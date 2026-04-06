@@ -791,7 +791,12 @@ const PersonCard = ({ person, onGlance, onIcebreaker, glancing, isVenueContext }
         
         {/* Overlay info */}
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-          <p className="text-white font-medium truncate">{person.first_name || person.display_name}{person.age ? `, ${person.age}` : ""}</p>
+          <p className="text-white font-medium truncate">
+            {person.is_revealed 
+              ? `${person.display_name}${person.age ? `, ${person.age}` : ""}` 
+              : `${(person.display_name || "?").charAt(0)}${person.age ? `, ${person.age}` : ""}`
+            }
+          </p>
           {/* Intent badge */}
           {person.intent && (
             <span className={`inline-block mt-1 text-[10px] px-2 py-0.5 rounded-full ${
@@ -892,7 +897,7 @@ const IcebreakerModal = ({ show, person, sending, onClose, onSend }) => {
     <Dialog open={show} onOpenChange={onClose}>
       <DialogContent className="bg-slate-900 border-slate-700">
         <DialogHeader>
-          <DialogTitle className="text-white">Send Icebreaker to {person.first_name || person.display_name}</DialogTitle>
+          <DialogTitle className="text-white">Send Icebreaker to {person.is_revealed ? person.display_name : (person.display_name || "?").charAt(0)}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3 mt-4">
           {ICEBREAKER_MESSAGES.map((msg) => (

@@ -271,7 +271,7 @@ const WhosHere = () => {
         venue_id: venueId,
         message_type: messageType,
       });
-      toast.success(`Icebreaker sent to ${selectedPerson.is_revealed ? selectedPerson.display_name : "someone"}!`);
+      toast.success(`Icebreaker sent to ${selectedPerson.is_revealed ? selectedPerson.display_name : (selectedPerson.display_name || "?").charAt(0)}!`);
       setShowIcebreakerModal(false);
       setSelectedPerson(null);
     } catch (error) {
@@ -383,7 +383,7 @@ const WhosHere = () => {
           <DialogContent className="bg-slate-900 border-white/10 max-w-sm" data-testid="icebreaker-modal">
             <DialogHeader>
               <DialogTitle className="text-white text-center">
-                Send an icebreaker to {selectedPerson?.is_revealed ? selectedPerson?.display_name : "someone"}
+                Send an icebreaker to {selectedPerson?.is_revealed ? selectedPerson?.display_name : (selectedPerson?.display_name || "?").charAt(0)}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-2 mt-4">
@@ -659,7 +659,7 @@ const PersonCard = ({
               alt={person.display_name}
               isRevealed={person.is_revealed}
               isThumbnail={false}
-              fallbackInitial={(person.first_name || person.display_name?.split(' ')[0] || "?").charAt(0)}
+              fallbackInitial={(person.display_name || "?").charAt(0)}
             />
           )}
         </div>
@@ -725,7 +725,7 @@ const PersonCard = ({
         <h3 className="font-semibold text-white truncate">
           {person.is_revealed 
             ? `${person.display_name}${person.age ? `, ${person.age}` : ""}` 
-            : `${person.first_name || person.display_name?.split(' ')[0] || "Someone"}${person.age ? `, ${person.age}` : ""}`
+            : `${(person.display_name || "?").charAt(0)}${person.age ? `, ${person.age}` : ""}`
           }
         </h3>
         {/* Intent badge */}
