@@ -915,6 +915,17 @@ const PersonCard = ({ person, onGlance, onIcebreaker, glancing, isVenueContext }
           </div>
         )}
         
+        {/* Mutual Match Badge - shows when both revealed and connected */}
+        {person.is_revealed && person.is_connected && (
+          <div 
+            className="absolute top-2 right-2 px-2 py-1 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 flex items-center gap-1 shadow-lg"
+            data-testid={`mutual-match-badge-${person.id}`}
+          >
+            <Sparkles className="w-3 h-3 text-white" />
+            <span className="text-white text-xs font-medium">Match</span>
+          </div>
+        )}
+        
         {/* Voice intro indicator */}
         {person.voice_intro_url && person.is_revealed && (
           <div className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-purple-500/90 flex items-center justify-center">
@@ -1049,12 +1060,22 @@ const PersonCard = ({ person, onGlance, onIcebreaker, glancing, isVenueContext }
         )}
       </div>
       
-      {/* Mutual interest indicator */}
-      {person.has_glanced_at_me && !person.i_glanced_at && (
+      {/* Pre-reveal: Mutual interest indicator (they glanced at you but you haven't glanced back) */}
+      {!person.is_revealed && person.has_glanced_at_me && !person.i_glanced_at && (
         <div className="px-3 pb-3">
           <div className="flex items-center gap-2 text-pink-400 text-xs">
             <Sparkles className="w-3 h-3" />
             <span>Showed interest in you</span>
+          </div>
+        </div>
+      )}
+      
+      {/* Post-reveal + Connected: Mutual Match status */}
+      {person.is_revealed && person.is_connected && (
+        <div className="px-3 pb-3">
+          <div className="flex items-center gap-2 text-emerald-400 text-xs">
+            <Heart className="w-3 h-3 fill-current" />
+            <span>You're matched! Start a conversation</span>
           </div>
         </div>
       )}
