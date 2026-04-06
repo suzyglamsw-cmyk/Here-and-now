@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth, API } from "@/App";
@@ -25,6 +25,8 @@ import {
   ArrowRight,
   ArrowLeft,
   User,
+  MapPinOff,
+  RefreshCw,
 } from "lucide-react";
 import {
   Dialog,
@@ -74,7 +76,11 @@ const Discovery = ({ defaultMode = null }) => {
   const [nearbyVenues, setNearbyVenues] = useState([]);
   const [venuesLoading, setVenuesLoading] = useState(false);
   const [proximityEchoes, setProximityEchoes] = useState([]);
-  const [hasLocationPermission, setHasLocationPermission] = useState(false);
+  
+  // STRICT GPS LOCATION STATE
+  const [locationStatus, setLocationStatus] = useState("checking"); // "checking", "granted", "denied", "unavailable", "updating"
+  const [locationError, setLocationError] = useState(null);
+  const [userCoordinates, setUserCoordinates] = useState(null);
   
   // Interaction states
   const [glancing, setGlancing] = useState(null);
@@ -88,24 +94,80 @@ const Discovery = ({ defaultMode = null }) => {
     setMode(newMode);
   }, [location.pathname]);
 
-  // Check location permission
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.permissions?.query({ name: 'geolocation' }).then((result) => {
-        setHasLocationPermission(result.state === 'granted');
-      }).catch(() => {
-        setHasLocationPermission(true);
-      });
+  // REQUEST AND UPDATE GPS LOCATION - Strict enforcement
+  const requestAndUpdateLocation = useCallback(async () => {
+    if (!navigator.geolocation) {
+      setLocationStatus("unavailable");
+      setLocationError("Your browser doesn't support geolocation.");
+      return false;
     }
+    
+    setLocationStatus("updating");
+    setLocationError(null);
+    
+    return new Promise((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          setUserCoordinates({ lat: latitude, lng: longitude });
+          
+          // Send coordinates to backend
+          try {
+            await axios.post(`${API}/location/update`, {
+              lat: latitude,
+              lng: longitude
+            });
+            setLocationStatus("granted");
+            resolve(true);
+          } catch (error) {
+            console.error("Failed to update location on server:", error);
+            // Still proceed if we have coordinates - backend will validate
+            setLocationStatus("granted");
+            resolve(true);
+          }
+        },
+        (error) => {
+          console.error("Geolocation error:", error);
+          if (error.code === error.PERMISSION_DENIED) {
+            setLocationStatus("denied");
+            setLocationError("Location access denied. Please enable location in your browser settings to see nearby people.");
+          } else if (error.code === error.POSITION_UNAVAILABLE) {
+            setLocationStatus("unavailable");
+            setLocationError("Unable to determine your location. Please try again.");
+          } else if (error.code === error.TIMEOUT) {
+            setLocationStatus("unavailable");
+            setLocationError("Location request timed out. Please try again.");
+          } else {
+            setLocationStatus("unavailable");
+            setLocationError("Failed to get your location. Please try again.");
+          }
+          resolve(false);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 60000 // Cache for 1 minute
+        }
+      );
+    });
   }, []);
+
+  // Check location on mount and when mode changes to discovery modes
+  useEffect(() => {
+    if (mode === "here" || mode === "not-here") {
+      requestAndUpdateLocation();
+    }
+  }, [mode, requestAndUpdateLocation]);
 
   // Fetch current venue on mount
   useEffect(() => {
     fetchCurrentVenue();
   }, []);
 
-  // Fetch data when mode changes
+  // Fetch data when mode changes - ONLY if location is granted
   useEffect(() => {
+    if (locationStatus !== "granted") return;
+    
     if (mode === "here") {
       fetchProximityEchoes();
       fetchPeople();
@@ -113,7 +175,7 @@ const Discovery = ({ defaultMode = null }) => {
     } else if (mode === "not-here") {
       fetchPeople();
     }
-  }, [mode, radius, venue]);
+  }, [mode, radius, venue, locationStatus]);
 
   // Handle mode selection from gateway - set discovery_mode on backend
   const handleSelectMode = async (selectedMode) => {
@@ -388,7 +450,7 @@ const Discovery = ({ defaultMode = null }) => {
                       </div>
                     </div>
                     {/* Live Tracking Badge */}
-                    {hasLocationPermission && (
+                    {locationStatus === "granted" && (
                       <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/30">
                         <Radio className="w-3 h-3 text-emerald-400 animate-pulse" />
                         <span className="text-xs text-emerald-400 font-medium">Live</span>
@@ -489,7 +551,34 @@ const Discovery = ({ defaultMode = null }) => {
 
           {/* Content - People Grid */}
           <div className="max-w-4xl mx-auto px-4 py-6">
-            {loading || venueLoading ? (
+            {/* LOCATION REQUIRED PROMPT FOR HERE & NOW */}
+            {locationStatus === "checking" || locationStatus === "updating" ? (
+              <div className="flex flex-col items-center justify-center py-20">
+                <Loader2 className="w-10 h-10 animate-spin text-indigo-500 mb-4" />
+                <p className="text-slate-400">Getting your location...</p>
+              </div>
+            ) : locationStatus === "denied" || locationStatus === "unavailable" ? (
+              <div className="flex flex-col items-center justify-center py-20 px-4">
+                <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center mb-6">
+                  <MapPinOff className="w-10 h-10 text-red-400" />
+                </div>
+                <h2 className="text-xl font-bold text-white mb-3 text-center">Location Required</h2>
+                <p className="text-slate-400 text-center mb-6 max-w-md">
+                  {locationError || "To see people at venues, we need your current GPS location. No region or manual location fallbacks are used."}
+                </p>
+                <Button
+                  data-testid="request-location-btn-here"
+                  onClick={requestAndUpdateLocation}
+                  className="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-3 rounded-xl"
+                >
+                  <MapPin className="w-4 h-4 mr-2" />
+                  Enable Location
+                </Button>
+                <p className="text-slate-500 text-xs mt-4 text-center max-w-sm">
+                  Your exact location is used only for distance matching and is never shared publicly.
+                </p>
+              </div>
+            ) : loading || venueLoading ? (
               <div className="flex justify-center py-20">
                 <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
               </div>
@@ -585,7 +674,34 @@ const Discovery = ({ defaultMode = null }) => {
 
         {/* Content - People Grid */}
         <div className="max-w-4xl mx-auto px-4 py-6">
-          {loading ? (
+          {/* LOCATION REQUIRED PROMPT */}
+          {locationStatus === "checking" || locationStatus === "updating" ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <Loader2 className="w-10 h-10 animate-spin text-cyan-500 mb-4" />
+              <p className="text-slate-400">Getting your location...</p>
+            </div>
+          ) : locationStatus === "denied" || locationStatus === "unavailable" ? (
+            <div className="flex flex-col items-center justify-center py-20 px-4">
+              <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center mb-6">
+                <MapPinOff className="w-10 h-10 text-red-400" />
+              </div>
+              <h2 className="text-xl font-bold text-white mb-3 text-center">Location Required</h2>
+              <p className="text-slate-400 text-center mb-6 max-w-md">
+                {locationError || "To see people nearby, we need your current GPS location. No region or manual location fallbacks are used."}
+              </p>
+              <Button
+                data-testid="request-location-btn"
+                onClick={requestAndUpdateLocation}
+                className="bg-cyan-500 hover:bg-cyan-600 text-white px-6 py-3 rounded-xl"
+              >
+                <MapPin className="w-4 h-4 mr-2" />
+                Enable Location
+              </Button>
+              <p className="text-slate-500 text-xs mt-4 text-center max-w-sm">
+                Your exact location is used only for distance matching and is never shared publicly.
+              </p>
+            </div>
+          ) : loading ? (
             <div className="flex justify-center py-20">
               <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
             </div>
@@ -596,6 +712,16 @@ const Discovery = ({ defaultMode = null }) => {
               <p className="text-slate-400 mb-4">
                 No one is near enough right now. Try widening your radius.
               </p>
+              {/* Refresh location button */}
+              <Button
+                data-testid="refresh-location-btn"
+                onClick={requestAndUpdateLocation}
+                variant="ghost"
+                className="text-slate-400 hover:text-white"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh location
+              </Button>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
