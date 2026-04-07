@@ -205,10 +205,6 @@ async def send_icebreaker(data: IcebreakerCreate, current_user: dict = Depends(g
         raise HTTPException(status_code=404, detail="User not found")
     
     # Check blocks (bilateral - soft error message)
-    icebreaker_blocks = target_user.get("icebreaker_blocked_users", [])
-    if current_user["id"] in icebreaker_blocks:
-        raise HTTPException(status_code=403, detail="Sorry, this user is unavailable right now.")
-    
     if current_user["id"] in target_user.get("blocked_users", []):
         raise HTTPException(status_code=403, detail="Sorry, this user is unavailable right now.")
     if current_user["id"] in target_user.get("blocked_by_users", []):
@@ -346,25 +342,19 @@ async def respond_to_icebreaker(
         )
         return {"message": "Icebreaker declined", "status": "declined"}
     
-    elif request.action == "block_icebreakers":
-        await db.icebreakers.update_one(
-            {"id": icebreaker_id},
-            {"$set": {"status": "declined", "responded_at": now.isoformat()}}
-        )
-        await db.users.update_one(
-            {"id": current_user["id"]},
-            {"$addToSet": {"icebreaker_blocked_users": icebreaker["from_user_id"]}}
-        )
-        return {"message": "User blocked from sending icebreakers", "status": "blocked_icebreakers"}
-    
     elif request.action == "block_user":
         await db.icebreakers.update_one(
             {"id": icebreaker_id},
             {"$set": {"status": "declined", "responded_at": now.isoformat()}}
         )
+        # Add to blocked_users list (full block) and blocked_by_users for the other user
         await db.users.update_one(
             {"id": current_user["id"]},
             {"$addToSet": {"blocked_users": icebreaker["from_user_id"]}}
+        )
+        await db.users.update_one(
+            {"id": icebreaker["from_user_id"]},
+            {"$addToSet": {"blocked_by_users": current_user["id"]}}
         )
         return {"message": "User blocked", "status": "blocked"}
     

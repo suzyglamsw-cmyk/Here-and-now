@@ -176,8 +176,6 @@ const Connections = () => {
       await axios.post(`${API}/icebreaker/${icebreakerId}/respond`, { action });
       if (action === "accept") {
         toast.success("Icebreaker accepted! You can now chat.");
-      } else if (action === "block_icebreakers") {
-        toast.success("User blocked from sending icebreakers");
       } else if (action === "block_user") {
         toast.success("User blocked");
       } else if (action === "not_right_now") {
@@ -1404,38 +1402,7 @@ const Connections = () => {
                 className="w-full h-14 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-base"
               >
                 <Check className="w-5 h-5 mr-2" />
-                Accept & Start Chat
-              </Button>
-              <Button
-                data-testid="not-right-now-btn"
-                onClick={() => handleIcebreakerAction(actionSheet.id, "not_right_now")}
-                variant="ghost"
-                className="w-full h-12 rounded-xl text-slate-300 hover:bg-white/5 font-medium"
-              >
-                <Clock className="w-5 h-5 mr-2" />
-                Not right now
-              </Button>
-              <Button
-                data-testid="decline-icebreaker-btn"
-                onClick={() => handleIcebreakerAction(actionSheet.id, "decline")}
-                variant="ghost"
-                className="w-full h-12 rounded-xl text-slate-400 hover:bg-white/5"
-              >
-                <X className="w-5 h-5 mr-2" />
-                Decline
-              </Button>
-            </div>
-
-            {/* Block Options */}
-            <div className="border-t border-white/10 pt-3 mt-3 space-y-2">
-              <Button
-                data-testid="block-icebreakers-btn"
-                onClick={() => handleIcebreakerAction(actionSheet.id, "block_icebreakers")}
-                variant="ghost"
-                className="w-full h-12 rounded-xl text-orange-400 hover:bg-orange-500/10"
-              >
-                <Snowflake className="w-5 h-5 mr-2" />
-                Block icebreakers from this user
+                Respond
               </Button>
               <Button
                 data-testid="block-user-btn"
@@ -1444,8 +1411,23 @@ const Connections = () => {
                 className="w-full h-12 rounded-xl text-red-400 hover:bg-red-500/10"
               >
                 <Ban className="w-5 h-5 mr-2" />
-                Block user completely
+                Block User
               </Button>
+              {/* Delete option - only shown after response has been recorded */}
+              {actionSheet.status && actionSheet.status !== "pending" && (
+                <Button
+                  data-testid="delete-icebreaker-btn"
+                  onClick={() => {
+                    handleDeleteIcebreaker(actionSheet.id);
+                    setActionSheet(null);
+                  }}
+                  variant="ghost"
+                  className="w-full h-12 rounded-xl text-slate-400 hover:bg-white/5"
+                >
+                  <Trash2 className="w-5 h-5 mr-2" />
+                  Delete
+                </Button>
+              )}
             </div>
 
             <Button

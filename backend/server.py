@@ -4445,11 +4445,6 @@ async def send_icebreaker(data: IcebreakerCreate, current_user: dict = Depends(g
     if not target_user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Check if user has blocked icebreakers from sender (soft block)
-    icebreaker_blocks = target_user.get("icebreaker_blocked_users", [])
-    if current_user["id"] in icebreaker_blocks:
-        raise HTTPException(status_code=403, detail="Sorry, this user is unavailable right now.")
-    
     # Check if user is fully blocked (bilateral check)
     if current_user["id"] in target_user.get("blocked_users", []):
         raise HTTPException(status_code=403, detail="Sorry, this user is unavailable right now.")
@@ -4666,22 +4661,16 @@ async def respond_to_icebreaker(icebreaker_id: str, data: IcebreakerActionReques
         # Silent - sender gets no notification
         return {"message": "Response recorded"}
     
-    elif data.action == "block_icebreakers":
-        # Soft block - can't send icebreakers, but still visible in venues
-        await db.users.update_one(
-            {"id": current_user["id"]},
-            {"$addToSet": {"icebreaker_blocked_users": icebreaker["from_user_id"]}}
-        )
-        # Remove the icebreaker
-        await db.icebreakers.delete_one({"id": icebreaker_id})
-        # Silent - no notification to sender
-        return {"message": "User blocked from sending icebreakers"}
-    
     elif data.action == "block_user":
         # Full block - completely hidden from each other
         await db.users.update_one(
             {"id": current_user["id"]},
             {"$addToSet": {"blocked_users": icebreaker["from_user_id"]}}
+        )
+        # Also add to blocked_by_users for the other user (bilateral)
+        await db.users.update_one(
+            {"id": icebreaker["from_user_id"]},
+            {"$addToSet": {"blocked_by_users": current_user["id"]}}
         )
         # Remove all icebreakers between users
         await db.icebreakers.delete_many({
