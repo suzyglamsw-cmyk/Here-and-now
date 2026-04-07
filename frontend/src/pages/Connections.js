@@ -503,7 +503,7 @@ const Connections = () => {
                   >
                     <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all">
                       <img
-                        src={thread.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200"}
+                        src={thread.thumbnail_url || thread.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200"}
                         alt={thread.display_name}
                         className="w-full h-full object-cover"
                       />
@@ -587,7 +587,7 @@ const Connections = () => {
                         >
                           <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all">
                             <BlurredImage
-                              src={glance.avatar_url}
+                              src={glance.thumbnail_url || glance.avatar_url}
                               alt={glance.display_name}
                               isRevealed={glance.is_mutual}
                               isThumbnail={true}
@@ -652,7 +652,7 @@ const Connections = () => {
                         >
                           <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all">
                             <BlurredImage
-                              src={glance.avatar_url}
+                              src={glance.thumbnail_url || glance.avatar_url}
                               alt={glance.display_name}
                               isRevealed={glance.is_mutual}
                               isThumbnail={true}
@@ -721,7 +721,7 @@ const Connections = () => {
                         >
                           <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-cyan-500 transition-all">
                             <BlurredImage
-                              src={ib.avatar_url}
+                              src={ib.thumbnail_url || ib.avatar_url}
                               alt={ib.display_name}
                               isRevealed={ib.status === "accepted"}
                               isThumbnail={true}
@@ -782,7 +782,7 @@ const Connections = () => {
                         >
                           <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-cyan-500 transition-all">
                             <BlurredImage
-                              src={ib.avatar_url}
+                              src={ib.thumbnail_url || ib.avatar_url}
                               alt={ib.display_name}
                               isRevealed={ib.status === "accepted"}
                               isThumbnail={true}
@@ -859,7 +859,7 @@ const Connections = () => {
                         >
                           <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-pink-500 transition-all">
                             <BlurredImage
-                              src={request.avatar_url}
+                              src={request.thumbnail_url || request.avatar_url}
                               alt={request.display_name}
                               isRevealed={request.status === "accepted"}
                               isThumbnail={true}
@@ -946,7 +946,7 @@ const Connections = () => {
                         >
                           <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-pink-500 transition-all">
                             <BlurredImage
-                              src={request.avatar_url}
+                              src={request.thumbnail_url || request.avatar_url}
                               alt={request.display_name}
                               isRevealed={request.status === "accepted"}
                               isThumbnail={true}
@@ -1037,7 +1037,7 @@ const Connections = () => {
                           <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-amber-500 transition-all">
                             {request.avatar_url ? (
                               <img
-                                src={request.avatar_url}
+                                src={request.thumbnail_url || request.avatar_url}
                                 alt={request.display_name}
                                 className="w-full h-full object-cover"
                               />
@@ -1104,7 +1104,7 @@ const Connections = () => {
                           <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-amber-500 transition-all">
                             {request.avatar_url ? (
                               <img
-                                src={request.avatar_url}
+                                src={request.thumbnail_url || request.avatar_url}
                                 alt={request.display_name}
                                 className="w-full h-full object-cover"
                               />
@@ -1167,7 +1167,7 @@ const Connections = () => {
                     <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-emerald-500 transition-all">
                       {friend.avatar_url ? (
                         <img
-                          src={friend.avatar_url}
+                          src={friend.thumbnail_url || friend.avatar_url}
                           alt={friend.display_name}
                           className="w-full h-full object-cover"
                         />
@@ -1255,7 +1255,7 @@ const Connections = () => {
                     <div className="w-16 h-16 rounded-2xl overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all">
                       {connection.avatar_url ? (
                         <img
-                          src={connection.avatar_url}
+                          src={connection.thumbnail_url || connection.avatar_url}
                           alt={connection.display_name}
                           className="w-full h-full object-cover"
                         />
@@ -1421,7 +1421,7 @@ const Connections = () => {
             <div className="text-center mb-6">
               <div className="w-20 h-20 rounded-full overflow-hidden mx-auto mb-3 ring-2 ring-cyan-500/50">
                 <BlurredImage
-                  src={actionSheet.avatar_url}
+                  src={actionSheet.thumbnail_url || actionSheet.avatar_url}
                   alt={actionSheet.display_name}
                   isRevealed={false}
                   isThumbnail={true}
@@ -1500,7 +1500,7 @@ const Connections = () => {
             <div className="text-center mb-6">
               <div className="w-20 h-20 rounded-full overflow-hidden mx-auto mb-3 ring-2 ring-indigo-500/50">
                 <BlurredImage
-                  src={chatActionSheet.avatar_url}
+                  src={chatActionSheet.thumbnail_url || chatActionSheet.avatar_url}
                   alt={chatActionSheet.display_name}
                   isRevealed={false}
                   isThumbnail={true}

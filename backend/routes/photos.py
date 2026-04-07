@@ -260,6 +260,7 @@ async def upload_photo(
             "size": storage_result["size"],
             "clear_path": storage_result["clear_path"],
             "blurred_path": storage_result["blurred_path"],
+            "thumbnail_path": storage_result.get("thumbnail_path"),
             "storage_type": "cloud",
             "created_at": datetime.now(timezone.utc).isoformat()
         }
@@ -284,6 +285,9 @@ async def upload_photo(
         update_data = {"photos": photos}
         if slot == 0:
             update_data["avatar_url"] = photo_id
+            # Store thumbnail URL for list views
+            if storage_result.get("thumbnail_path"):
+                update_data["thumbnail_url"] = f"/api/photos/serve/{photo_id}?thumb=true"
         
         if not current_user.get("profile_complete"):
             update_data["profile_complete"] = True
@@ -316,11 +320,13 @@ async def upload_photo(
 async def serve_photo(
     photo_id: str,
     blur: bool = Query(False, description="Return blurred version for pre-reveal"),
+    thumb: bool = Query(False, description="Return thumbnail version for list views"),
 ):
     """
     Serve a photo with reveal-aware blurring.
     - blur=False (default): Returns clear version (for revealed profiles or self)
     - blur=True: Returns blurred version (for pre-reveal)
+    - thumb=True: Returns thumbnail version (for list views)
     """
     photo = await db.photos.find_one({"id": photo_id, "is_deleted": {"$ne": True}})
     if not photo:
@@ -329,8 +335,10 @@ async def serve_photo(
     # Check if this is a cloud storage photo
     if photo.get("storage_type") == "cloud":
         try:
-            # Select clear or blurred path based on blur parameter
-            if blur and photo.get("blurred_path"):
+            # Select path based on parameters (thumb takes priority)
+            if thumb and photo.get("thumbnail_path"):
+                storage_path = photo["thumbnail_path"]
+            elif blur and photo.get("blurred_path"):
                 storage_path = photo["blurred_path"]
             else:
                 storage_path = photo.get("clear_path")

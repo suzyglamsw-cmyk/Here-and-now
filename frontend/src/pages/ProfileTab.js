@@ -60,19 +60,11 @@ const INTENT_OPTIONS = [
 ];
 
 // Country and region data
-const COUNTRIES_REGIONS = {
-  "United Kingdom": ["England", "Scotland", "Wales", "Northern Ireland"],
-  "United States": ["Northeast", "Southeast", "Midwest", "Southwest", "West Coast"],
-  "Canada": ["Ontario", "Quebec", "British Columbia", "Alberta", "Other"],
-  "Australia": ["New South Wales", "Victoria", "Queensland", "Western Australia", "Other"],
-  "Ireland": ["Leinster", "Munster", "Connacht", "Ulster"],
-  "Germany": ["North", "South", "East", "West"],
-  "France": ["North", "South", "East", "West", "Paris Region"],
-  "Spain": ["North", "South", "East", "West", "Madrid Region"],
-  "Italy": ["North", "Central", "South"],
-  "Netherlands": ["North", "South", "Central"],
-  "Other": ["Not specified"],
-};
+// Countries list - will be fetched from API
+const FALLBACK_COUNTRIES = [
+  "United Kingdom", "United States", "Canada", "Australia", "Ireland",
+  "Germany", "France", "Spain", "Italy", "Netherlands"
+];
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -93,6 +85,7 @@ const Profile = () => {
   const [privacyLoading, setPrivacyLoading] = useState(false);
   const [profileViewers, setProfileViewers] = useState([]);
   const [viewersLoading, setViewersLoading] = useState(false);
+  const [countries, setCountries] = useState(FALLBACK_COUNTRIES);
   const fileInputRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -111,7 +104,7 @@ const Profile = () => {
     my_type_of_person: "",
     intent: "",
     home_country: "",
-    home_region: "",
+    home_area: "",
     shy_indicator: false,
     voice_intro_url: "",
     // Gender/Rainbow visibility fields
@@ -131,7 +124,7 @@ const Profile = () => {
         my_type_of_person: user.my_type_of_person || "",
         intent: user.intent || "",
         home_country: user.home_country || "",
-        home_region: user.home_region || "",
+        home_area: user.home_area || "",
         shy_indicator: user.shy_indicator || false,
         voice_intro_url: user.voice_intro_url || "",
         // Gender/Rainbow visibility fields
@@ -160,6 +153,21 @@ const Profile = () => {
       setViewersLoading(false);
     }
   };
+
+  const fetchCountries = async () => {
+    try {
+      const response = await axios.get(`${API}/countries`);
+      if (response.data?.countries?.length > 0) {
+        setCountries(response.data.countries);
+      }
+    } catch (error) {
+      // Use fallback list
+    }
+  };
+
+  useEffect(() => {
+    fetchCountries();
+  }, []);
 
   const fetchPrivacySettings = async () => {
     try {
@@ -287,7 +295,7 @@ const Profile = () => {
         my_type_of_person: formData.my_type_of_person,
         intent: formData.intent,
         home_country: formData.home_country,
-        home_region: formData.home_region,
+        home_area: formData.home_area,
         shy_indicator: formData.shy_indicator,
         // Gender/Rainbow visibility fields
         show_as: formData.show_as,
@@ -1457,19 +1465,13 @@ const Profile = () => {
               </div>
             </div>
 
-            {/* Country Picker */}
+            {/* Country Dropdown */}
             <div className="space-y-1.5">
-              <Label className="text-purple-200/70 text-xs">Country</Label>
+              <Label className="text-purple-200/70 text-xs">Country *</Label>
               <div className="relative">
                 <select
                   value={formData.home_country}
-                  onChange={(e) => {
-                    setFormData({ 
-                      ...formData, 
-                      home_country: e.target.value,
-                      home_region: "" // Reset region when country changes
-                    });
-                  }}
+                  onChange={(e) => setFormData({ ...formData, home_country: e.target.value })}
                   className="w-full h-10 px-4 pr-10 rounded-[16px] text-sm text-white appearance-none cursor-pointer"
                   style={{ 
                     background: 'rgba(139, 92, 246, 0.08)',
@@ -1477,8 +1479,8 @@ const Profile = () => {
                   }}
                   data-testid="home-country-select"
                 >
-                  <option value="" className="bg-slate-900 text-white">Select country...</option>
-                  {Object.keys(COUNTRIES_REGIONS).map((country) => (
+                  <option value="" className="bg-slate-900 text-white">Select your country...</option>
+                  {countries.map((country) => (
                     <option key={country} value={country} className="bg-slate-900 text-white">
                       {country}
                     </option>
@@ -1488,32 +1490,24 @@ const Profile = () => {
               </div>
             </div>
 
-            {/* Region Picker (only show if country selected) */}
-            {formData.home_country && (
-              <div className="space-y-1.5">
-                <Label className="text-purple-200/70 text-xs">Region</Label>
-                <div className="relative">
-                  <select
-                    value={formData.home_region}
-                    onChange={(e) => setFormData({ ...formData, home_region: e.target.value })}
-                    className="w-full h-10 px-4 pr-10 rounded-[16px] text-sm text-white appearance-none cursor-pointer"
-                    style={{ 
-                      background: 'rgba(139, 92, 246, 0.08)',
-                      border: '2px solid rgba(168, 85, 247, 0.3)',
-                    }}
-                    data-testid="home-region-select"
-                  >
-                    <option value="" className="bg-slate-900 text-white">Select region...</option>
-                    {(COUNTRIES_REGIONS[formData.home_country] || []).map((region) => (
-                      <option key={region} value={region} className="bg-slate-900 text-white">
-                        {region}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-400/50 pointer-events-none" />
-                </div>
-              </div>
-            )}
+            {/* Home Area (Town/City) Text Input */}
+            <div className="space-y-1.5">
+              <Label className="text-purple-200/70 text-xs">Town or City *</Label>
+              <Input
+                type="text"
+                value={formData.home_area}
+                onChange={(e) => setFormData({ ...formData, home_area: e.target.value })}
+                placeholder="e.g. Manchester, Brooklyn, Sydney..."
+                maxLength={50}
+                className="h-10 rounded-[16px] text-sm text-white"
+                style={{ 
+                  background: 'rgba(139, 92, 246, 0.08)',
+                  border: '2px solid rgba(168, 85, 247, 0.3)',
+                }}
+                data-testid="home-area-input"
+              />
+              <p className="text-purple-300/50 text-xs">Enter your town or city (not your country)</p>
+            </div>
           </section>
 
           {/* Profile Viewers Section (Premium Only) */}
@@ -1936,12 +1930,14 @@ const Profile = () => {
                 )}
                 
                 {/* Home Area */}
-                {formData.home_country && (
+                {(formData.home_country || formData.home_area) && (
                   <div className="rounded-xl p-4" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
                     <h4 className="text-xs font-medium text-purple-300/60 mb-1.5 uppercase tracking-wide">Based in</h4>
                     <p className="text-purple-100 text-sm flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-teal-400" />
-                      {formData.home_region ? `${formData.home_region}, ${formData.home_country}` : formData.home_country}
+                      {formData.home_area && formData.home_country 
+                        ? `${formData.home_area}, ${formData.home_country}` 
+                        : formData.home_area || formData.home_country}
                     </p>
                   </div>
                 )}

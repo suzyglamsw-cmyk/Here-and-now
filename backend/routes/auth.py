@@ -302,6 +302,20 @@ async def update_profile(data: UserProfile, current_user: dict = Depends(get_cur
     if "celebrity_crush" in update_data:
         del update_data["celebrity_crush"]
     
+    # Validate country (if provided)
+    if "home_country" in update_data and update_data["home_country"]:
+        from .dependencies import validate_country
+        is_valid, error_msg = validate_country(update_data["home_country"])
+        if not is_valid:
+            raise HTTPException(status_code=400, detail=error_msg)
+    
+    # Validate home_area (if provided)
+    if "home_area" in update_data and update_data["home_area"]:
+        from .dependencies import validate_home_area
+        is_valid, error_msg = validate_home_area(update_data["home_area"])
+        if not is_valid:
+            raise HTTPException(status_code=400, detail=error_msg)
+    
     await db.users.update_one({"id": current_user["id"]}, {"$set": update_data})
     updated = await db.users.find_one({"id": current_user["id"]}, {"_id": 0, "password": 0})
     return updated

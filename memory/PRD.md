@@ -510,5 +510,25 @@ Comprehensive list including:
 - **New endpoint**: `GET /api/icebreakers/remaining` returns daily allowance status
 - **Fresh data**: All endpoints fetch fresh user data from DB (not cached JWT)
 
+### Profile Photo & Thumbnail System (April 7, 2026)
+- **Thumbnail generation**: Profile photos (slot 0) automatically generate 150x150 thumbnails
+- **Storage path**: `{APP}/photos/{user_id}/{photo_id}_thumb.jpg`
+- **User field**: `thumbnail_url` stores the thumbnail path
+- **Fallback**: List views use `thumbnail_url || avatar_url` pattern
+
+### Country & Home Area Fields (April 7, 2026)
+- **Country**: Dropdown with 196 valid country names
+  - Rejects abbreviations (UK, USA, UAE)
+  - Rejects regions (Europe, Asia, Middle East)
+  - Rejects fictional/invalid entries
+- **Home Area**: Text input for town/city
+  - Min 3 characters
+  - Letters, spaces, hyphens, apostrophes only
+  - Rejects country names
+  - Rejects fictional places (Narnia, Hogwarts, Mars)
+  - Rejects numbers and symbols
+- **Not linked to GPS**: Static, user-entered visual fields only
+- **New endpoint**: `GET /api/countries` returns valid country list
+
 ---
-*Last Updated: April 7, 2026 - Daily Allowance & Token Fallback Logic*
+*Last Updated: April 7, 2026 - Profile Photo Thumbnails & Location Fields*

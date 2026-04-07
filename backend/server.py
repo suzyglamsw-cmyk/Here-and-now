@@ -542,6 +542,9 @@ class UserProfile(BaseModel):
     celebrity_crush: Optional[str] = ""
     shy_indicator: Optional[bool] = False
     voice_intro_url: Optional[str] = ""  # 5-10s audio
+    # Location fields (static, user-entered)
+    home_country: Optional[str] = ""  # Full country name from dropdown
+    home_area: Optional[str] = ""  # Town/city text input
 
 class UserResponse(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -1121,9 +1124,31 @@ async def update_profile(data: UserProfile, current_user: dict = Depends(get_cur
         if not is_valid:
             raise HTTPException(status_code=400, detail=error_msg)
     
+    # Validate country (if provided)
+    if "home_country" in update_data and update_data["home_country"]:
+        from routes.dependencies import validate_country
+        is_valid, error_msg = validate_country(update_data["home_country"])
+        if not is_valid:
+            raise HTTPException(status_code=400, detail=error_msg)
+    
+    # Validate home_area (if provided)
+    if "home_area" in update_data and update_data["home_area"]:
+        from routes.dependencies import validate_home_area
+        is_valid, error_msg = validate_home_area(update_data["home_area"])
+        if not is_valid:
+            raise HTTPException(status_code=400, detail=error_msg)
+    
     await db.users.update_one({"id": current_user["id"]}, {"$set": update_data})
     updated = await db.users.find_one({"id": current_user["id"]}, {"_id": 0, "password": 0})
     return updated
+
+
+@api_router.get("/countries")
+async def get_countries():
+    """Get list of valid country names for the dropdown"""
+    from routes.dependencies import VALID_COUNTRIES
+    return {"countries": VALID_COUNTRIES}
+
 
 # ============================================
 # Photo Upload System

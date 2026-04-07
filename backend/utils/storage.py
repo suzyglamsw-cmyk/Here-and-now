@@ -133,6 +133,47 @@ def create_blurred_image(image_data: bytes, blur_radius: int = 30) -> bytes:
         raise
 
 
+def create_thumbnail(image_data: bytes, size: int = 150) -> bytes:
+    """
+    Create a small square thumbnail for list views.
+    
+    Args:
+        image_data: Original image bytes
+        size: Thumbnail dimension (creates size x size square)
+    
+    Returns:
+        Thumbnail as bytes (JPEG format)
+    """
+    try:
+        img = Image.open(BytesIO(image_data))
+        
+        # Convert to RGB if necessary
+        if img.mode in ('RGBA', 'P'):
+            img = img.convert('RGB')
+        
+        # Get dimensions
+        width, height = img.size
+        
+        # Crop to square (center crop)
+        if width > height:
+            left = (width - height) // 2
+            img = img.crop((left, 0, left + height, height))
+        elif height > width:
+            top = (height - width) // 2
+            img = img.crop((0, top, width, top + width))
+        
+        # Resize to thumbnail size
+        img = img.resize((size, size), Image.Resampling.LANCZOS)
+        
+        # Save to bytes
+        output = BytesIO()
+        img.save(output, format='JPEG', quality=80)
+        return output.getvalue()
+    except Exception as e:
+        logger.error(f"Failed to create thumbnail: {e}")
+        raise
+
+
 def upload_photo_with_blur(
     user_id: str,
     photo_id: str,
@@ -141,7 +182,7 @@ def upload_photo_with_blur(
     slot: int
 ) -> dict:
     """
-    Upload a photo and its blurred version to cloud storage.
+    Upload a photo, its blurred version, and thumbnail to cloud storage.
     
     Args:
         user_id: User's ID
@@ -154,6 +195,7 @@ def upload_photo_with_blur(
         {
             "clear_path": "path/to/clear/image",
             "blurred_path": "path/to/blurred/image",
+            "thumbnail_path": "path/to/thumbnail/image",
             "size": original_size
         }
     """
@@ -177,9 +219,18 @@ def upload_photo_with_blur(
     blurred_result = put_object(blurred_path, blurred_data, "image/jpeg")
     logger.info(f"Uploaded blurred photo to {blurred_path}")
     
+    # Create and upload thumbnail (only for slot 0 - main profile photo)
+    thumbnail_path = None
+    if slot == 0:
+        thumbnail_data = create_thumbnail(image_data)
+        thumbnail_path = f"{APP_NAME}/photos/{user_id}/{photo_id}_thumb.jpg"
+        put_object(thumbnail_path, thumbnail_data, "image/jpeg")
+        logger.info(f"Uploaded thumbnail to {thumbnail_path}")
+    
     return {
         "clear_path": clear_result["path"],
         "blurred_path": blurred_result["path"],
+        "thumbnail_path": thumbnail_path,
         "size": clear_result["size"]
     }
 

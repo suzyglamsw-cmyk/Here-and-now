@@ -63,6 +63,117 @@ SECOND_REVEAL_DAYS = 7
 # Google Places API
 GOOGLE_PLACES_API_KEY = os.environ.get('GOOGLE_PLACES_API_KEY', '')
 
+# ============================================================================
+# COUNTRY & HOME AREA VALIDATION
+# ============================================================================
+
+# List of valid country names (full names only, no abbreviations)
+VALID_COUNTRIES = [
+    "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda",
+    "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain",
+    "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan",
+    "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria",
+    "Burkina Faso", "Burundi", "Cambodia", "Cameroon", "Canada", "Cape Verde",
+    "Central African Republic", "Chad", "Chile", "China", "Colombia", "Comoros",
+    "Costa Rica", "Croatia", "Cuba", "Cyprus", "Czech Republic", "Democratic Republic of the Congo",
+    "Denmark", "Djibouti", "Dominica", "Dominican Republic", "East Timor", "Ecuador",
+    "Egypt", "El Salvador", "Equatorial Guinea", "Eritrea", "Estonia", "Eswatini",
+    "Ethiopia", "Fiji", "Finland", "France", "Gabon", "Gambia", "Georgia", "Germany",
+    "Ghana", "Greece", "Grenada", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana",
+    "Haiti", "Honduras", "Hungary", "Iceland", "India", "Indonesia", "Iran", "Iraq",
+    "Ireland", "Israel", "Italy", "Ivory Coast", "Jamaica", "Japan", "Jordan",
+    "Kazakhstan", "Kenya", "Kiribati", "Kuwait", "Kyrgyzstan", "Laos", "Latvia",
+    "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg",
+    "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands",
+    "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia",
+    "Montenegro", "Morocco", "Mozambique", "Myanmar", "Namibia", "Nauru", "Nepal",
+    "Netherlands", "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Korea",
+    "North Macedonia", "Norway", "Oman", "Pakistan", "Palau", "Palestine", "Panama",
+    "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal", "Qatar",
+    "Republic of the Congo", "Romania", "Russia", "Rwanda", "Saint Kitts and Nevis",
+    "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino",
+    "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles",
+    "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia",
+    "South Africa", "South Korea", "South Sudan", "Spain", "Sri Lanka", "Sudan",
+    "Suriname", "Sweden", "Switzerland", "Syria", "Taiwan", "Tajikistan", "Tanzania",
+    "Thailand", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey",
+    "Turkmenistan", "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates",
+    "United Kingdom", "United States", "Uruguay", "Uzbekistan", "Vanuatu",
+    "Vatican City", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe"
+]
+
+# Invalid abbreviations and regions to reject
+INVALID_COUNTRY_PATTERNS = [
+    "uk", "usa", "us", "uae", "eu", "europe", "asia", "africa", "americas",
+    "north america", "south america", "middle east", "oceania", "antarctic"
+]
+
+# Invalid/fictional home area entries
+INVALID_HOME_AREAS = [
+    "narnia", "hogwarts", "gotham", "metropolis", "wakanda", "mars", "moon",
+    "earth", "world", "somewhere", "anywhere", "nowhere", "heaven", "hell",
+    "universe", "galaxy", "space", "online", "internet", "home", "here",
+    "there", "everywhere", "test", "asdf", "qwerty", "abc", "xyz", "n/a", "na"
+]
+
+
+def validate_country(country: str) -> tuple:
+    """
+    Validate country name.
+    Returns (is_valid, error_message).
+    """
+    if not country or not country.strip():
+        return False, "Country is required"
+    
+    country_clean = country.strip()
+    country_lower = country_clean.lower()
+    
+    # Check if it's an abbreviation or region
+    if country_lower in INVALID_COUNTRY_PATTERNS:
+        return False, "Please select a valid country from the list (not abbreviations or regions)"
+    
+    # Check if it's in the valid list (case-insensitive match)
+    valid_lower = [c.lower() for c in VALID_COUNTRIES]
+    if country_lower not in valid_lower:
+        return False, "Please select a valid country from the dropdown list"
+    
+    return True, None
+
+
+def validate_home_area(home_area: str) -> tuple:
+    """
+    Validate home area (town/city).
+    Returns (is_valid, error_message).
+    """
+    if not home_area or not home_area.strip():
+        return False, "Home area is required"
+    
+    area_clean = home_area.strip()
+    area_lower = area_clean.lower()
+    
+    # Check minimum length
+    if len(area_clean) < 3:
+        return False, "Home area must be at least 3 characters"
+    
+    # Check for valid characters only (letters, spaces, hyphens, apostrophes)
+    if not re.match(r"^[a-zA-Z\s\-']+$", area_clean):
+        return False, "Home area can only contain letters, spaces, hyphens, and apostrophes"
+    
+    # Check for fictional/invalid entries
+    if area_lower in INVALID_HOME_AREAS:
+        return False, "Please enter a real town or city name"
+    
+    # Check if it's a country name (reject using home area for country)
+    if area_lower in [c.lower() for c in VALID_COUNTRIES]:
+        return False, "Please enter a town or city, not a country name"
+    
+    # Check for region-level entries
+    region_words = ["north", "south", "east", "west", "central", "region", "province", "state", "county"]
+    if area_lower in region_words:
+        return False, "Please enter a specific town or city name"
+    
+    return True, None
+
 
 # ============================================================================
 # PHOTO URL HELPERS
@@ -168,8 +279,8 @@ class UserProfile(BaseModel):
     my_type_of_person: Optional[str] = ""  # 10-40 chars, required
     intent: Optional[str] = ""  # "dating", "friends", "open_to_both"
     who_open_to_meeting: Optional[str] = ""  # "men", "women", "everyone", "prefer_not_to_say" - PRIVATE
-    home_country: Optional[str] = ""
-    home_region: Optional[str] = ""
+    home_country: Optional[str] = ""  # Full country name from dropdown
+    home_area: Optional[str] = ""  # Town/city text input
     shy_indicator: Optional[bool] = False
     voice_intro_url: Optional[str] = ""
     # Gender/Rainbow visibility fields
