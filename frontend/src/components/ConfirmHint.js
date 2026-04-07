@@ -101,7 +101,7 @@ export const ConfirmHint = ({
   return (
     <div 
       ref={containerRef}
-      className={`relative inline-flex ${className}`}
+      className={`relative flex w-full ${className}`}
       onClick={handleClick}
     >
       {/* Tooltip hint */}
@@ -120,8 +120,8 @@ export const ConfirmHint = ({
         </div>
       )}
       
-      {/* Children with highlight state */}
-      <div className={`transition-all duration-150 ${isPending ? "ring-2 ring-white/50 rounded-full scale-105" : ""}`}>
+      {/* Children with highlight state - full width */}
+      <div className={`w-full transition-all duration-150 ${isPending ? "ring-2 ring-white/50 rounded-xl scale-[1.02]" : ""}`}>
         {children}
       </div>
     </div>

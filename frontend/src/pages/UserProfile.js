@@ -367,13 +367,13 @@ const UserProfile = () => {
                     <Button
                       data-testid="glance-back-btn"
                       disabled={glancing}
-                      className="rounded-xl bg-gradient-to-r from-pink-500 to-indigo-500 text-white font-medium hover:opacity-90 h-12"
+                      className="w-full rounded-xl bg-gradient-to-r from-pink-500 to-indigo-500 text-white font-medium hover:opacity-90 h-12 flex items-center justify-center"
                     >
                       {glancing ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
                         <>
-                          <Eye className="w-4 h-4 mr-1" />
+                          <Eye className="w-4 h-4 mr-1 flex-shrink-0" />
                           <span className="text-xs">Glance Back</span>
                         </>
                       )}
@@ -389,13 +389,13 @@ const UserProfile = () => {
                     <Button
                       data-testid="glance-btn"
                       disabled={glancing}
-                      className="rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium hover:opacity-90 h-12"
+                      className="w-full rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium hover:opacity-90 h-12 flex items-center justify-center"
                     >
                       {glancing ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
                         <>
-                          <Eye className="w-4 h-4 mr-1" />
+                          <Eye className="w-4 h-4 mr-1 flex-shrink-0" />
                           <span className="text-xs">Glance</span>
                         </>
                       )}
@@ -404,9 +404,9 @@ const UserProfile = () => {
                 ) : (
                   <Button
                     disabled
-                    className="rounded-xl bg-indigo-500/20 text-indigo-300 h-12 cursor-default"
+                    className="w-full rounded-xl bg-indigo-500/20 text-indigo-300 h-12 cursor-default flex items-center justify-center"
                   >
-                    <Eye className="w-4 h-4 mr-1" />
+                    <Eye className="w-4 h-4 mr-1 flex-shrink-0" />
                     <span className="text-xs">Glanced</span>
                   </Button>
                 )}
@@ -415,9 +415,9 @@ const UserProfile = () => {
                 {profile.icebreaker_sent ? (
                   <Button
                     disabled
-                    className="rounded-xl bg-amber-500/20 text-amber-300 h-12 cursor-default"
+                    className="w-full rounded-xl bg-amber-500/20 text-amber-300 h-12 cursor-default flex items-center justify-center"
                   >
-                    <Snowflake className="w-4 h-4 mr-1" />
+                    <Snowflake className="w-4 h-4 mr-1 flex-shrink-0" />
                     <span className="text-xs">Sent</span>
                   </Button>
                 ) : (
@@ -428,9 +428,9 @@ const UserProfile = () => {
                   >
                     <Button
                       data-testid="icebreaker-btn"
-                      className="rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-medium hover:opacity-90 h-12"
+                      className="w-full rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-medium hover:opacity-90 h-12 flex items-center justify-center"
                     >
-                      <Snowflake className="w-4 h-4 mr-1" />
+                      <Snowflake className="w-4 h-4 mr-1 flex-shrink-0" />
                       <span className="text-xs">Icebreaker</span>
                     </Button>
                   </ConfirmHint>
@@ -440,9 +440,9 @@ const UserProfile = () => {
                 {profile.chat_request_sent ? (
                   <Button
                     disabled
-                    className="rounded-xl bg-emerald-500/20 text-emerald-300 h-12 cursor-default"
+                    className="w-full rounded-xl bg-emerald-500/20 text-emerald-300 h-12 cursor-default flex items-center justify-center"
                   >
-                    <MessageSquare className="w-4 h-4 mr-1" />
+                    <MessageSquare className="w-4 h-4 mr-1 flex-shrink-0" />
                     <span className="text-xs">Requested</span>
                   </Button>
                 ) : (
@@ -453,9 +453,9 @@ const UserProfile = () => {
                   >
                     <Button
                       data-testid="chat-request-btn"
-                      className="rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-medium hover:opacity-90 h-12"
+                      className="w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-medium hover:opacity-90 h-12 flex items-center justify-center"
                     >
-                      <MessageSquare className="w-4 h-4 mr-1" />
+                      <MessageSquare className="w-4 h-4 mr-1 flex-shrink-0" />
                       <span className="text-xs">Chat Request</span>
                     </Button>
                   </ConfirmHint>
