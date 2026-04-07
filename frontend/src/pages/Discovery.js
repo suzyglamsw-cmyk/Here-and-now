@@ -952,30 +952,40 @@ const PersonCard = ({ person, onGlance, onIcebreaker, onChatRequest, glancing, s
           />
         )}
         
-        {/* Premium badge */}
-        {person.is_premium && (
-          <div className="absolute top-2 right-2 px-2 py-1 rounded-full bg-amber-500/90 flex items-center gap-1">
-            <Crown className="w-3 h-3 text-white" />
-          </div>
-        )}
-        
-        {/* Gender indicator - bottom left */}
-        {person.show_as && (
-          <div 
-            className={`absolute bottom-14 left-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shadow-lg z-10 ${
-              person.show_as === "male" 
-                ? "bg-blue-400/90 text-white" 
-                : "bg-pink-400/90 text-white"
-            }`}
-            data-testid={`gender-indicator-${person.id}`}
-          >
-            {person.show_as === "male" ? "M" : "F"}
-          </div>
-        )}
-        
-        {/* Rainbow/OpenToAll indicators - next to gender */}
-        {/* Rule: rainbow only = 🌈, open_to_all only = 🤗, both = 🌈🤗, neither = nothing */}
-        <div className="absolute bottom-14 left-9 flex gap-1 z-10">
+        {/* Badges - vertically stacked along right edge */}
+        <div className="absolute top-2 right-2 flex flex-col gap-1.5 items-end z-10">
+          {/* Premium badge */}
+          {person.is_premium && (
+            <div className="w-6 h-6 rounded-full bg-amber-500/90 flex items-center justify-center shadow-lg">
+              <Crown className="w-3 h-3 text-white" />
+            </div>
+          )}
+          
+          {/* Mutual Match Badge */}
+          {person.is_revealed && person.is_connected && (
+            <div 
+              className="w-6 h-6 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 flex items-center justify-center shadow-lg"
+              data-testid={`mutual-match-badge-${person.id}`}
+            >
+              <Sparkles className="w-3 h-3 text-white" />
+            </div>
+          )}
+          
+          {/* Gender indicator */}
+          {person.show_as && (
+            <div 
+              className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shadow-lg ${
+                person.show_as === "male" 
+                  ? "bg-blue-400/90 text-white" 
+                  : "bg-pink-400/90 text-white"
+              }`}
+              data-testid={`gender-indicator-${person.id}`}
+            >
+              {person.show_as === "male" ? "M" : "F"}
+            </div>
+          )}
+          
+          {/* Rainbow indicator */}
           {person.rainbow && (
             <div 
               className="w-6 h-6 rounded-full flex items-center justify-center shadow-lg overflow-hidden"
@@ -987,6 +997,8 @@ const PersonCard = ({ person, onGlance, onIcebreaker, onChatRequest, glancing, s
               <div className="w-4 h-4 rounded-full bg-slate-900/50" />
             </div>
           )}
+          
+          {/* Open to all indicator */}
           {person.open_to_all && (
             <div 
               className="w-6 h-6 rounded-full flex items-center justify-center shadow-lg bg-amber-400/90"
@@ -996,17 +1008,6 @@ const PersonCard = ({ person, onGlance, onIcebreaker, onChatRequest, glancing, s
             </div>
           )}
         </div>
-        
-        {/* Mutual Match Badge - shows when both revealed and connected */}
-        {person.is_revealed && person.is_connected && (
-          <div 
-            className="absolute top-2 right-2 px-2 py-1 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 flex items-center gap-1 shadow-lg z-10"
-            data-testid={`mutual-match-badge-${person.id}`}
-          >
-            <Sparkles className="w-3 h-3 text-white" />
-            <span className="text-white text-xs font-medium">Match</span>
-          </div>
-        )}
         
         {/* Voice intro indicator */}
         {person.voice_intro_url && person.is_revealed && (
