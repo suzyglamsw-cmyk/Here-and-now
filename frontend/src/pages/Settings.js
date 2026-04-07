@@ -224,7 +224,51 @@ const Settings = () => {
           <p className="text-slate-400">Manage your account and preferences</p>
         </div>
 
-        {/* Spread the Word Section */}
+        {/* 1. Upgrades Section (Premium & Tokens) */}
+        <div className="glass rounded-2xl p-6 mb-6">
+          <h2 className="text-xl font-semibold text-white mb-4">Upgrades</h2>
+          <div className="space-y-3">
+            <button
+              data-testid="premium-link"
+              onClick={() => navigate("/premium")}
+              className="w-full flex items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                  <Crown className="w-5 h-5 text-amber-400" />
+                </div>
+                <div className="text-left">
+                  <p className="text-white font-medium">Premium</p>
+                  <p className="text-slate-400 text-sm">
+                    {user?.is_premium ? "Active" : "Unlock extra features"}
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-slate-400" />
+            </button>
+
+            <button
+              data-testid="tokens-link"
+              onClick={() => navigate("/tokens")}
+              className="w-full flex items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-yellow-500/20 flex items-center justify-center">
+                  <Coins className="w-5 h-5 text-yellow-400" />
+                </div>
+                <div className="text-left">
+                  <p className="text-white font-medium">Tokens</p>
+                  <p className="text-slate-400 text-sm">
+                    Balance: {user?.token_balance || 0}
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-slate-400" />
+            </button>
+          </div>
+        </div>
+
+        {/* 2. Spread the Word Section */}
         <div className="glass rounded-2xl p-6 mb-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-xl bg-pink-500/20 flex items-center justify-center">
@@ -270,7 +314,7 @@ const Settings = () => {
           </div>
         </div>
 
-        {/* For Venues Section */}
+        {/* 3. For Venues Section */}
         <div className="glass rounded-2xl p-6 mb-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-xl bg-teal-500/20 flex items-center justify-center">
@@ -289,7 +333,7 @@ const Settings = () => {
           </p>
         </div>
 
-        {/* Push Notifications Section */}
+        {/* 4. Notifications Section */}
         <div className="glass rounded-2xl p-6 mb-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center">
@@ -366,51 +410,7 @@ const Settings = () => {
           )}
         </div>
 
-        {/* Premium & Tokens Section */}
-        <div className="glass rounded-2xl p-6 mb-6">
-          <h2 className="text-xl font-semibold text-white mb-4">Upgrades</h2>
-          <div className="space-y-3">
-            <button
-              data-testid="premium-link"
-              onClick={() => navigate("/premium")}
-              className="w-full flex items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
-                  <Crown className="w-5 h-5 text-amber-400" />
-                </div>
-                <div className="text-left">
-                  <p className="text-white font-medium">Premium</p>
-                  <p className="text-slate-400 text-sm">
-                    {user?.is_premium ? "Active" : "Unlock extra features"}
-                  </p>
-                </div>
-              </div>
-              <ChevronRight className="w-5 h-5 text-slate-400" />
-            </button>
-
-            <button
-              data-testid="tokens-link"
-              onClick={() => navigate("/tokens")}
-              className="w-full flex items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-yellow-500/20 flex items-center justify-center">
-                  <Coins className="w-5 h-5 text-yellow-400" />
-                </div>
-                <div className="text-left">
-                  <p className="text-white font-medium">Tokens</p>
-                  <p className="text-slate-400 text-sm">
-                    Balance: {user?.token_balance || 0}
-                  </p>
-                </div>
-              </div>
-              <ChevronRight className="w-5 h-5 text-slate-400" />
-            </button>
-          </div>
-        </div>
-
-        {/* Safety Section - Blocked Users */}
+        {/* 5. Safety Section - Blocked Users */}
         <div className="glass rounded-2xl p-6 mb-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
@@ -485,7 +485,7 @@ const Settings = () => {
           </div>
         </div>
 
-        {/* Legal Section */}
+        {/* 6. Legal Section */}
         <div className="glass rounded-2xl p-6 mb-6">
           <button
             data-testid="legal-link"
@@ -505,7 +505,7 @@ const Settings = () => {
           </button>
         </div>
 
-        {/* Developer & Admin Section */}
+        {/* 7. Developer Section */}
         <div className="glass rounded-2xl p-6 mb-6">
           <h2 className="text-xl font-semibold text-white mb-4">Developer</h2>
           <div className="space-y-3">
@@ -545,7 +545,7 @@ const Settings = () => {
           </div>
         </div>
 
-        {/* Account Actions */}
+        {/* 8. Account Section */}
         <div className="glass rounded-2xl p-6">
           <h2 className="text-xl font-semibold text-white mb-6">Account</h2>
 
