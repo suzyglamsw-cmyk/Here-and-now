@@ -571,5 +571,15 @@ Comprehensive list including:
 - Removed "Find Venues" button
 - Shows "No mutual matches yet" neutral message
 
+### Accepted Icebreakers in Mutual Matches Fix (April 7, 2026)
+- **Issue**: Accepted icebreakers not appearing in Mutual Matches tab
+- **Root Cause**: Duplicate endpoint conflict - `routes/connections.py` shadowed `server.py`'s comprehensive endpoint
+  - Simple `GET /connections` in routes/connections.py only queried `connections` collection
+  - Comprehensive `GET /connections` in server.py included icebreakers, chat requests, mutual glances, mutual messagers
+  - Router registration order caused the simple endpoint to take precedence
+- **Fix**: Updated `routes/connections.py` to use comprehensive logic matching server.py
+- **Result**: Accepted icebreakers now appear immediately for both sender and recipient
+- **Badge styling**: Icebreaker connections show cyan badge with Wine icon
+
 ---
-*Last Updated: April 7, 2026 - Icebreaker UI & Discovery Badge Fixes*
+*Last Updated: April 7, 2026 - Accepted Icebreakers in Mutual Matches Fix*
