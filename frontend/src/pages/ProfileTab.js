@@ -285,6 +285,23 @@ const Profile = () => {
       return;
     }
 
+    // Required field: Country
+    if (!formData.home_country || formData.home_country.trim().length === 0) {
+      toast.error("Please select your country.");
+      return;
+    }
+
+    // Required field: Home Area (town/city)
+    if (!formData.home_area || formData.home_area.trim().length === 0) {
+      toast.error("Please enter your town or city.");
+      return;
+    }
+
+    if (formData.home_area.trim().length < 3) {
+      toast.error("Home area must be at least 3 characters.");
+      return;
+    }
+
     setSaving(true);
     try {
       // Save non-photo profile fields only

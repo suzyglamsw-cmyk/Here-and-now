@@ -4834,6 +4834,7 @@ async def get_connections(current_user: dict = Depends(get_current_user)):
                 "user_id": other_user.get("id"),
                 "display_name": other_user.get("display_name", "Someone"),
                 "avatar_url": other_user.get("avatar_url", ""),
+                "thumbnail_url": other_user.get("thumbnail_url", ""),
                 "bio": other_user.get("bio", ""),
                 "connected_at": conn.get("connected_at", conn.get("created_at", datetime.now(timezone.utc).isoformat())),
                 "venue_name": venue.get("name", "Chat") if venue else "Chat",
@@ -4873,6 +4874,7 @@ async def get_connections(current_user: dict = Depends(get_current_user)):
                     "user_id": user.get("id"),
                     "display_name": user.get("display_name", "Someone"),
                     "avatar_url": user.get("avatar_url", ""),
+                    "thumbnail_url": user.get("thumbnail_url", ""),
                     "bio": user.get("bio", ""),
                     "connected_at": glance["created_at"],
                     "venue_name": venue.get("name", "Nearby") if venue else "Nearby",
@@ -4908,10 +4910,89 @@ async def get_connections(current_user: dict = Depends(get_current_user)):
                 "user_id": user.get("id"),
                 "display_name": user.get("display_name", "Someone"),
                 "avatar_url": user.get("avatar_url", ""),
+                "thumbnail_url": user.get("thumbnail_url", ""),
                 "bio": user.get("bio", ""),
                 "connected_at": ib.get("responded_at", ib.get("created_at")),
                 "venue_name": venue.get("name", "Via Icebreaker") if venue else "Via Icebreaker",
                 "connection_type": "icebreaker_accepted"
+            })
+    
+    # 4. Get accepted chat requests that aren't already in connections
+    accepted_chat_requests = await db.chat_requests.find({
+        "$or": [
+            {"from_user_id": current_user["id"], "status": "accepted"},
+            {"to_user_id": current_user["id"], "status": "accepted"}
+        ]
+    }, {"_id": 0}).to_list(100)
+    
+    for req in accepted_chat_requests:
+        other_user_id = req["to_user_id"] if req["from_user_id"] == current_user["id"] else req["from_user_id"]
+        if other_user_id in seen_users:
+            continue
+        seen_users.add(other_user_id)
+        
+        user = await db.users.find_one({"id": other_user_id}, {"_id": 0, "password": 0})
+        
+        # Check fake users for test mode
+        if not user and IS_TEST_BUILD:
+            fake_user = next((u for u in FAKE_TEST_USERS if u["id"] == other_user_id), None)
+            if fake_user:
+                user = fake_user
+        
+        if user:
+            venue = await db.venues.find_one({"id": req.get("venue_id", "")}, {"_id": 0})
+            all_connections.append({
+                "id": f"chat-request-{req['id']}",
+                "user_id": user.get("id"),
+                "display_name": user.get("display_name", "Someone"),
+                "avatar_url": user.get("avatar_url", ""),
+                "thumbnail_url": user.get("thumbnail_url", ""),
+                "bio": user.get("bio", ""),
+                "connected_at": req.get("responded_at", req.get("created_at")),
+                "venue_name": venue.get("name", "Via Chat Request") if venue else "Via Chat Request",
+                "connection_type": "chat_request_accepted"
+            })
+    
+    # 5. Get users with exchanged messages (mutual messaging = mutual connection)
+    my_sent_messages = await db.messages.distinct("to_user_id", {"from_user_id": current_user["id"]})
+    my_received_messages = await db.messages.distinct("from_user_id", {"to_user_id": current_user["id"]})
+    
+    # Users we've both sent to AND received from = mutual messaging
+    mutual_messagers = set(my_sent_messages) & set(my_received_messages)
+    
+    for other_user_id in mutual_messagers:
+        if other_user_id in seen_users:
+            continue
+        seen_users.add(other_user_id)
+        
+        user = await db.users.find_one({"id": other_user_id}, {"_id": 0, "password": 0})
+        
+        # Check fake users for test mode
+        if not user and IS_TEST_BUILD:
+            fake_user = next((u for u in FAKE_TEST_USERS if u["id"] == other_user_id), None)
+            if fake_user:
+                user = fake_user
+        
+        if user:
+            # Get the most recent message to determine connection time
+            latest_msg = await db.messages.find_one(
+                {"$or": [
+                    {"from_user_id": current_user["id"], "to_user_id": other_user_id},
+                    {"from_user_id": other_user_id, "to_user_id": current_user["id"]}
+                ]},
+                {"_id": 0},
+                sort=[("created_at", -1)]
+            )
+            all_connections.append({
+                "id": f"messaging-{other_user_id}",
+                "user_id": user.get("id"),
+                "display_name": user.get("display_name", "Someone"),
+                "avatar_url": user.get("avatar_url", ""),
+                "thumbnail_url": user.get("thumbnail_url", ""),
+                "bio": user.get("bio", ""),
+                "connected_at": latest_msg.get("created_at") if latest_msg else datetime.now(timezone.utc).isoformat(),
+                "venue_name": "Messages",
+                "connection_type": "mutual_messaging"
             })
     
     # Sort by connected_at descending
@@ -5260,6 +5341,7 @@ async def get_message_threads(current_user: dict = Depends(get_current_user)):
                 "user_id": user.get("id"),
                 "display_name": user.get("display_name", "Someone"),
                 "avatar_url": user.get("avatar_url", ""),
+                "thumbnail_url": user.get("thumbnail_url", ""),
                 "last_message": last_msg.get("content", "")[:50],
                 "last_message_at": last_msg.get("created_at"),
                 "unread_count": thread_data["unread_count"],

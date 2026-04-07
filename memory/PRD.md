@@ -530,5 +530,21 @@ Comprehensive list including:
 - **Not linked to GPS**: Static, user-entered visual fields only
 - **New endpoint**: `GET /api/countries` returns valid country list
 
+### Mutual Match Logic Fix (April 7, 2026)
+- **Connections that appear in Mutual Matches**:
+  - Explicit connections (from connections collection)
+  - Mutual glances (both users glanced at each other)
+  - Accepted icebreakers
+  - Accepted chat requests
+  - Users with exchanged messages (mutual messaging)
+- **thumbnail_url** added to all connection/match/message thread responses
+- **Messaging requires mutual acceptance** - users appear in Mutual Matches once connected
+
+### Profile Required Fields (April 7, 2026)
+- **Country**: Required field, must select from dropdown (196 valid countries)
+- **Home Area**: Required field, min 3 characters, letters/spaces/hyphens only
+- Both fields must be completed before profile can be saved
+- Applies to all users including existing accounts
+
 ---
-*Last Updated: April 7, 2026 - Profile Photo Thumbnails & Location Fields*
+*Last Updated: April 7, 2026 - Mutual Match Logic & Profile Required Fields*

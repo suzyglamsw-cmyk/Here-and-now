@@ -718,11 +718,6 @@ const PersonCard = ({
             <Eye className="w-3 h-3 text-white" />
           </div>
         )}
-        {person.is_revealed && !person.has_glanced_at_me && (
-          <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center">
-            <Sparkles className="w-3 h-3 text-white" />
-          </div>
-        )}
         
         {/* Gender indicator - bottom left */}
         {person.show_as && (
