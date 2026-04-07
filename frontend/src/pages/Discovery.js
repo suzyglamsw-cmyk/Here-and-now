@@ -631,7 +631,7 @@ const Discovery = ({ defaultMode = null }) => {
           )}
 
           {/* Content - People Grid */}
-          <div className="max-w-4xl mx-auto px-4 py-6">
+          <div className="max-w-4xl mx-auto px-4 py-6 pb-28">
             {/* LOCATION REQUIRED PROMPT FOR HERE & NOW */}
             {locationStatus === "checking" || locationStatus === "updating" ? (
               <div className="flex flex-col items-center justify-center py-20">
@@ -758,7 +758,7 @@ const Discovery = ({ defaultMode = null }) => {
         </div>
 
         {/* Content - People Grid */}
-        <div className="max-w-4xl mx-auto px-4 py-6">
+        <div className="max-w-4xl mx-auto px-4 py-6 pb-28">
           {/* LOCATION REQUIRED PROMPT */}
           {locationStatus === "checking" || locationStatus === "updating" ? (
             <div className="flex flex-col items-center justify-center py-20">
