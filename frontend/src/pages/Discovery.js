@@ -1024,6 +1024,7 @@ const PersonCard = ({ person, onGlance, onIcebreaker, onChatRequest, glancing, s
                 onConfirm={() => onGlance(person.id, venueId)}
                 disabled={glancing === person.id}
                 globalPendingRef={globalPendingRef}
+                compact
               >
                 <Button
                   data-testid={`glance-btn-${person.id}`}
@@ -1073,6 +1074,7 @@ const PersonCard = ({ person, onGlance, onIcebreaker, onChatRequest, glancing, s
                 hint="Send an icebreaker?"
                 onConfirm={() => onIcebreaker(person)}
                 globalPendingRef={globalPendingRef}
+                compact
               >
                 <Button
                   data-testid={`icebreaker-btn-${person.id}`}
@@ -1104,6 +1106,7 @@ const PersonCard = ({ person, onGlance, onIcebreaker, onChatRequest, glancing, s
                 onConfirm={() => onChatRequest && onChatRequest(person)}
                 disabled={sendingChatRequest === person.id}
                 globalPendingRef={globalPendingRef}
+                compact
               >
                 <Button
                   data-testid={`chat-request-btn-${person.id}`}

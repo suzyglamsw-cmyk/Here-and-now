@@ -355,7 +355,7 @@ const UserProfile = () => {
             {/* Action Buttons */}
             <div className="space-y-3">
               {/* Primary Actions - Always Available Pre-Reveal */}
-              <div className="grid grid-cols-3 gap-2">
+              <div className="flex gap-2 justify-start flex-wrap">
                 {/* Glance Button */}
                 {profile.can_glance_back ? (
                   <ConfirmHint
@@ -363,17 +363,18 @@ const UserProfile = () => {
                     onConfirm={handleGlance}
                     disabled={glancing}
                     globalPendingRef={confirmHintRef}
+                    compact
                   >
                     <Button
                       data-testid="glance-back-btn"
                       disabled={glancing}
-                      className="w-full rounded-xl bg-gradient-to-r from-pink-500 to-indigo-500 text-white font-medium hover:opacity-90 h-12 flex items-center justify-center"
+                      className="rounded-full bg-gradient-to-r from-pink-500 to-indigo-500 text-white font-medium hover:opacity-90 h-10 px-4 inline-flex items-center gap-2"
                     >
                       {glancing ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
                         <>
-                          <Eye className="w-4 h-4 mr-1 flex-shrink-0" />
+                          <Eye className="w-4 h-4" />
                           <span className="text-xs">Glance Back</span>
                         </>
                       )}
@@ -385,17 +386,18 @@ const UserProfile = () => {
                     onConfirm={handleGlance}
                     disabled={glancing}
                     globalPendingRef={confirmHintRef}
+                    compact
                   >
                     <Button
                       data-testid="glance-btn"
                       disabled={glancing}
-                      className="w-full rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium hover:opacity-90 h-12 flex items-center justify-center"
+                      className="rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium hover:opacity-90 h-10 px-4 inline-flex items-center gap-2"
                     >
                       {glancing ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
                         <>
-                          <Eye className="w-4 h-4 mr-1 flex-shrink-0" />
+                          <Eye className="w-4 h-4" />
                           <span className="text-xs">Glance</span>
                         </>
                       )}
@@ -404,9 +406,9 @@ const UserProfile = () => {
                 ) : (
                   <Button
                     disabled
-                    className="w-full rounded-xl bg-indigo-500/20 text-indigo-300 h-12 cursor-default flex items-center justify-center"
+                    className="rounded-full bg-indigo-500/20 text-indigo-300 h-10 px-4 cursor-default inline-flex items-center gap-2"
                   >
-                    <Eye className="w-4 h-4 mr-1 flex-shrink-0" />
+                    <Eye className="w-4 h-4" />
                     <span className="text-xs">Glanced</span>
                   </Button>
                 )}
@@ -415,9 +417,9 @@ const UserProfile = () => {
                 {profile.icebreaker_sent ? (
                   <Button
                     disabled
-                    className="w-full rounded-xl bg-amber-500/20 text-amber-300 h-12 cursor-default flex items-center justify-center"
+                    className="rounded-full bg-amber-500/20 text-amber-300 h-10 px-4 cursor-default inline-flex items-center gap-2"
                   >
-                    <Snowflake className="w-4 h-4 mr-1 flex-shrink-0" />
+                    <Snowflake className="w-4 h-4" />
                     <span className="text-xs">Sent</span>
                   </Button>
                 ) : (
@@ -425,12 +427,13 @@ const UserProfile = () => {
                     hint="Send an icebreaker?"
                     onConfirm={() => setShowIcebreakerModal(true)}
                     globalPendingRef={confirmHintRef}
+                    compact
                   >
                     <Button
                       data-testid="icebreaker-btn"
-                      className="w-full rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-medium hover:opacity-90 h-12 flex items-center justify-center"
+                      className="rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-medium hover:opacity-90 h-10 px-4 inline-flex items-center gap-2"
                     >
-                      <Snowflake className="w-4 h-4 mr-1 flex-shrink-0" />
+                      <Snowflake className="w-4 h-4" />
                       <span className="text-xs">Icebreaker</span>
                     </Button>
                   </ConfirmHint>
@@ -440,9 +443,9 @@ const UserProfile = () => {
                 {profile.chat_request_sent ? (
                   <Button
                     disabled
-                    className="w-full rounded-xl bg-emerald-500/20 text-emerald-300 h-12 cursor-default flex items-center justify-center"
+                    className="rounded-full bg-emerald-500/20 text-emerald-300 h-10 px-4 cursor-default inline-flex items-center gap-2"
                   >
-                    <MessageSquare className="w-4 h-4 mr-1 flex-shrink-0" />
+                    <MessageSquare className="w-4 h-4" />
                     <span className="text-xs">Requested</span>
                   </Button>
                 ) : (
@@ -450,12 +453,13 @@ const UserProfile = () => {
                     hint="Send a chat request?"
                     onConfirm={() => setShowChatRequestModal(true)}
                     globalPendingRef={confirmHintRef}
+                    compact
                   >
                     <Button
                       data-testid="chat-request-btn"
-                      className="w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-medium hover:opacity-90 h-12 flex items-center justify-center"
+                      className="rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-medium hover:opacity-90 h-10 px-4 inline-flex items-center gap-2"
                     >
-                      <MessageSquare className="w-4 h-4 mr-1 flex-shrink-0" />
+                      <MessageSquare className="w-4 h-4" />
                       <span className="text-xs">Chat Request</span>
                     </Button>
                   </ConfirmHint>

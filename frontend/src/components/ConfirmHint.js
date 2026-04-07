@@ -18,6 +18,7 @@ export const ConfirmHint = ({
   onConfirm, 
   disabled = false,
   className = "",
+  compact = false, // Use for icon-only buttons in thumb view
   globalPendingRef = null // Shared ref to track which hint is active globally
 }) => {
   const [isPending, setIsPending] = useState(false);
@@ -98,10 +99,19 @@ export const ConfirmHint = ({
     }
   };
 
+  // Use inline-flex for compact/icon buttons, flex w-full for full-width buttons
+  const containerClass = compact 
+    ? `relative inline-flex ${className}`
+    : `relative flex w-full ${className}`;
+  
+  const highlightClass = compact
+    ? "ring-2 ring-white/50 rounded-full scale-105"
+    : "ring-2 ring-white/50 rounded-xl scale-[1.02]";
+
   return (
     <div 
       ref={containerRef}
-      className={`relative flex w-full ${className}`}
+      className={containerClass}
       onClick={handleClick}
     >
       {/* Tooltip hint */}
@@ -120,8 +130,8 @@ export const ConfirmHint = ({
         </div>
       )}
       
-      {/* Children with highlight state - full width */}
-      <div className={`w-full transition-all duration-150 ${isPending ? "ring-2 ring-white/50 rounded-xl scale-[1.02]" : ""}`}>
+      {/* Children with highlight state */}
+      <div className={`${compact ? "" : "w-full"} transition-all duration-150 ${isPending ? highlightClass : ""}`}>
         {children}
       </div>
     </div>
