@@ -10,6 +10,7 @@ import { Eye, MessageCircle, Loader2, Heart, Crown, Coins, X, UserPlus, Snowflak
 import { getErrorMessage } from "../utils/errorUtils";
 import BlurredImage from "../components/BlurredImage";
 import { ConfirmHint, useConfirmHintGlobal } from "../components/ConfirmHint";
+import { dispatchBlockEvent } from "../utils/blockEvents";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -184,6 +185,8 @@ const UserProfile = () => {
       await axios.post(`${API}/users/block`, { user_id: userId });
       toast.success("User blocked. They won't be able to see or contact you.");
       setShowBlockModal(false);
+      // Dispatch block event to refresh all lists
+      dispatchBlockEvent(userId);
       navigate(-1); // Go back to previous page
     } catch (error) {
       toast.error(getErrorMessage(error, "Failed to block user"));

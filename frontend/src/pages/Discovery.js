@@ -8,6 +8,7 @@ import Layout from "../components/Layout";
 import BlurredImage from "../components/BlurredImage";
 import { getErrorMessage } from "../utils/errorUtils";
 import { ConfirmHint, useConfirmHintGlobal } from "../components/ConfirmHint";
+import { onUserBlocked } from "../utils/blockEvents";
 import {
   Eye,
   Snowflake,
@@ -99,6 +100,22 @@ const Discovery = ({ defaultMode = null }) => {
     const newMode = getInitialMode();
     setMode(newMode);
   }, [location.pathname]);
+
+  // Listen for block events and remove blocked users from list
+  useEffect(() => {
+    const cleanup = onUserBlocked((blockedUserId) => {
+      // Immediately remove blocked user from people list
+      setPeople(prev => prev.filter(p => p.id !== blockedUserId));
+      // Clear any interaction state for this user
+      if (glancing === blockedUserId) setGlancing(null);
+      if (sendingChatRequest === blockedUserId) setSendingChatRequest(null);
+      if (selectedPerson?.id === blockedUserId) {
+        setSelectedPerson(null);
+        setShowIcebreakerModal(false);
+      }
+    });
+    return cleanup;
+  }, [glancing, sendingChatRequest, selectedPerson]);
 
   // REQUEST AND UPDATE GPS LOCATION - Strict enforcement
   const requestAndUpdateLocation = useCallback(async () => {

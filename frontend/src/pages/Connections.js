@@ -9,6 +9,7 @@ import { MessageCircle, MapPin, Loader2, Users, Sparkles, Eye, Heart, Snowflake,
 import { getErrorMessage } from "../utils/errorUtils";
 import BlurredImage from "../components/BlurredImage";
 import { ConfirmHint, useConfirmHintGlobal } from "../components/ConfirmHint";
+import { dispatchBlockEvent, onUserBlocked } from "../utils/blockEvents";
 
 const ICEBREAKER_MESSAGES = [
   "Hello",
@@ -50,6 +51,37 @@ const Connections = () => {
       setTab(tabParam === "drinks" ? "icebreakers" : tabParam);
     }
   }, [searchParams]);
+
+  // Listen for block events and refresh data
+  useEffect(() => {
+    const cleanup = onUserBlocked((blockedUserId) => {
+      // Immediately remove blocked user from all local state
+      setGlances(prev => ({
+        incoming: prev.incoming.filter(g => g.from_user_id !== blockedUserId),
+        outgoing: prev.outgoing.filter(g => g.to_user_id !== blockedUserId)
+      }));
+      setIcebreakers(prev => ({
+        incoming: prev.incoming.filter(i => i.from_user_id !== blockedUserId),
+        outgoing: prev.outgoing.filter(i => i.to_user_id !== blockedUserId)
+      }));
+      setChatRequests(prev => ({
+        incoming: prev.incoming.filter(r => r.from_user_id !== blockedUserId),
+        outgoing: prev.outgoing.filter(r => r.to_user_id !== blockedUserId)
+      }));
+      setFriendRequests(prev => ({
+        incoming: prev.incoming.filter(r => r.from_user_id !== blockedUserId),
+        outgoing: prev.outgoing.filter(r => r.to_user_id !== blockedUserId)
+      }));
+      setFriends(prev => prev.filter(f => f.id !== blockedUserId));
+      setConnections(prev => prev.filter(c => c.user_id !== blockedUserId));
+      setMutualGlances(prev => prev.filter(m => m.user_id !== blockedUserId));
+      setMessageThreads(prev => prev.filter(t => t.other_user_id !== blockedUserId));
+      
+      // Also refresh from server to ensure complete sync
+      fetchAllData();
+    });
+    return cleanup;
+  }, []);
 
   const fetchAllData = async () => {
     try {
@@ -171,13 +203,17 @@ const Connections = () => {
   };
 
   // Icebreaker handlers
-  const handleIcebreakerAction = async (icebreakerId, action) => {
+  const handleIcebreakerAction = async (icebreakerId, action, fromUserId = null) => {
     try {
       await axios.post(`${API}/icebreaker/${icebreakerId}/respond`, { action });
       if (action === "accept") {
         toast.success("Icebreaker accepted! You can now chat.");
       } else if (action === "block_user") {
         toast.success("User blocked");
+        // Dispatch block event to refresh all lists
+        if (fromUserId) {
+          dispatchBlockEvent(fromUserId);
+        }
       } else if (action === "not_right_now") {
         toast.success("Response sent");
       } else if (action === "decline") {
@@ -1406,7 +1442,7 @@ const Connections = () => {
               </Button>
               <Button
                 data-testid="block-user-btn"
-                onClick={() => handleIcebreakerAction(actionSheet.id, "block_user")}
+                onClick={() => handleIcebreakerAction(actionSheet.id, "block_user", actionSheet.from_user_id)}
                 variant="ghost"
                 className="w-full h-12 rounded-xl text-red-400 hover:bg-red-500/10"
               >
