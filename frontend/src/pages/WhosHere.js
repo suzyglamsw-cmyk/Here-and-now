@@ -131,7 +131,9 @@ const WhosHere = () => {
   const checkIfCheckedIn = async () => {
     try {
       const response = await axios.get(`${API}/checkin/current`);
-      setIsCheckedIn(response.data?.venue_id === venueId);
+      // API returns { checked_in: true, checkin: { venue_id: "..." }, venue: {...} }
+      const isAtThisVenue = response.data?.checked_in && response.data?.checkin?.venue_id === venueId;
+      setIsCheckedIn(isAtThisVenue);
     } catch (error) {
       setIsCheckedIn(false);
     }
@@ -143,39 +145,41 @@ const WhosHere = () => {
       const response = await axios.get(`${API}/venues/${venueId}/people`);
       let fetchedPeople = response.data || [];
 
-      // Filter out blocked users
+      // Filter out blocked users (but NOT self - self card has is_self: true)
       const blockedUsers = user?.blocked_users || [];
       fetchedPeople = fetchedPeople.filter(p => 
-        !blockedUsers.includes(p.id) && p.id !== user?.id
+        p.is_self || (!blockedUsers.includes(p.id) && p.id !== user?.id)
       );
 
-      // Filter out hidden users
-      fetchedPeople = fetchedPeople.filter(p => !hiddenUsers.includes(p.id));
+      // Filter out hidden users (but NOT self)
+      fetchedPeople = fetchedPeople.filter(p => p.is_self || !hiddenUsers.includes(p.id));
 
-      // Apply match filter
+      // Apply match filter (but NOT to self)
       if (matchFilter === "unmatched") {
-        fetchedPeople = fetchedPeople.filter(p => !p.is_matched);
+        fetchedPeople = fetchedPeople.filter(p => p.is_self || !p.is_matched);
       } else if (matchFilter === "matched") {
-        fetchedPeople = fetchedPeople.filter(p => p.is_matched);
+        fetchedPeople = fetchedPeople.filter(p => p.is_self || p.is_matched);
       }
 
-      // Apply activity filter
+      // Apply activity filter (but NOT to self)
       if (activityFilter !== "all") {
         const maxMinutes = ACTIVITY_FILTER_OPTIONS.find(o => o.value === activityFilter)?.maxMinutes;
         if (maxMinutes) {
           const cutoff = new Date(Date.now() - maxMinutes * 60 * 1000);
           fetchedPeople = fetchedPeople.filter(p => {
+            if (p.is_self) return true;
             if (!p.last_active) return false;
             return new Date(p.last_active) >= cutoff;
           });
         }
       }
 
-      // Apply age filter
+      // Apply age filter (but NOT to self)
       if (ageFilter !== "all") {
         const preset = AGE_PRESETS.find(p => p.value === ageFilter);
         if (preset) {
           fetchedPeople = fetchedPeople.filter(p => {
+            if (p.is_self) return true;
             if (!p.age) return true;
             return p.age >= preset.min && p.age <= preset.max;
           });
@@ -216,7 +220,7 @@ const WhosHere = () => {
 
   const handleCheckOut = async () => {
     try {
-      await axios.delete(`${API}/checkin/current`);
+      await axios.post(`${API}/checkout`);
       setIsCheckedIn(false);
       toast.success("Checked out");
     } catch (error) {

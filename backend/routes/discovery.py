@@ -33,7 +33,38 @@ async def get_people_not_here(
     Get people nearby within 0-25 mile radius (Not Here mode).
     Shows all visible users within range who are NOT at a venue.
     Only shows users with presence_status = "not_here" (or no presence set).
+    
+    PRESENCE LOGIC: Accessing Not Here mode automatically:
+    - Checks out user from any active venue check-ins
+    - Sets presence_status to "not_here"
     """
+    now = datetime.now(timezone.utc)
+    
+    # =========================================================================
+    # MUTUAL EXCLUSIVITY: Check out from any venue when entering Not Here mode
+    # =========================================================================
+    active_checkin = await db.checkins.find_one({
+        "user_id": current_user["id"],
+        "is_active": True
+    })
+    
+    if active_checkin:
+        # Auto-checkout from venue
+        await db.checkins.update_one(
+            {"id": active_checkin["id"]},
+            {"$set": {
+                "is_active": False, 
+                "checked_out_at": now.isoformat(),
+                "auto_checkout_reason": "switched_to_not_here"
+            }}
+        )
+    
+    # Update user's presence status to "not_here"
+    await db.users.update_one(
+        {"id": current_user["id"]},
+        {"$set": {"presence_status": "not_here", "last_active_at": now.isoformat()}}
+    )
+    
     # Check if current user has a profile photo
     current_user_photos = current_user.get("photos", []) or []
     current_user_avatar = current_user.get("avatar_url", "")
@@ -68,14 +99,6 @@ async def get_people_not_here(
     except:
         min_miles = 0
         max_miles = 25
-    
-    now = datetime.now(timezone.utc)
-    
-    # Update current user's last_active_at
-    await db.users.update_one(
-        {"id": current_user["id"]},
-        {"$set": {"last_active_at": now.isoformat()}}
-    )
     
     # Find visible users - including current user (self)
     # Users with presence_status = "not_here" OR presence_status not set (default to not_here)

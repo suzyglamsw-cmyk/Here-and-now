@@ -634,4 +634,37 @@ Comprehensive list including:
 - `/app/backend/routes/connections.py` (UPDATED)
 
 ---
-*Last Updated: April 8, 2026 - Unified User Card System Implementation*
+
+## Presence Logic Fix (April 8, 2026)
+
+**Issue Fixed:** Restore original presence logic and inactivity behavior.
+
+**Implementation:**
+
+1. **Mutual Exclusivity (Backend):**
+   - `discovery.py` `/api/discovery/not-here` now auto-checkouts user from any active venue when accessed
+   - Sets `presence_status: "not_here"` and marks checkin as `is_active: false` with reason `switched_to_not_here`
+   - `venues.py` `/api/checkin/{venue_id}` sets `presence_status: "here"` on check-in (already existed)
+
+2. **Self Card Visibility:**
+   - Backend already returns self card with `is_self: true` as first item in people lists
+   - Frontend `fetchPeople()` in `WhosHere.js` and `Discovery.js` now preserves `is_self` cards from blocked/hidden filters
+
+3. **Check-in Button Fix:**
+   - `WhosHere.js` `checkIfCheckedIn()` now correctly checks `response.data.checkin.venue_id` instead of `response.data.venue_id`
+   - `handleCheckOut()` changed from `DELETE` to `POST /api/checkout`
+
+4. **Auto-Checkout:**
+   - Checkins have `expires_at` field set to `AUTO_CHECKOUT_MINUTES` (120 min) from creation
+   - `is_checkin_valid()` validates expiry before returning checkin data
+   - Heartbeat endpoint extends expiry on activity
+
+**Files Modified:**
+- `/app/backend/routes/discovery.py` - Added auto-checkout logic (lines 28-66)
+- `/app/frontend/src/pages/WhosHere.js` - Fixed checkIfCheckedIn, checkout method, self card filtering
+- `/app/frontend/src/pages/Discovery.js` - Fixed self card filtering in fetchPeople
+
+**Test Results:** 13/13 backend tests passed, frontend verified working.
+
+---
+*Last Updated: April 8, 2026 - Presence Logic Fix*
