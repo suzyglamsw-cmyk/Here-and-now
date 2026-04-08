@@ -94,8 +94,8 @@ const Premium = () => {
   };
 
   const benefits = [
-    "20 daily glances (vs 5 free)",
-    "5 free icebreakers/day (vs 1 free)",
+    "15 glances a day — have a proper look round",
+    "15 icebreakers a day — plenty to play with",
     "See when your icebreaker was viewed",
     "See who viewed your profile (last 48h)"
   ];
@@ -121,13 +121,13 @@ const Premium = () => {
                     <span className="text-xl font-semibold text-white">Premium Active</span>
                   </div>
                   <p className="text-slate-400 text-sm mt-1">
-                    Expires: {user.premium_expires_at ? new Date(user.premium_expires_at).toLocaleDateString() : "Never"}
+                    You're on Premium now. Plenty of room to look round.
                   </p>
                 </div>
               </div>
               
               {/* Premium Benefits Summary */}
-              <div className="grid grid-cols-2 gap-3 mt-4">
+              <div className="grid grid-cols-1 gap-3 mt-4">
                 {benefits.slice(0, 2).map((benefit, index) => (
                   <div key={index} className="flex items-center gap-2 text-sm">
                     <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
@@ -143,8 +143,8 @@ const Premium = () => {
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center mx-auto mb-4">
                   <Crown className="w-8 h-8 text-white" />
                 </div>
-                <h2 className="text-xl font-bold text-white mb-2">Upgrade to Premium</h2>
-                <p className="text-slate-400">Unlock the full experience</p>
+                <h2 className="text-xl font-bold text-white mb-2">Premium</h2>
+                <p className="text-slate-400">Go on then — treat yourself.</p>
               </div>
 
               {/* Benefits */}
@@ -157,6 +157,12 @@ const Premium = () => {
                     <span className="text-slate-300">{benefit}</span>
                   </div>
                 ))}
+              </div>
+              
+              {/* Additional info */}
+              <div className="text-sm text-slate-400 mb-6 space-y-2">
+                <p>Free users get 3 and 3, so you're getting the good stuff here. More chances, more chats, more 'oh go on then'.</p>
+                <p className="text-slate-500">Premium keeps it simple: No boosts, no gimmicks, no pressure. Just more room to be yourself and see who's about.</p>
               </div>
 
               {/* Premium Purchase Options - Using API data */}
@@ -205,7 +211,8 @@ const Premium = () => {
 
         {/* SECTION 2: Daily Allowances - Human Readable */}
         <div className="mb-8">
-          <h2 className="text-lg font-semibold text-white mb-4">Your Daily Allowances</h2>
+          <h2 className="text-lg font-semibold text-white mb-1">Your Daily Allowances</h2>
+          <p className="text-slate-500 text-xs mb-4">(Resets daily at 5am)</p>
           <div className="glass rounded-2xl p-5 space-y-4">
             {/* Glances */}
             <div className="flex items-center gap-4">
@@ -216,7 +223,7 @@ const Premium = () => {
                 <p className="text-white font-medium">
                   {balance.daily_glances_remaining} {balance.daily_glances_remaining === 1 ? 'glance' : 'glances'} left today
                 </p>
-                <p className="text-slate-500 text-xs">Resets daily at 5am</p>
+                <p className="text-slate-500 text-xs">Have a quick look round.</p>
               </div>
             </div>
 
@@ -229,7 +236,7 @@ const Premium = () => {
                 <p className="text-white font-medium">
                   {balance.daily_icebreakers_remaining} {balance.daily_icebreakers_remaining === 1 ? 'icebreaker' : 'icebreakers'} left today
                 </p>
-                <p className="text-slate-500 text-xs">Resets daily at 5am</p>
+                <p className="text-slate-500 text-xs">Say hello while you've got some left.</p>
               </div>
             </div>
 
@@ -242,7 +249,7 @@ const Premium = () => {
                 <p className="text-white font-medium">
                   {balance.balance} paid {balance.balance === 1 ? 'token' : 'tokens'} available
                 </p>
-                <p className="text-slate-500 text-xs">Use after daily allowance</p>
+                <p className="text-slate-500 text-xs">Once you've used your daily allowances, you'll use tokens. Icebreakers and chat requests cost 1 token.</p>
               </div>
             </div>
           </div>

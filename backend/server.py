@@ -54,10 +54,10 @@ STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY', 'sk_test_emergent')
 AUTO_CHECKOUT_MINUTES = 120  # 2 hours - checkins expire after this time of inactivity
 
 # Premium/Token Config
-FREE_DAILY_GLANCES = 5
-FREE_DAILY_ICEBREAKERS = 1
-PREMIUM_DAILY_GLANCES = 20
-PREMIUM_DAILY_ICEBREAKERS = 5
+FREE_DAILY_GLANCES = 3
+FREE_DAILY_ICEBREAKERS = 3
+PREMIUM_DAILY_GLANCES = 15
+PREMIUM_DAILY_ICEBREAKERS = 15
 # Legacy aliases for backward compatibility
 FREE_DAILY_TOKENS = FREE_DAILY_ICEBREAKERS
 PREMIUM_DAILY_TOKENS = PREMIUM_DAILY_ICEBREAKERS
@@ -962,6 +962,7 @@ async def register(data: UserCreate):
         "daily_glances_remaining": FREE_DAILY_GLANCES,
         "daily_tokens_remaining": FREE_DAILY_TOKENS,
         "glances_reset_at": now.isoformat(),
+        "token_fallback_confirmed": False,  # Has user seen the token fallback confirmation
         "profile_theme": None,
         "blocked_users": [],
         "last_active_at": now.isoformat(),  # Track user activity
@@ -4475,7 +4476,7 @@ async def send_glance(data: GlanceCreate, current_user: dict = Depends(get_curre
             }
         )
         
-        return {"message": "It's a match! You can now connect.", "is_mutual": True}
+        return {"message": "It's a match! You can now connect.", "is_mutual": True, "used_token": use_token}
     
     # Notify target user of glance (anonymous)
     await manager.send_to_user(data.to_user_id, {
@@ -4498,7 +4499,7 @@ async def send_glance(data: GlanceCreate, current_user: dict = Depends(get_curre
             }
         )
     
-    return {"message": "Glance sent!", "is_mutual": False}
+    return {"message": "Glance sent!", "is_mutual": False, "used_token": use_token}
 
 # Icebreaker Routes
 @api_router.post("/icebreaker")
@@ -4553,7 +4554,7 @@ async def send_icebreaker(data: IcebreakerCreate, current_user: dict = Depends(g
     
     # Check icebreaker allowance
     is_premium = current_user.get("is_premium", False)
-    daily_limit = 5 if is_premium else 1
+    daily_limit = PREMIUM_DAILY_ICEBREAKERS if is_premium else FREE_DAILY_ICEBREAKERS
     
     # Get daily icebreakers used (reset at 5am)
     icebreakers_reset_at = current_user.get("icebreakers_reset_at")
@@ -4574,6 +4575,7 @@ async def send_icebreaker(data: IcebreakerCreate, current_user: dict = Depends(g
     
     # Check if free allowance available, otherwise use tokens
     token_balance = current_user.get("token_balance", 0)
+    use_token = False
     
     if daily_used < daily_limit:
         # Use free allowance
@@ -4583,12 +4585,13 @@ async def send_icebreaker(data: IcebreakerCreate, current_user: dict = Depends(g
         )
     elif token_balance > 0:
         # Use token
+        use_token = True
         await db.users.update_one(
             {"id": current_user["id"]},
             {"$inc": {"token_balance": -1}}
         )
     else:
-        raise HTTPException(status_code=429, detail="No icebreakers remaining. Purchase more tokens!")
+        raise HTTPException(status_code=429, detail="no_icebreakers_remaining")
     
     # Validate message type
     if data.message_type < 0 or data.message_type >= len(ICEBREAKER_MESSAGES):
@@ -4633,7 +4636,7 @@ async def send_icebreaker(data: IcebreakerCreate, current_user: dict = Depends(g
             }
         )
     
-    return {"message": "Icebreaker sent!", "icebreaker_id": icebreaker_id}
+    return {"message": "Icebreaker sent!", "icebreaker_id": icebreaker_id, "used_token": use_token}
 
 @api_router.get("/icebreakers/received")
 async def get_received_icebreakers(current_user: dict = Depends(get_current_user)):
@@ -6731,7 +6734,7 @@ async def get_token_balance(current_user: dict = Depends(get_current_user)):
     
     # Get daily limits based on premium status
     daily_glance_limit = PREMIUM_DAILY_GLANCES if is_premium else FREE_DAILY_GLANCES
-    daily_icebreaker_limit = PREMIUM_DAILY_TOKENS if is_premium else FREE_DAILY_TOKENS
+    daily_icebreaker_limit = PREMIUM_DAILY_ICEBREAKERS if is_premium else FREE_DAILY_ICEBREAKERS
     
     # Get used counts (these reset at 5am)
     daily_glances_used = current_user.get("daily_glances_used", 0)
@@ -6745,8 +6748,18 @@ async def get_token_balance(current_user: dict = Depends(get_current_user)):
         "daily_icebreaker_limit": daily_icebreaker_limit,
         "daily_glances_remaining": max(0, daily_glance_limit - daily_glances_used),
         "daily_icebreakers_remaining": max(0, daily_icebreaker_limit - daily_icebreakers_used),
-        "is_premium": is_premium
+        "is_premium": is_premium,
+        "token_fallback_confirmed": current_user.get("token_fallback_confirmed", False)
     }
+
+@api_router.post("/tokens/confirm-fallback")
+async def confirm_token_fallback(current_user: dict = Depends(get_current_user)):
+    """Confirm user has seen the token fallback explanation"""
+    await db.users.update_one(
+        {"id": current_user["id"]},
+        {"$set": {"token_fallback_confirmed": True}}
+    )
+    return {"message": "Token fallback confirmed", "token_fallback_confirmed": True}
 
 @api_router.get("/tokens/packages")
 async def get_token_packages():
@@ -6928,13 +6941,15 @@ async def process_successful_payment(transaction: dict):
         package = PREMIUM_PACKAGES.get(transaction["package_id"])
         if package:
             expires_at = datetime.now(timezone.utc) + timedelta(days=package["duration_days"])
+            # Premium activation: immediately set counters to premium allowances (15/15)
+            # Reset daily_used counters to 0 so remaining = limit
             await db.users.update_one(
                 {"id": user_id},
                 {"$set": {
                     "is_premium": True,
                     "premium_expires_at": expires_at.isoformat(),
-                    "daily_glances_remaining": PREMIUM_DAILY_GLANCES,
-                    "daily_tokens_remaining": PREMIUM_DAILY_TOKENS
+                    "daily_glances_used": 0,
+                    "daily_icebreakers_used": 0
                 }}
             )
     

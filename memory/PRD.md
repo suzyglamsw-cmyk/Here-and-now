@@ -667,4 +667,54 @@ Comprehensive list including:
 **Test Results:** 13/13 backend tests passed, frontend verified working.
 
 ---
-*Last Updated: April 8, 2026 - Presence Logic Fix*
+
+## Allowance Values & Token Fallback Update (April 8, 2026)
+
+**Changes Made:**
+
+1. **Updated Allowance Values:**
+   - Free users: 3 glances/day, 3 icebreakers/day
+   - Premium users: 15 glances/day, 15 icebreakers/day
+
+2. **Daily Reset Logic:**
+   - Counters reset at 5am
+   - Paid tokens do NOT reset
+   - Server-side storage ensures counters persist across logout/reinstall
+
+3. **Token Fallback:**
+   - When daily allowance reaches 0, automatically uses paid tokens if available
+   - First token use shows one-time confirmation: "We'll use your tokens when you run out. No surprises."
+   - `token_fallback_confirmed` flag stored server-side
+   - Created `/app/frontend/src/components/TokenFallbackModal.js` with confirmation modal
+
+4. **Premium Activation:**
+   - When premium activates (via Stripe): resets `daily_glances_used` and `daily_icebreakers_used` to 0
+   - Effectively gives user full 15/15 allowances immediately
+   - No modification to Stripe logic
+
+5. **Premium Downgrade:**
+   - Returns to free limits (3/3) at next 5am reset
+   - Counters NOT reduced immediately
+
+6. **Updated Copy:**
+   - Premium page: "Go on then — treat yourself."
+   - Daily allowances: "Have a quick look round." / "Say hello while you've got some left."
+   - Out of glances: "You're all out of glances for today. Come back after 5am, or go Premium..."
+   - Out of icebreakers: "That's your last icebreaker for today. Fresh ones land at 5am..."
+   - Paywall: "Fancy a bit more room? Free users get 3 glances and 3 icebreakers a day..."
+
+**Files Modified:**
+- `/app/backend/server.py` - Updated constants, premium activation logic, added token_fallback_confirmed endpoint
+- `/app/backend/routes/dependencies.py` - Updated constants
+- `/app/frontend/src/pages/Premium.js` - Updated copy and benefits
+- `/app/frontend/src/pages/UserProfile.js` - Updated modal copy
+- `/app/frontend/src/components/TokenFallbackModal.js` - NEW: Token confirmation & paywall modals
+
+**No Changes Made To:**
+- Stripe configuration, product IDs, price IDs
+- Webhook behaviour
+- Subscription logic
+- Payment flows
+
+---
+*Last Updated: April 8, 2026 - Allowance Values & Token Fallback Update*

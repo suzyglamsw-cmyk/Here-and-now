@@ -810,7 +810,7 @@ const UserProfile = () => {
               </div>
               <h3 className="text-xl font-bold text-white mb-2">No Glances Left</h3>
               <p className="text-slate-400 text-sm">
-                You've used all your daily glances. Get more to keep connecting!
+                You're all out of glances for today. Come back after 5am, or go Premium if you fancy a bit more freedom.
               </p>
             </div>
 
@@ -824,8 +824,8 @@ const UserProfile = () => {
                 className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-pink-500 text-white font-semibold h-12"
               >
                 <Crown className="w-4 h-4 mr-2" />
-                Upgrade to Premium
-                <span className="ml-2 text-xs opacity-80">20 glances/day</span>
+                Go Premium
+                <span className="ml-2 text-xs opacity-80">15 glances/day</span>
               </Button>
               
               <Button
