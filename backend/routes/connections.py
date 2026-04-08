@@ -966,3 +966,264 @@ async def delete_conversation(other_user_id: str, current_user: dict = Depends(g
         ]
     })
     return {"message": "Conversation deleted"}
+
+
+
+# ============================================================================
+# HIDDEN USERS ("NOT FOR NOW") ROUTES
+# ============================================================================
+
+@router.post("/users/{user_id}/hide")
+async def hide_user(user_id: str, current_user: dict = Depends(get_current_user)):
+    """
+    Hide a user from feed for 90 days.
+    Does not block or notify the other user.
+    """
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(days=90)
+    
+    # Check if already hidden
+    existing = await db.hidden_users.find_one({
+        "hidden_by": current_user["id"],
+        "hidden_user_id": user_id
+    })
+    
+    if existing:
+        # Update expiration
+        await db.hidden_users.update_one(
+            {"_id": existing["_id"]},
+            {"$set": {"expires_at": expires_at.isoformat(), "hidden_at": now.isoformat()}}
+        )
+    else:
+        # Create new hidden entry
+        await db.hidden_users.insert_one({
+            "id": str(uuid.uuid4()),
+            "hidden_by": current_user["id"],
+            "hidden_user_id": user_id,
+            "hidden_at": now.isoformat(),
+            "expires_at": expires_at.isoformat()
+        })
+    
+    return {"message": "User hidden for 90 days", "expires_at": expires_at.isoformat()}
+
+
+@router.delete("/users/{user_id}/hide")
+async def unhide_user(user_id: str, current_user: dict = Depends(get_current_user)):
+    """Unhide a user before the 90-day period ends"""
+    await db.hidden_users.delete_one({
+        "hidden_by": current_user["id"],
+        "hidden_user_id": user_id
+    })
+    return {"message": "User unhidden"}
+
+
+@router.get("/users/hidden")
+async def get_hidden_users(current_user: dict = Depends(get_current_user)):
+    """Get list of hidden users"""
+    now = datetime.now(timezone.utc)
+    
+    # Clean up expired entries
+    await db.hidden_users.delete_many({
+        "hidden_by": current_user["id"],
+        "expires_at": {"$lt": now.isoformat()}
+    })
+    
+    # Get active hidden users
+    hidden = await db.hidden_users.find(
+        {"hidden_by": current_user["id"]},
+        {"_id": 0}
+    ).to_list(100)
+    
+    return hidden
+
+
+# ============================================================================
+# PHOTO REVEAL ROUTES
+# ============================================================================
+
+@router.post("/reveal/{other_user_id}")
+async def reveal_photo(other_user_id: str, current_user: dict = Depends(get_current_user)):
+    """
+    Reveal your photo to another matched user.
+    Only works if users are matched.
+    """
+    # Check if matched
+    is_matched = await check_if_matched(current_user["id"], other_user_id)
+    if not is_matched:
+        raise HTTPException(status_code=400, detail="You must be matched to reveal your photo")
+    
+    now = datetime.now(timezone.utc)
+    
+    # Check if already revealed
+    existing = await db.photo_reveals.find_one({
+        "revealer_id": current_user["id"],
+        "revealed_to_id": other_user_id
+    })
+    
+    if existing:
+        return {"message": "Already revealed", "revealed_at": existing.get("revealed_at")}
+    
+    # Create reveal record
+    await db.photo_reveals.insert_one({
+        "id": str(uuid.uuid4()),
+        "revealer_id": current_user["id"],
+        "revealed_to_id": other_user_id,
+        "revealed_at": now.isoformat()
+    })
+    
+    # Check if mutual reveal (both have revealed)
+    mutual = await db.photo_reveals.find_one({
+        "revealer_id": other_user_id,
+        "revealed_to_id": current_user["id"]
+    })
+    
+    return {
+        "message": "Photo revealed",
+        "revealed_at": now.isoformat(),
+        "is_mutual": mutual is not None
+    }
+
+
+@router.get("/reveal/status/{other_user_id}")
+async def get_reveal_status(other_user_id: str, current_user: dict = Depends(get_current_user)):
+    """Get reveal status between current user and another user"""
+    
+    # Did I reveal to them?
+    i_revealed = await db.photo_reveals.find_one({
+        "revealer_id": current_user["id"],
+        "revealed_to_id": other_user_id
+    })
+    
+    # Did they reveal to me?
+    they_revealed = await db.photo_reveals.find_one({
+        "revealer_id": other_user_id,
+        "revealed_to_id": current_user["id"]
+    })
+    
+    return {
+        "i_revealed": i_revealed is not None,
+        "they_revealed": they_revealed is not None,
+        "is_mutual": i_revealed is not None and they_revealed is not None
+    }
+
+
+# ============================================================================
+# MATCH STATUS HELPER
+# ============================================================================
+
+async def check_if_matched(user_id: str, other_user_id: str) -> bool:
+    """
+    Check if two users are matched via any method:
+    - icebreaker_accepted
+    - chat_request_accepted
+    - mutual_glance
+    - explicit_connection
+    - mutual_messagers
+    """
+    # Check explicit connections
+    connection = await db.connections.find_one({
+        "$or": [
+            {"user1_id": user_id, "user2_id": other_user_id},
+            {"user1_id": other_user_id, "user2_id": user_id}
+        ]
+    })
+    if connection:
+        return True
+    
+    # Check accepted icebreakers
+    icebreaker = await db.icebreakers.find_one({
+        "$or": [
+            {"from_user_id": user_id, "to_user_id": other_user_id, "status": "accepted"},
+            {"from_user_id": other_user_id, "to_user_id": user_id, "status": "accepted"}
+        ]
+    })
+    if icebreaker:
+        return True
+    
+    # Check accepted chat requests
+    chat_request = await db.chat_requests.find_one({
+        "$or": [
+            {"from_user_id": user_id, "to_user_id": other_user_id, "status": "accepted"},
+            {"from_user_id": other_user_id, "to_user_id": user_id, "status": "accepted"}
+        ]
+    })
+    if chat_request:
+        return True
+    
+    # Check mutual glances
+    glance_to = await db.glances.find_one({"from_user_id": user_id, "to_user_id": other_user_id})
+    glance_from = await db.glances.find_one({"from_user_id": other_user_id, "to_user_id": user_id})
+    if glance_to and glance_from:
+        return True
+    
+    # Check mutual messages
+    sent = await db.messages.find_one({"from_user_id": user_id, "to_user_id": other_user_id})
+    received = await db.messages.find_one({"from_user_id": other_user_id, "to_user_id": user_id})
+    if sent and received:
+        return True
+    
+    return False
+
+
+@router.get("/match/status/{other_user_id}")
+async def get_match_status(other_user_id: str, current_user: dict = Depends(get_current_user)):
+    """Get detailed match status with another user"""
+    is_matched = await check_if_matched(current_user["id"], other_user_id)
+    
+    # Determine match type
+    match_type = None
+    if is_matched:
+        # Check each type in order
+        connection = await db.connections.find_one({
+            "$or": [
+                {"user1_id": current_user["id"], "user2_id": other_user_id},
+                {"user1_id": other_user_id, "user2_id": current_user["id"]}
+            ]
+        })
+        if connection:
+            match_type = "explicit_connection"
+        else:
+            icebreaker = await db.icebreakers.find_one({
+                "$or": [
+                    {"from_user_id": current_user["id"], "to_user_id": other_user_id, "status": "accepted"},
+                    {"from_user_id": other_user_id, "to_user_id": current_user["id"], "status": "accepted"}
+                ]
+            })
+            if icebreaker:
+                match_type = "icebreaker_accepted"
+            else:
+                chat_request = await db.chat_requests.find_one({
+                    "$or": [
+                        {"from_user_id": current_user["id"], "to_user_id": other_user_id, "status": "accepted"},
+                        {"from_user_id": other_user_id, "to_user_id": current_user["id"], "status": "accepted"}
+                    ]
+                })
+                if chat_request:
+                    match_type = "chat_request_accepted"
+                else:
+                    glance_to = await db.glances.find_one({"from_user_id": current_user["id"], "to_user_id": other_user_id})
+                    glance_from = await db.glances.find_one({"from_user_id": other_user_id, "to_user_id": current_user["id"]})
+                    if glance_to and glance_from:
+                        match_type = "mutual_glance"
+                    else:
+                        match_type = "mutual_messagers"
+    
+    # Get reveal status
+    i_revealed = await db.photo_reveals.find_one({
+        "revealer_id": current_user["id"],
+        "revealed_to_id": other_user_id
+    })
+    they_revealed = await db.photo_reveals.find_one({
+        "revealer_id": other_user_id,
+        "revealed_to_id": current_user["id"]
+    })
+    
+    return {
+        "is_matched": is_matched,
+        "match_type": match_type,
+        "reveal_state": {
+            "i_revealed": i_revealed is not None,
+            "they_revealed": they_revealed is not None,
+            "is_mutual": i_revealed is not None and they_revealed is not None
+        }
+    }
