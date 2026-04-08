@@ -249,7 +249,7 @@ const Premium = () => {
                 <p className="text-white font-medium">
                   {balance.balance} paid {balance.balance === 1 ? 'token' : 'tokens'} available
                 </p>
-                <p className="text-slate-500 text-xs">Once you've used your daily allowances, you'll use tokens. Icebreakers and chat requests cost 1 token.</p>
+                <p className="text-slate-500 text-xs">Once you've used your daily glances, icebreakers, or chat requests, you'll use tokens instead. Each action costs 1 token.</p>
               </div>
             </div>
           </div>
