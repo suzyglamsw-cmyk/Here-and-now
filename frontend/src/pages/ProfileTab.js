@@ -78,7 +78,7 @@ const Profile = () => {
   const [micPermissionDenied, setMicPermissionDenied] = useState(false);
   const [isPlayingVoice, setIsPlayingVoice] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [previewMode, setPreviewMode] = useState("before");
+  const [previewMode, setPreviewMode] = useState("pre-match"); // "pre-match" | "post-match" | "post-reveal"
   const [previewAudioPlaying, setPreviewAudioPlaying] = useState(false);
   const [previewPhotoIndex, setPreviewPhotoIndex] = useState(0);
   const [hidePhotoInVenues, setHidePhotoInVenues] = useState(false);
@@ -873,6 +873,7 @@ const Profile = () => {
           <Button
             onClick={() => {
               setPreviewPhotoIndex(0); // Reset to first photo when opening
+              setPreviewMode("pre-match"); // Start with pre-match view
               setShowPreview(true);
             }}
             variant="outline"
@@ -1614,60 +1615,77 @@ const Profile = () => {
               </button>
             </div>
             
-            {/* Mode Toggle */}
+            {/* Mode Toggle - Three States */}
             <div className="max-w-lg mx-auto px-4 pb-4">
               <div className="flex rounded-xl p-1" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
                 <button
                   onClick={() => {
-                    setPreviewMode("before");
+                    setPreviewMode("pre-match");
                     setPreviewPhotoIndex(0);
                   }}
-                  className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                    previewMode === "before"
+                  className={`flex-1 py-2 px-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1 ${
+                    previewMode === "pre-match"
                       ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
                       : "text-purple-300/60 hover:text-purple-200"
                   }`}
-                  data-testid="preview-before-tab"
+                  data-testid="preview-pre-match-tab"
                 >
-                  <EyeOff className="w-4 h-4" />
-                  Before Reveal
+                  <EyeOff className="w-3.5 h-3.5" />
+                  Pre-match
                 </button>
                 <button
                   onClick={() => {
-                    setPreviewMode("after");
+                    setPreviewMode("post-match");
                     setPreviewPhotoIndex(0);
                   }}
-                  className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                    previewMode === "after"
+                  className={`flex-1 py-2 px-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1 ${
+                    previewMode === "post-match"
                       ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
                       : "text-purple-300/60 hover:text-purple-200"
                   }`}
-                  data-testid="preview-after-tab"
+                  data-testid="preview-post-match-tab"
                 >
-                  <Eye className="w-4 h-4" />
-                  After Reveal
+                  <Eye className="w-3.5 h-3.5" />
+                  Post-match
+                </button>
+                <button
+                  onClick={() => {
+                    setPreviewMode("post-reveal");
+                    setPreviewPhotoIndex(0);
+                  }}
+                  className={`flex-1 py-2 px-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1 ${
+                    previewMode === "post-reveal"
+                      ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
+                      : "text-purple-300/60 hover:text-purple-200"
+                  }`}
+                  data-testid="preview-post-reveal-tab"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Post-reveal
                 </button>
               </div>
             </div>
           </div>
 
           {/* Preview Content */}
-          <div className="max-w-lg mx-auto px-4 py-6 pb-24 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 140px)' }}>
-            {previewMode === "before" ? (
-              /* PRE-REVEAL - Visible while blurred */
+          <div className="max-w-lg mx-auto px-4 py-6 pb-24 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 160px)' }}>
+            {/* ============================================ */}
+            {/* PRE-MATCH STATE - HIGH BLUR (12px) */}
+            {/* ============================================ */}
+            {previewMode === "pre-match" && (
               <div className="space-y-6">
                 <p className="text-sm text-purple-300/60 text-center mb-6">
-                  This is how others see you before mutual curiosity
+                  This is how others see you before matching
                 </p>
                 
-                {/* Blurred Photo Carousel */}
+                {/* HIGH BLUR Photo */}
                 <div className="relative aspect-[3/4] max-w-xs mx-auto rounded-2xl overflow-hidden" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
                   {allPhotos.length > 0 ? (
                     <img 
                       src={getPhotoUrl(allPhotos[previewPhotoIndex] || mainPhoto)} 
                       alt="Profile" 
                       className="w-full h-full object-cover transition-opacity duration-300"
-                      style={{ filter: 'blur(8px)' }}
+                      style={{ filter: 'blur(12px)', transform: 'scale(1.05)' }}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-purple-400/50">
@@ -1675,39 +1693,6 @@ const Profile = () => {
                     </div>
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  
-                  {/* Carousel Navigation */}
-                  {hasMultiplePhotos && (
-                    <>
-                      <button
-                        onClick={handlePrevPhoto}
-                        className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 flex items-center justify-center text-white hover:bg-black/60 transition-colors"
-                        data-testid="carousel-prev"
-                      >
-                        <ChevronLeft className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={handleNextPhoto}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 flex items-center justify-center text-white hover:bg-black/60 transition-colors"
-                        data-testid="carousel-next"
-                      >
-                        <ChevronRight className="w-5 h-5" />
-                      </button>
-                      
-                      {/* Photo indicator dots */}
-                      <div className="absolute bottom-16 left-0 right-0 flex justify-center gap-1.5">
-                        {allPhotos.map((_, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => setPreviewPhotoIndex(idx)}
-                            className={`w-2 h-2 rounded-full transition-colors ${
-                              idx === previewPhotoIndex ? 'bg-white' : 'bg-white/40'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                    </>
-                  )}
                   
                   {/* Premium Badge */}
                   {isPremium && (
@@ -1717,7 +1702,7 @@ const Profile = () => {
                     </div>
                   )}
                   
-                  {/* Gender indicator - bottom left of photo */}
+                  {/* Gender indicator */}
                   {formData.show_as && (
                     <div 
                       className={`absolute bottom-20 left-3 w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold shadow-lg ${
@@ -1749,13 +1734,12 @@ const Profile = () => {
                     )}
                   </div>
                   
-                  {/* Pre-reveal Info Overlay */}
+                  {/* Pre-match Info Overlay - Initial only */}
                   <div className="absolute bottom-0 left-0 right-0 p-4">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-xl font-bold text-white">{formData.display_name || "Your Name"}</h3>
+                      <h3 className="text-xl font-bold text-white">{(formData.display_name || "?").charAt(0)}</h3>
                       {user?.age && <span className="text-purple-200/70">{user.age}</span>}
                     </div>
-                    {/* Intent badge */}
                     {formData.intent && (
                       <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full ${
                         formData.intent === "dating" ? "bg-pink-500/30 text-pink-300" :
@@ -1770,44 +1754,155 @@ const Profile = () => {
                     {formData.presence_note && (
                       <p className="text-sm text-purple-100/80 mt-1">{formData.presence_note}</p>
                     )}
-                    {formData.shy_indicator && (
-                      <span className="inline-flex items-center gap-1 mt-2 px-2 py-1 rounded-full bg-pink-500/20 text-pink-300 text-xs">
-                        <Heart className="w-3 h-3" />
-                        May be shy to start
-                      </span>
-                    )}
                   </div>
                 </div>
                 
-                {/* Hidden fields indicator */}
+                {/* Hidden fields indicator - No reveal button */}
                 <div className="flex flex-wrap justify-center gap-2">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-purple-300/60 text-xs" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
+                    <EyeOff className="w-3 h-3" />
+                    Name hidden
+                  </div>
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-purple-300/60 text-xs" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
                     <EyeOff className="w-3 h-3" />
                     Bio hidden
                   </div>
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-purple-300/60 text-xs" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
                     <EyeOff className="w-3 h-3" />
-                    Type hidden
+                    Additional photos locked
                   </div>
-                  {formData.home_country && (
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-purple-300/60 text-xs" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
-                      <EyeOff className="w-3 h-3" />
-                      Location hidden
-                    </div>
-                  )}
-                  {formData.voice_intro_url && (
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-purple-300/60 text-xs" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
-                      <Volume2 className="w-3 h-3" />
-                      Voice locked
-                    </div>
-                  )}
+                </div>
+                
+                {/* No reveal button in pre-match */}
+                <div className="text-center text-purple-300/40 text-xs">
+                  No reveal button visible before matching
                 </div>
               </div>
-            ) : (
-              /* POST-REVEAL - Full profile view after mutual curiosity */
+            )}
+            
+            {/* ============================================ */}
+            {/* POST-MATCH STATE - LOW BLUR (4px) */}
+            {/* ============================================ */}
+            {previewMode === "post-match" && (
+              <div className="space-y-6">
+                <p className="text-sm text-purple-300/60 text-center mb-6">
+                  This is how others see you after matching (before reveal)
+                </p>
+                
+                {/* LOW BLUR Photo */}
+                <div className="relative aspect-[3/4] max-w-xs mx-auto rounded-2xl overflow-hidden" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
+                  {allPhotos.length > 0 ? (
+                    <img 
+                      src={getPhotoUrl(allPhotos[previewPhotoIndex] || mainPhoto)} 
+                      alt="Profile" 
+                      className="w-full h-full object-cover transition-opacity duration-300"
+                      style={{ filter: 'blur(4px)', transform: 'scale(1.02)' }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-purple-400/50">
+                      <User className="w-16 h-16" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                  
+                  {/* Premium Badge */}
+                  {isPremium && (
+                    <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-amber-500 flex items-center gap-1.5 shadow-lg">
+                      <Crown className="w-3.5 h-3.5 text-white" />
+                      <span className="text-xs text-white font-medium">Premium</span>
+                    </div>
+                  )}
+                  
+                  {/* Gender indicator */}
+                  {formData.show_as && (
+                    <div 
+                      className={`absolute bottom-20 left-3 w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold shadow-lg ${
+                        formData.show_as === "male" 
+                          ? "bg-blue-400/90 text-white" 
+                          : "bg-pink-400/90 text-white"
+                      }`}
+                    >
+                      {formData.show_as === "male" ? "M" : "F"}
+                    </div>
+                  )}
+                  
+                  {/* Rainbow/OpenToAll indicators */}
+                  <div className="absolute bottom-20 left-12 flex gap-1">
+                    {formData.rainbow && (
+                      <div 
+                        className="w-7 h-7 rounded-full flex items-center justify-center shadow-lg overflow-hidden"
+                        style={{ 
+                          background: 'linear-gradient(135deg, #ef4444 0%, #f97316 20%, #eab308 40%, #22c55e 60%, #3b82f6 80%, #8b5cf6 100%)'
+                        }}
+                      >
+                        <div className="w-4 h-4 rounded-full bg-slate-900/50" />
+                      </div>
+                    )}
+                    {formData.open_to_all && (
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center shadow-lg bg-amber-400/90">
+                        <span className="text-sm">🤗</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Post-match Info Overlay - Still initial only */}
+                  <div className="absolute bottom-0 left-0 right-0 p-4">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-xl font-bold text-white">{(formData.display_name || "?").charAt(0)}</h3>
+                      {user?.age && <span className="text-purple-200/70">{user.age}</span>}
+                    </div>
+                    {formData.intent && (
+                      <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full ${
+                        formData.intent === "dating" ? "bg-pink-500/30 text-pink-300" :
+                        formData.intent === "friends" ? "bg-emerald-500/30 text-emerald-300" :
+                        "bg-purple-500/30 text-purple-300"
+                      }`}>
+                        {formData.intent === "dating" ? "Dating" : 
+                         formData.intent === "friends" ? "Friends" : 
+                         formData.intent === "open_to_both" ? "Open to both" : ""}
+                      </span>
+                    )}
+                    {formData.presence_note && (
+                      <p className="text-sm text-purple-100/80 mt-1">{formData.presence_note}</p>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Reveal Button - Visible in post-match */}
+                <div className="max-w-xs mx-auto">
+                  <button 
+                    className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium flex items-center justify-center gap-2"
+                    disabled
+                  >
+                    <Eye className="w-5 h-5" />
+                    Reveal me
+                  </button>
+                  <p className="text-center text-purple-300/40 text-xs mt-2">
+                    (This button would reveal your photo to the matched user)
+                  </p>
+                </div>
+                
+                {/* Still hidden fields */}
+                <div className="flex flex-wrap justify-center gap-2">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-purple-300/60 text-xs" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
+                    <EyeOff className="w-3 h-3" />
+                    Name hidden
+                  </div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-purple-300/60 text-xs" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
+                    <EyeOff className="w-3 h-3" />
+                    Bio hidden
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* ============================================ */}
+            {/* POST-REVEAL STATE - CLEAR (0px blur) */}
+            {/* ============================================ */}
+            {previewMode === "post-reveal" && (
               <div className="space-y-4">
                 <p className="text-sm text-purple-300/60 text-center mb-6">
-                  This is how others see you after mutual curiosity
+                  This is how others see you after mutual reveal
                 </p>
                 
                 {/* Full Photo Carousel */}
