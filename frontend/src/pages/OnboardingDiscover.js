@@ -40,7 +40,7 @@ const OnboardingDiscover = () => {
                 <MapPin className="w-6 h-6 text-indigo-400" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white mb-1">Here & Now</h2>
+                <h2 className="text-xl font-bold text-white mb-1">Here Now</h2>
                 <p className="text-slate-400 text-sm leading-relaxed">
                   People at the same place you are.
                 </p>
