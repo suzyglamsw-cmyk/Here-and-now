@@ -771,4 +771,42 @@ Comprehensive list including:
 **Token Logic:** Unchanged - uses daily allowance first, then tokens as fallback.
 
 ---
-*Last Updated: April 8, 2026 - Icebreaker Handling Logic Update*
+
+## Lifestyle & Food Mood Profile Categories (April 9, 2026)
+
+**New Optional Profile Categories:**
+
+### Lifestyle (3 optional dropdown questions)
+1. "Are you more lively or more laid-back?"
+   - Party animal | More laid-back | A mix of laid back and lively | Quiet at first
+2. "More of an explorer or more of a sunbed-snoozer?"
+   - Explorer | Sunbed snoozer | Sights & siesta | Beach and pool
+3. "More of a going out person or more sofa-snacks-and-a-film?"
+   - Let's go out somewhere | Sofa-snacks-and-a-film | Decide together
+
+### Food Mood (1 optional dropdown question)
+"How are you in the kitchen?"
+- Burns water | Microwave maestro | Not too bad | Ninja in the kitchen
+
+**Behavior:**
+- All fields are OPTIONAL - profile saves successfully even if all questions are unanswered
+- Auto-save on selection (no manual save needed)
+- User can change selections at any time
+- Display Lifestyle only if ANY question is answered (combined into strapline with " • " separator)
+- Display Food Mood only if answered
+- Visible in ALL profile states: Pre-match, Mutual match, Reveal, Post-match
+
+**Pre-Match Profile Order:**
+1. Name • Age • City
+2. Free-text line (bio)
+3. Lifestyle strapline (purple text)
+4. Food Mood (amber text)
+
+**Files Modified:**
+- `/app/backend/server.py` - Added fields to user schema and UserProfile model
+- `/app/backend/routes/dependencies.py` - Added fields to UserProfile and UserResponse models
+- `/app/frontend/src/pages/ProfileTab.js` - Added editing UI with dropdowns and auto-save
+- `/app/frontend/src/pages/UserProfile.js` - Added display in profile view
+
+---
+*Last Updated: April 9, 2026 - Lifestyle & Food Mood Profile Categories*

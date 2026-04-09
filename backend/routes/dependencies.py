@@ -287,6 +287,12 @@ class UserProfile(BaseModel):
     show_as: Optional[str] = ""  # "male" or "female" - gender appearance
     rainbow: Optional[bool] = False  # LGBTQ+ visibility flag
     open_to_all: Optional[bool] = False  # Open to everyone (overrides rainbow separation)
+    # Lifestyle fields (optional)
+    lifestyle_vibe: Optional[str] = ""
+    lifestyle_travel: Optional[str] = ""
+    lifestyle_going_out: Optional[str] = ""
+    # Food Mood field (optional)
+    food_mood: Optional[str] = ""
 
 class UserResponse(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -329,6 +335,12 @@ class UserResponse(BaseModel):
     show_as: Optional[str] = ""  # "male" or "female" - gender appearance
     rainbow: Optional[bool] = False  # LGBTQ+ visibility flag
     open_to_all: Optional[bool] = False  # Open to everyone (overrides rainbow separation)
+    # Lifestyle fields (optional)
+    lifestyle_vibe: Optional[str] = ""
+    lifestyle_travel: Optional[str] = ""
+    lifestyle_going_out: Optional[str] = ""
+    # Food Mood field (optional)
+    food_mood: Optional[str] = ""
     
     @field_validator('seeking', mode='before')
     @classmethod

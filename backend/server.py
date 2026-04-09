@@ -545,6 +545,12 @@ class UserProfile(BaseModel):
     # Location fields (static, user-entered)
     home_country: Optional[str] = ""  # Full country name from dropdown
     home_area: Optional[str] = ""  # Town/city text input
+    # Lifestyle fields (optional)
+    lifestyle_vibe: Optional[str] = ""  # "Party animal", "More laid-back", etc.
+    lifestyle_travel: Optional[str] = ""  # "Explorer", "Sunbed snoozer", etc.
+    lifestyle_going_out: Optional[str] = ""  # "Let's go out somewhere", etc.
+    # Food Mood field (optional)
+    food_mood: Optional[str] = ""  # "Burns water", "Microwave maestro", etc.
 
 class UserResponse(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -572,6 +578,12 @@ class UserResponse(BaseModel):
     active_venue_id: Optional[str] = None
     active_venue_timestamp: Optional[str] = None
     voice_intro_url: Optional[str] = ""  # 5-10s audio intro
+    # Lifestyle fields (optional)
+    lifestyle_vibe: Optional[str] = ""
+    lifestyle_travel: Optional[str] = ""
+    lifestyle_going_out: Optional[str] = ""
+    # Food Mood field (optional)
+    food_mood: Optional[str] = ""
 
 class VenueCreate(BaseModel):
     name: str
@@ -977,6 +989,12 @@ async def register(data: UserCreate):
         "lat": None,  # User location for Not Here mode
         "lng": None,
         "location_updated_at": None,  # When location was last updated
+        # Lifestyle fields (optional)
+        "lifestyle_vibe": "",  # "Party animal", "More laid-back", "A mix of laid back and lively", "Quiet at first"
+        "lifestyle_travel": "",  # "Explorer", "Sunbed snoozer", "Sights & siesta", "Beach and pool"
+        "lifestyle_going_out": "",  # "Let's go out somewhere", "Sofa-snacks-and-a-film", "Decide together"
+        # Food Mood field (optional)
+        "food_mood": "",  # "Burns water", "Microwave maestro", "Not too bad", "Ninja in the kitchen"
         "created_at": now.isoformat()
     }
     await db.users.insert_one(user)
@@ -5638,6 +5656,12 @@ async def get_user_profile(user_id: str, current_user: dict = Depends(get_curren
         "relationship_status": user.get("relationship_status", ""),
         "seeking": user.get("seeking", ""),
         "profile_theme": user.get("profile_theme"),
+        # Lifestyle fields (visible in ALL profile states)
+        "lifestyle_vibe": user.get("lifestyle_vibe", ""),
+        "lifestyle_travel": user.get("lifestyle_travel", ""),
+        "lifestyle_going_out": user.get("lifestyle_going_out", ""),
+        # Food Mood (visible in ALL profile states)
+        "food_mood": user.get("food_mood", ""),
         "they_glanced_at_me": they_glanced_at_me,
         "i_glanced_at_them": i_glanced_at_them,
         "is_mutual": is_mutual,

@@ -59,6 +59,39 @@ const INTENT_OPTIONS = [
   { value: "open_to_both", label: "Open to both" },
 ];
 
+// Lifestyle options
+const LIFESTYLE_VIBE_OPTIONS = [
+  { value: "", label: "Select..." },
+  { value: "Party animal", label: "Party animal" },
+  { value: "More laid-back", label: "More laid-back" },
+  { value: "A mix of laid back and lively", label: "A mix of laid back and lively" },
+  { value: "Quiet at first", label: "Quiet at first" },
+];
+
+const LIFESTYLE_TRAVEL_OPTIONS = [
+  { value: "", label: "Select..." },
+  { value: "Explorer", label: "Explorer" },
+  { value: "Sunbed snoozer", label: "Sunbed snoozer" },
+  { value: "Sights & siesta", label: "Sights & siesta" },
+  { value: "Beach and pool", label: "Beach and pool" },
+];
+
+const LIFESTYLE_GOING_OUT_OPTIONS = [
+  { value: "", label: "Select..." },
+  { value: "Let's go out somewhere", label: "Let's go out somewhere" },
+  { value: "Sofa-snacks-and-a-film", label: "Sofa-snacks-and-a-film" },
+  { value: "Decide together", label: "Decide together" },
+];
+
+// Food Mood options
+const FOOD_MOOD_OPTIONS = [
+  { value: "", label: "Select..." },
+  { value: "Burns water", label: "Burns water" },
+  { value: "Microwave maestro", label: "Microwave maestro" },
+  { value: "Not too bad", label: "Not too bad" },
+  { value: "Ninja in the kitchen", label: "Ninja in the kitchen" },
+];
+
 // Country and region data
 // Countries list - will be fetched from API
 const FALLBACK_COUNTRIES = [
@@ -112,6 +145,12 @@ const Profile = () => {
     seeking: [],
     rainbow: false,
     open_to_all: false,
+    // Lifestyle fields (optional)
+    lifestyle_vibe: "",
+    lifestyle_travel: "",
+    lifestyle_going_out: "",
+    // Food Mood (optional)
+    food_mood: "",
   });
 
   useEffect(() => {
@@ -132,6 +171,12 @@ const Profile = () => {
         seeking: user.seeking || [],
         rainbow: user.rainbow || false,
         open_to_all: user.open_to_all || false,
+        // Lifestyle fields
+        lifestyle_vibe: user.lifestyle_vibe || "",
+        lifestyle_travel: user.lifestyle_travel || "",
+        lifestyle_going_out: user.lifestyle_going_out || "",
+        // Food Mood
+        food_mood: user.food_mood || "",
       });
       // Fetch privacy settings
       fetchPrivacySettings();
@@ -270,6 +315,21 @@ const Profile = () => {
     }
   };
 
+  // Auto-save function for optional fields (Lifestyle, Food Mood)
+  const handleAutoSave = async (fieldUpdate) => {
+    try {
+      const response = await axios.put(`${API}/auth/profile`, {
+        ...formData,
+        ...fieldUpdate,
+      });
+      updateUser(response.data);
+      // Silent save - no toast for auto-save
+    } catch (error) {
+      console.error("Auto-save failed:", error);
+      // Silently fail - user can retry
+    }
+  };
+
   const handleSave = async () => {
     // Validation only runs on explicit Save button press
     // Photos are auto-saved independently, so we only validate text fields here
@@ -319,6 +379,12 @@ const Profile = () => {
         seeking: formData.seeking,
         rainbow: formData.rainbow,
         open_to_all: formData.open_to_all,
+        // Lifestyle fields
+        lifestyle_vibe: formData.lifestyle_vibe,
+        lifestyle_travel: formData.lifestyle_travel,
+        lifestyle_going_out: formData.lifestyle_going_out,
+        // Food Mood
+        food_mood: formData.food_mood,
       });
       
       updateUser(response.data);
@@ -1087,6 +1153,94 @@ const Profile = () => {
             </div>
           </section>
 
+          {/* Lifestyle Section (optional, auto-save) */}
+          <section className="space-y-4">
+            <div>
+              <h2 className="text-lg font-medium text-purple-100">Lifestyle</h2>
+              <p className="text-sm text-purple-300/60 mt-1">Optional - visible to everyone</p>
+            </div>
+            
+            {/* Question 1: Vibe */}
+            <div className="space-y-2">
+              <Label className="text-sm text-purple-200/80">Are you more lively or more laid-back?</Label>
+              <select
+                value={formData.lifestyle_vibe}
+                onChange={(e) => {
+                  setFormData({ ...formData, lifestyle_vibe: e.target.value });
+                  // Auto-save
+                  handleAutoSave({ lifestyle_vibe: e.target.value });
+                }}
+                className="w-full h-12 px-4 rounded-xl bg-purple-500/10 border-2 border-purple-500/30 text-white focus:border-purple-400 focus:outline-none"
+                data-testid="lifestyle-vibe-select"
+              >
+                {LIFESTYLE_VIBE_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value} className="bg-slate-900">{opt.label}</option>
+                ))}
+              </select>
+            </div>
+            
+            {/* Question 2: Travel */}
+            <div className="space-y-2">
+              <Label className="text-sm text-purple-200/80">More of an explorer or more of a sunbed-snoozer?</Label>
+              <select
+                value={formData.lifestyle_travel}
+                onChange={(e) => {
+                  setFormData({ ...formData, lifestyle_travel: e.target.value });
+                  handleAutoSave({ lifestyle_travel: e.target.value });
+                }}
+                className="w-full h-12 px-4 rounded-xl bg-purple-500/10 border-2 border-purple-500/30 text-white focus:border-purple-400 focus:outline-none"
+                data-testid="lifestyle-travel-select"
+              >
+                {LIFESTYLE_TRAVEL_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value} className="bg-slate-900">{opt.label}</option>
+                ))}
+              </select>
+            </div>
+            
+            {/* Question 3: Going out */}
+            <div className="space-y-2">
+              <Label className="text-sm text-purple-200/80">More of a going out person or more sofa-snacks-and-a-film?</Label>
+              <select
+                value={formData.lifestyle_going_out}
+                onChange={(e) => {
+                  setFormData({ ...formData, lifestyle_going_out: e.target.value });
+                  handleAutoSave({ lifestyle_going_out: e.target.value });
+                }}
+                className="w-full h-12 px-4 rounded-xl bg-purple-500/10 border-2 border-purple-500/30 text-white focus:border-purple-400 focus:outline-none"
+                data-testid="lifestyle-going-out-select"
+              >
+                {LIFESTYLE_GOING_OUT_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value} className="bg-slate-900">{opt.label}</option>
+                ))}
+              </select>
+            </div>
+          </section>
+
+          {/* Food Mood Section (optional, auto-save) */}
+          <section className="space-y-4">
+            <div>
+              <h2 className="text-lg font-medium text-purple-100">Food Mood</h2>
+              <p className="text-sm text-purple-300/60 mt-1">Optional - visible to everyone</p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label className="text-sm text-purple-200/80">How are you in the kitchen?</Label>
+              <select
+                value={formData.food_mood}
+                onChange={(e) => {
+                  setFormData({ ...formData, food_mood: e.target.value });
+                  handleAutoSave({ food_mood: e.target.value });
+                }}
+                className="w-full h-12 px-4 rounded-xl bg-purple-500/10 border-2 border-purple-500/30 text-white focus:border-purple-400 focus:outline-none"
+                data-testid="food-mood-select"
+              >
+                {FOOD_MOOD_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value} className="bg-slate-900">{opt.label}</option>
+                ))}
+              </select>
+            </div>
+          </section>
+
           {/* Your Voice Section (below About You per user request) */}
           <section className="space-y-6">
             <div className="flex items-center gap-3">
@@ -1754,6 +1908,18 @@ const Profile = () => {
                     {formData.presence_note && (
                       <p className="text-sm text-purple-100/80 mt-1">{formData.presence_note}</p>
                     )}
+                    {/* Lifestyle strapline - visible in ALL states */}
+                    {(formData.lifestyle_vibe || formData.lifestyle_travel || formData.lifestyle_going_out) && (
+                      <p className="text-sm text-purple-300/80 mt-2">
+                        {[formData.lifestyle_vibe, formData.lifestyle_travel, formData.lifestyle_going_out]
+                          .filter(Boolean)
+                          .join(" • ")}
+                      </p>
+                    )}
+                    {/* Food Mood - visible in ALL states */}
+                    {formData.food_mood && (
+                      <p className="text-sm text-amber-300/80 mt-1">{formData.food_mood}</p>
+                    )}
                   </div>
                 </div>
                 
@@ -1864,6 +2030,18 @@ const Profile = () => {
                     )}
                     {formData.presence_note && (
                       <p className="text-sm text-purple-100/80 mt-1">{formData.presence_note}</p>
+                    )}
+                    {/* Lifestyle strapline - visible in ALL states */}
+                    {(formData.lifestyle_vibe || formData.lifestyle_travel || formData.lifestyle_going_out) && (
+                      <p className="text-sm text-purple-300/80 mt-2">
+                        {[formData.lifestyle_vibe, formData.lifestyle_travel, formData.lifestyle_going_out]
+                          .filter(Boolean)
+                          .join(" • ")}
+                      </p>
+                    )}
+                    {/* Food Mood - visible in ALL states */}
+                    {formData.food_mood && (
+                      <p className="text-sm text-amber-300/80 mt-1">{formData.food_mood}</p>
                     )}
                   </div>
                 </div>
@@ -2013,6 +2191,18 @@ const Profile = () => {
                     )}
                     {formData.presence_note && (
                       <p className="text-sm text-purple-100/80 mt-1">{formData.presence_note}</p>
+                    )}
+                    {/* Lifestyle strapline - visible in ALL states */}
+                    {(formData.lifestyle_vibe || formData.lifestyle_travel || formData.lifestyle_going_out) && (
+                      <p className="text-sm text-purple-300/80 mt-2">
+                        {[formData.lifestyle_vibe, formData.lifestyle_travel, formData.lifestyle_going_out]
+                          .filter(Boolean)
+                          .join(" • ")}
+                      </p>
+                    )}
+                    {/* Food Mood - visible in ALL states */}
+                    {formData.food_mood && (
+                      <p className="text-sm text-amber-300/80 mt-1">{formData.food_mood}</p>
                     )}
                   </div>
                 </div>

@@ -306,8 +306,25 @@ const UserProfile = () => {
                   {profile.is_revealed ? profile.display_name : (profile.display_name || "?").charAt(0)}
                   {profile.age && <span className="text-slate-400 ml-2">{profile.age}</span>}
                 </h1>
-                {profile.is_revealed && profile.bio && (
+                {/* Free-text line (bio) - always visible */}
+                {profile.bio && (
                   <p className="text-slate-400 mt-1">{profile.bio}</p>
+                )}
+                
+                {/* Lifestyle strapline - visible in ALL states (pre-match, mutual, reveal, post-match) */}
+                {(profile.lifestyle_vibe || profile.lifestyle_travel || profile.lifestyle_going_out) && (
+                  <p className="text-purple-300/80 text-sm mt-2">
+                    {[profile.lifestyle_vibe, profile.lifestyle_travel, profile.lifestyle_going_out]
+                      .filter(Boolean)
+                      .join(" • ")}
+                  </p>
+                )}
+                
+                {/* Food Mood - visible in ALL states */}
+                {profile.food_mood && (
+                  <p className="text-amber-300/80 text-sm mt-1">
+                    {profile.food_mood}
+                  </p>
                 )}
               </div>
               
