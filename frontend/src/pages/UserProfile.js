@@ -310,22 +310,6 @@ const UserProfile = () => {
                 {profile.bio && (
                   <p className="text-slate-400 mt-1">{profile.bio}</p>
                 )}
-                
-                {/* Lifestyle strapline - visible in ALL states (pre-match, mutual, reveal, post-match) */}
-                {(profile.lifestyle_vibe || profile.lifestyle_travel || profile.lifestyle_going_out) && (
-                  <p className="text-purple-300/80 text-sm mt-2">
-                    {[profile.lifestyle_vibe, profile.lifestyle_travel, profile.lifestyle_going_out]
-                      .filter(Boolean)
-                      .join(" • ")}
-                  </p>
-                )}
-                
-                {/* Food Mood - visible in ALL states */}
-                {profile.food_mood && (
-                  <p className="text-amber-300/80 text-sm mt-1">
-                    {profile.food_mood}
-                  </p>
-                )}
               </div>
               
               {/* Glance Status Badge */}
@@ -342,6 +326,44 @@ const UserProfile = () => {
                 </div>
               )}
             </div>
+
+            {/* LIFESTYLE SECTION - Visible in ALL profile states */}
+            {(profile.lifestyle_vibe || profile.lifestyle_travel || profile.lifestyle_going_out) && (
+              <div className="mb-6 bg-purple-500/10 rounded-xl p-4">
+                <h3 className="text-xs font-medium text-purple-300/60 mb-3 uppercase tracking-wide">Lifestyle</h3>
+                <div className="space-y-2">
+                  {profile.lifestyle_vibe && (
+                    <div>
+                      <p className="text-purple-300/50 text-xs">Lively or laid-back?</p>
+                      <p className="text-purple-100 text-sm">{profile.lifestyle_vibe}</p>
+                    </div>
+                  )}
+                  {profile.lifestyle_travel && (
+                    <div>
+                      <p className="text-purple-300/50 text-xs">Explorer or sunbed-snoozer?</p>
+                      <p className="text-purple-100 text-sm">{profile.lifestyle_travel}</p>
+                    </div>
+                  )}
+                  {profile.lifestyle_going_out && (
+                    <div>
+                      <p className="text-purple-300/50 text-xs">Going out or staying in?</p>
+                      <p className="text-purple-100 text-sm">{profile.lifestyle_going_out}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* FOOD MOOD SECTION - Visible in ALL profile states */}
+            {profile.food_mood && (
+              <div className="mb-6 bg-amber-500/10 rounded-xl p-4">
+                <h3 className="text-xs font-medium text-amber-300/60 mb-2 uppercase tracking-wide">Food Mood</h3>
+                <div>
+                  <p className="text-amber-300/50 text-xs">In the kitchen?</p>
+                  <p className="text-amber-100 text-sm">{profile.food_mood}</p>
+                </div>
+              </div>
+            )}
 
             {/* Profile Details (gender, orientation, relationship, seeking) - Only shown after reveal */}
             {profile.is_revealed && (profile.gender || profile.orientation || profile.relationship_status || profile.seeking) && (

@@ -1908,20 +1908,46 @@ const Profile = () => {
                     {formData.presence_note && (
                       <p className="text-sm text-purple-100/80 mt-1">{formData.presence_note}</p>
                     )}
-                    {/* Lifestyle strapline - visible in ALL states */}
-                    {(formData.lifestyle_vibe || formData.lifestyle_travel || formData.lifestyle_going_out) && (
-                      <p className="text-sm text-purple-300/80 mt-2">
-                        {[formData.lifestyle_vibe, formData.lifestyle_travel, formData.lifestyle_going_out]
-                          .filter(Boolean)
-                          .join(" • ")}
-                      </p>
-                    )}
-                    {/* Food Mood - visible in ALL states */}
-                    {formData.food_mood && (
-                      <p className="text-sm text-amber-300/80 mt-1">{formData.food_mood}</p>
-                    )}
                   </div>
                 </div>
+                
+                {/* LIFESTYLE SECTION - Visible in ALL states */}
+                {(formData.lifestyle_vibe || formData.lifestyle_travel || formData.lifestyle_going_out) && (
+                  <div className="bg-purple-500/10 rounded-xl p-4">
+                    <h3 className="text-xs font-medium text-purple-300/60 mb-3 uppercase tracking-wide">Lifestyle</h3>
+                    <div className="space-y-2">
+                      {formData.lifestyle_vibe && (
+                        <div>
+                          <p className="text-purple-300/50 text-xs">Lively or laid-back?</p>
+                          <p className="text-purple-100 text-sm">{formData.lifestyle_vibe}</p>
+                        </div>
+                      )}
+                      {formData.lifestyle_travel && (
+                        <div>
+                          <p className="text-purple-300/50 text-xs">Explorer or sunbed-snoozer?</p>
+                          <p className="text-purple-100 text-sm">{formData.lifestyle_travel}</p>
+                        </div>
+                      )}
+                      {formData.lifestyle_going_out && (
+                        <div>
+                          <p className="text-purple-300/50 text-xs">Going out or staying in?</p>
+                          <p className="text-purple-100 text-sm">{formData.lifestyle_going_out}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {/* FOOD MOOD SECTION - Visible in ALL states */}
+                {formData.food_mood && (
+                  <div className="bg-amber-500/10 rounded-xl p-4">
+                    <h3 className="text-xs font-medium text-amber-300/60 mb-2 uppercase tracking-wide">Food Mood</h3>
+                    <div>
+                      <p className="text-amber-300/50 text-xs">In the kitchen?</p>
+                      <p className="text-amber-100 text-sm">{formData.food_mood}</p>
+                    </div>
+                  </div>
+                )}
                 
                 {/* Hidden fields indicator - No reveal button */}
                 <div className="flex flex-wrap justify-center gap-2">
@@ -2031,20 +2057,46 @@ const Profile = () => {
                     {formData.presence_note && (
                       <p className="text-sm text-purple-100/80 mt-1">{formData.presence_note}</p>
                     )}
-                    {/* Lifestyle strapline - visible in ALL states */}
-                    {(formData.lifestyle_vibe || formData.lifestyle_travel || formData.lifestyle_going_out) && (
-                      <p className="text-sm text-purple-300/80 mt-2">
-                        {[formData.lifestyle_vibe, formData.lifestyle_travel, formData.lifestyle_going_out]
-                          .filter(Boolean)
-                          .join(" • ")}
-                      </p>
-                    )}
-                    {/* Food Mood - visible in ALL states */}
-                    {formData.food_mood && (
-                      <p className="text-sm text-amber-300/80 mt-1">{formData.food_mood}</p>
-                    )}
                   </div>
                 </div>
+                
+                {/* LIFESTYLE SECTION - Visible in ALL states */}
+                {(formData.lifestyle_vibe || formData.lifestyle_travel || formData.lifestyle_going_out) && (
+                  <div className="bg-purple-500/10 rounded-xl p-4 max-w-xs mx-auto">
+                    <h3 className="text-xs font-medium text-purple-300/60 mb-3 uppercase tracking-wide">Lifestyle</h3>
+                    <div className="space-y-2">
+                      {formData.lifestyle_vibe && (
+                        <div>
+                          <p className="text-purple-300/50 text-xs">Lively or laid-back?</p>
+                          <p className="text-purple-100 text-sm">{formData.lifestyle_vibe}</p>
+                        </div>
+                      )}
+                      {formData.lifestyle_travel && (
+                        <div>
+                          <p className="text-purple-300/50 text-xs">Explorer or sunbed-snoozer?</p>
+                          <p className="text-purple-100 text-sm">{formData.lifestyle_travel}</p>
+                        </div>
+                      )}
+                      {formData.lifestyle_going_out && (
+                        <div>
+                          <p className="text-purple-300/50 text-xs">Going out or staying in?</p>
+                          <p className="text-purple-100 text-sm">{formData.lifestyle_going_out}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {/* FOOD MOOD SECTION - Visible in ALL states */}
+                {formData.food_mood && (
+                  <div className="bg-amber-500/10 rounded-xl p-4 max-w-xs mx-auto">
+                    <h3 className="text-xs font-medium text-amber-300/60 mb-2 uppercase tracking-wide">Food Mood</h3>
+                    <div>
+                      <p className="text-amber-300/50 text-xs">In the kitchen?</p>
+                      <p className="text-amber-100 text-sm">{formData.food_mood}</p>
+                    </div>
+                  </div>
+                )}
                 
                 {/* Reveal Button - Visible in post-match */}
                 <div className="max-w-xs mx-auto">
@@ -2192,20 +2244,46 @@ const Profile = () => {
                     {formData.presence_note && (
                       <p className="text-sm text-purple-100/80 mt-1">{formData.presence_note}</p>
                     )}
-                    {/* Lifestyle strapline - visible in ALL states */}
-                    {(formData.lifestyle_vibe || formData.lifestyle_travel || formData.lifestyle_going_out) && (
-                      <p className="text-sm text-purple-300/80 mt-2">
-                        {[formData.lifestyle_vibe, formData.lifestyle_travel, formData.lifestyle_going_out]
-                          .filter(Boolean)
-                          .join(" • ")}
-                      </p>
-                    )}
-                    {/* Food Mood - visible in ALL states */}
-                    {formData.food_mood && (
-                      <p className="text-sm text-amber-300/80 mt-1">{formData.food_mood}</p>
-                    )}
                   </div>
                 </div>
+                
+                {/* LIFESTYLE SECTION - Visible in ALL states */}
+                {(formData.lifestyle_vibe || formData.lifestyle_travel || formData.lifestyle_going_out) && (
+                  <div className="bg-purple-500/10 rounded-xl p-4">
+                    <h3 className="text-xs font-medium text-purple-300/60 mb-3 uppercase tracking-wide">Lifestyle</h3>
+                    <div className="space-y-2">
+                      {formData.lifestyle_vibe && (
+                        <div>
+                          <p className="text-purple-300/50 text-xs">Lively or laid-back?</p>
+                          <p className="text-purple-100 text-sm">{formData.lifestyle_vibe}</p>
+                        </div>
+                      )}
+                      {formData.lifestyle_travel && (
+                        <div>
+                          <p className="text-purple-300/50 text-xs">Explorer or sunbed-snoozer?</p>
+                          <p className="text-purple-100 text-sm">{formData.lifestyle_travel}</p>
+                        </div>
+                      )}
+                      {formData.lifestyle_going_out && (
+                        <div>
+                          <p className="text-purple-300/50 text-xs">Going out or staying in?</p>
+                          <p className="text-purple-100 text-sm">{formData.lifestyle_going_out}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {/* FOOD MOOD SECTION - Visible in ALL states */}
+                {formData.food_mood && (
+                  <div className="bg-amber-500/10 rounded-xl p-4">
+                    <h3 className="text-xs font-medium text-amber-300/60 mb-2 uppercase tracking-wide">Food Mood</h3>
+                    <div>
+                      <p className="text-amber-300/50 text-xs">In the kitchen?</p>
+                      <p className="text-amber-100 text-sm">{formData.food_mood}</p>
+                    </div>
+                  </div>
+                )}
                 
                 {/* Bio */}
                 {formData.bio && (

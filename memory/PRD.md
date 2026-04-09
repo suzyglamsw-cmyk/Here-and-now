@@ -806,7 +806,22 @@ Comprehensive list including:
 - `/app/backend/server.py` - Added fields to user schema and UserProfile model
 - `/app/backend/routes/dependencies.py` - Added fields to UserProfile and UserResponse models
 - `/app/frontend/src/pages/ProfileTab.js` - Added editing UI with dropdowns and auto-save
-- `/app/frontend/src/pages/UserProfile.js` - Added display in profile view
+- `/app/frontend/src/pages/UserProfile.js` - Added display in public profile view
+
+**Display Format:**
+Each section shows:
+1. Section heading ("LIFESTYLE" or "FOOD MOOD") in uppercase
+2. Question label in muted text
+3. User's selected answer
+
+**Public Profile Order:**
+1. Photo pane
+2. Name • Age • City
+3. Free-text line (bio)
+4. Presence note
+5. Lifestyle section (purple background, if any answers)
+6. Food Mood section (amber background, if answered)
+7. About / other sections
 
 ---
 *Last Updated: April 9, 2026 - Lifestyle & Food Mood Profile Categories*
