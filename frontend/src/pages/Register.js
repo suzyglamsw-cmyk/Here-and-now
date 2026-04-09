@@ -132,7 +132,7 @@ const Register = () => {
       });
       login(response.data.token, response.data.user);
       toast.success("Account created! Let's set up your profile.");
-      navigate("/profile-setup");
+      navigate("/profile-tab");
     } catch (error) {
       toast.error(getErrorMessage(error, "Registration failed"));
       setIsNewRegistration(false);

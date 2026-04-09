@@ -11,7 +11,7 @@ import OnboardingGender from "./pages/OnboardingGender";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
-import ProfileSetup from "./pages/ProfileSetup";
+// ProfileSetup removed - using ProfileTab for new accounts
 import Venues from "./pages/Venues";
 import WhosHere from "./pages/WhosHere";
 import Discovery from "./pages/Discovery";
@@ -136,11 +136,12 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            {/* Redirect old profile-setup to new profile-tab */}
             <Route
               path="/profile-setup"
               element={
                 <ProtectedRoute>
-                  <ProfileSetup />
+                  <Navigate to="/profile-tab" replace />
                 </ProtectedRoute>
               }
             />

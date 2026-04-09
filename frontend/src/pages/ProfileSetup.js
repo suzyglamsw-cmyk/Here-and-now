@@ -14,16 +14,7 @@ import {
 import { useAuth, API } from "@/App";
 import { toast } from "sonner";
 import axios from "axios";
-import { Loader2, Check } from "lucide-react";
-
-const AVATAR_OPTIONS = [
-  "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&h=200&fit=crop",
-  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop",
-  "https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=200&h=200&fit=crop",
-  "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop",
-  "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop",
-  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop",
-];
+import { Loader2 } from "lucide-react";
 
 const INTERESTS = [
   "Music", "Fitness", "Food", "Travel", "Art", 
@@ -54,13 +45,17 @@ const ProfileSetup = () => {
   const [formData, setFormData] = useState({
     display_name: user?.display_name || "",
     bio: user?.bio || "",
-    avatar_url: user?.avatar_url || "",
     interests: user?.interests || [],
     age: user?.age || "",
     gender: user?.gender || "",
     orientation: user?.orientation || "",
     relationship_status: user?.relationship_status || "",
     seeking: user?.seeking || "",
+    // New schema fields - empty by default
+    lifestyle_vibe: user?.lifestyle_vibe || "",
+    lifestyle_travel: user?.lifestyle_travel || "",
+    lifestyle_going_out: user?.lifestyle_going_out || "",
+    food_mood: user?.food_mood || "",
   });
 
   const toggleInterest = (interest) => {
@@ -88,8 +83,9 @@ const ProfileSetup = () => {
   };
 
   const canContinue = () => {
-    if (step === 1) return formData.display_name && formData.avatar_url;
-    if (step === 2) return formData.interests.length > 0;
+    // Step 1: Just require display name (no avatar needed)
+    if (step === 1) return formData.display_name.trim().length > 0;
+    if (step === 2) return true; // All step 2 fields are optional
     return true;
   };
 
@@ -117,33 +113,7 @@ const ProfileSetup = () => {
             <div className="space-y-8">
               <div className="text-center">
                 <h1 className="text-2xl font-bold text-white mb-2">Let's set up your profile</h1>
-                <p className="text-slate-400">Choose how you want to appear to others</p>
-              </div>
-
-              {/* Avatar Selection */}
-              <div className="space-y-4">
-                <Label className="text-slate-300">Choose an avatar</Label>
-                <div className="grid grid-cols-3 gap-3">
-                  {AVATAR_OPTIONS.map((url, index) => (
-                    <button
-                      key={index}
-                      data-testid={`avatar-option-${index}`}
-                      onClick={() => setFormData({ ...formData, avatar_url: url })}
-                      className={`relative aspect-square rounded-2xl overflow-hidden border-2 transition-all ${
-                        formData.avatar_url === url
-                          ? "border-indigo-500 ring-4 ring-indigo-500/20"
-                          : "border-transparent hover:border-white/20"
-                      }`}
-                    >
-                      <img src={url} alt={`Avatar ${index + 1}`} className="w-full h-full object-cover" />
-                      {formData.avatar_url === url && (
-                        <div className="absolute inset-0 bg-indigo-500/20 flex items-center justify-center">
-                          <Check className="w-8 h-8 text-white" />
-                        </div>
-                      )}
-                    </button>
-                  ))}
-                </div>
+                <p className="text-slate-400">Tell us a bit about yourself</p>
               </div>
 
               {/* Display Name */}
@@ -179,6 +149,10 @@ const ProfileSetup = () => {
                 />
                 <p className="text-xs text-slate-500 text-right">{formData.bio.length}/150</p>
               </div>
+
+              <p className="text-center text-slate-500 text-sm">
+                You can add photos and more details in your profile settings later.
+              </p>
             </div>
           )}
 
@@ -187,7 +161,7 @@ const ProfileSetup = () => {
             <div className="space-y-6">
               <div className="text-center">
                 <h1 className="text-2xl font-bold text-white mb-2">About You</h1>
-                <p className="text-slate-400">Help others get to know you</p>
+                <p className="text-slate-400">Help others get to know you (all optional)</p>
               </div>
 
               {/* Age */}
@@ -208,7 +182,7 @@ const ProfileSetup = () => {
 
               {/* Gender */}
               <div className="space-y-2">
-                <Label className="text-slate-300">Gender</Label>
+                <Label className="text-slate-300">Gender (optional)</Label>
                 <Select
                   value={formData.gender}
                   onValueChange={(value) => setFormData({ ...formData, gender: value })}
@@ -228,7 +202,7 @@ const ProfileSetup = () => {
 
               {/* Orientation */}
               <div className="space-y-2">
-                <Label className="text-slate-300">Orientation</Label>
+                <Label className="text-slate-300">Orientation (optional)</Label>
                 <Select
                   value={formData.orientation}
                   onValueChange={(value) => setFormData({ ...formData, orientation: value })}
@@ -248,7 +222,7 @@ const ProfileSetup = () => {
 
               {/* Relationship Status */}
               <div className="space-y-2">
-                <Label className="text-slate-300">Relationship Status</Label>
+                <Label className="text-slate-300">Relationship Status (optional)</Label>
                 <Select
                   value={formData.relationship_status}
                   onValueChange={(value) => setFormData({ ...formData, relationship_status: value })}
@@ -268,7 +242,7 @@ const ProfileSetup = () => {
 
               {/* Seeking */}
               <div className="space-y-2">
-                <Label className="text-slate-300">Seeking</Label>
+                <Label className="text-slate-300">Seeking (optional)</Label>
                 <Select
                   value={formData.seeking}
                   onValueChange={(value) => setFormData({ ...formData, seeking: value })}

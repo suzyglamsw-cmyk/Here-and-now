@@ -26,7 +26,7 @@ const OnboardingGender = () => {
       });
       updateUser(response.data);
       toast.success("Got it! Let's set up your profile.");
-      navigate("/profile-setup");
+      navigate("/profile-tab");
     } catch (error) {
       toast.error("Failed to save. Please try again.");
     } finally {
