@@ -287,12 +287,12 @@ const UserProfile = () => {
 
         {/* Profile Card */}
         <div className="glass rounded-3xl overflow-hidden">
-          {/* Main Photo - dynamic blur based on image characteristics */}
+          {/* Main Photo - 3-stage blur based on match/reveal status */}
           <div className="aspect-square w-full max-h-96 overflow-hidden">
             <BlurredImage
               src={mainPhoto}
               alt={profile.display_name}
-              isRevealed={profile.is_revealed}
+              blurState={getPhotoState()}
               isThumbnail={false}
               fallbackInitial={profile.display_name?.charAt(0) || "?"}
             />
@@ -305,7 +305,7 @@ const UserProfile = () => {
               {/* Left: Name + Age */}
               <div className="min-w-0 flex-shrink">
                 <h1 className="text-2xl font-bold text-white truncate">
-                  {profile.is_revealed ? profile.display_name : (profile.display_name || "?").charAt(0)}
+                  {getPhotoState() === 'clear' ? profile.display_name : (profile.display_name || "?").charAt(0)}
                   {profile.age && <span className="text-slate-400 ml-2">{profile.age}</span>}
                 </h1>
               </div>
@@ -452,7 +452,7 @@ const UserProfile = () => {
               </div>
             )}
 
-            {/* Additional Photos - Only shown after reveal, otherwise blurred */}
+            {/* Additional Photos - Uses same 3-stage blur logic */}
             {profile.photos && profile.photos.filter((p, i) => i > 0 && p).length > 0 && (
               <div className="mb-6">
                 <p className="text-slate-500 text-xs mb-2">More Photos</p>
@@ -462,7 +462,7 @@ const UserProfile = () => {
                       <BlurredImage
                         src={photo}
                         alt={`Photo ${index + 2}`}
-                        isRevealed={profile.is_revealed}
+                        blurState={getPhotoState()}
                         isThumbnail={true}
                         fallbackInitial={profile.display_name?.charAt(0) || "?"}
                       />

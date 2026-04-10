@@ -76,7 +76,7 @@ export const SelfCard = ({
           />
         )}
         
-        {/* Badges - vertically stacked on right edge */}
+        {/* Top-right badges (You badge, Premium only) */}
         <div className="absolute top-2 right-2 flex flex-col gap-1.5 items-end z-10">
           {/* "You" badge */}
           <div className="px-2 py-1 rounded-full bg-indigo-500 flex items-center gap-1 shadow-lg">
@@ -90,45 +90,46 @@ export const SelfCard = ({
               <Crown className="w-3 h-3 text-white" />
             </div>
           )}
-          
-          {/* Gender indicator */}
-          {user.show_as && (
-            <div 
-              className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shadow-lg ${
-                user.show_as === "male" 
-                  ? "bg-blue-400/90 text-white" 
-                  : "bg-pink-400/90 text-white"
-              }`}
-            >
-              {user.show_as === "male" ? "M" : "F"}
-            </div>
-          )}
-          
-          {/* Rainbow indicator */}
-          {user.rainbow && (
-            <div 
-              className="w-6 h-6 rounded-full flex items-center justify-center shadow-lg overflow-hidden"
-              style={{ 
-                background: 'linear-gradient(135deg, #ef4444 0%, #f97316 20%, #eab308 40%, #22c55e 60%, #3b82f6 80%, #8b5cf6 100%)'
-              }}
-            >
-              <div className="w-4 h-4 rounded-full bg-slate-900/50" />
-            </div>
-          )}
-          
-          {/* Open to all indicator */}
-          {user.open_to_all && (
-            <div className="w-6 h-6 rounded-full flex items-center justify-center shadow-lg bg-amber-400/90">
-              <span className="text-xs">🤗</span>
-            </div>
-          )}
         </div>
         
-        {/* Name overlay */}
+        {/* Name overlay with icons right-aligned */}
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-          <p className="text-white font-medium truncate">
-            You{user.age ? `, ${user.age}` : ""}
-          </p>
+          {/* Name + Age row with icons right-aligned - nowrap flex */}
+          <div className="flex justify-between items-center flex-nowrap">
+            {/* Left: Name + Age */}
+            <p className="text-white font-medium truncate min-w-0 flex-shrink">
+              You{user.age ? `, ${user.age}` : ""}
+            </p>
+            {/* Right: Icon group (horizontal) */}
+            <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+              {user.show_as && (
+                <div 
+                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shadow-sm ${
+                    user.show_as === "male" 
+                      ? "bg-blue-400/90 text-white" 
+                      : "bg-pink-400/90 text-white"
+                  }`}
+                >
+                  {user.show_as === "male" ? "M" : "F"}
+                </div>
+              )}
+              {user.rainbow && (
+                <div 
+                  className="w-5 h-5 rounded-full flex items-center justify-center shadow-sm overflow-hidden"
+                  style={{ 
+                    background: 'linear-gradient(135deg, #ef4444 0%, #f97316 20%, #eab308 40%, #22c55e 60%, #3b82f6 80%, #8b5cf6 100%)'
+                  }}
+                >
+                  <div className="w-3 h-3 rounded-full bg-slate-900/50" />
+                </div>
+              )}
+              {user.open_to_all && (
+                <div className="w-5 h-5 rounded-full flex items-center justify-center shadow-sm bg-amber-400/90">
+                  <span className="text-[8px]">🤗</span>
+                </div>
+              )}
+            </div>
+          </div>
           {user.presence_note && (
             <p className="text-slate-400 text-xs mt-1 truncate">{user.presence_note}</p>
           )}
@@ -253,7 +254,7 @@ export const UserCard = ({
           </div>
         )}
         
-        {/* Badges - vertically stacked on right edge */}
+        {/* Top-right badges (Premium, Match only) */}
         <div className="absolute top-2 right-2 flex flex-col gap-1.5 items-end z-10">
           {/* Premium badge */}
           {user.is_premium && (
@@ -271,43 +272,6 @@ export const UserCard = ({
               <Sparkles className="w-3 h-3 text-white" />
             </div>
           )}
-          
-          {/* Gender indicator */}
-          {user.show_as && (
-            <div 
-              className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shadow-lg ${
-                user.show_as === "male" 
-                  ? "bg-blue-400/90 text-white" 
-                  : "bg-pink-400/90 text-white"
-              }`}
-              data-testid={`gender-indicator-${user.id}`}
-            >
-              {user.show_as === "male" ? "M" : "F"}
-            </div>
-          )}
-          
-          {/* Rainbow indicator */}
-          {user.rainbow && (
-            <div 
-              className="w-6 h-6 rounded-full flex items-center justify-center shadow-lg overflow-hidden"
-              style={{ 
-                background: 'linear-gradient(135deg, #ef4444 0%, #f97316 20%, #eab308 40%, #22c55e 60%, #3b82f6 80%, #8b5cf6 100%)'
-              }}
-              data-testid={`rainbow-indicator-${user.id}`}
-            >
-              <div className="w-4 h-4 rounded-full bg-slate-900/50" />
-            </div>
-          )}
-          
-          {/* Open to all indicator */}
-          {user.open_to_all && (
-            <div 
-              className="w-6 h-6 rounded-full flex items-center justify-center shadow-lg bg-amber-400/90"
-              data-testid={`open-to-all-indicator-${user.id}`}
-            >
-              <span className="text-xs">🤗</span>
-            </div>
-          )}
         </div>
         
         {/* Voice intro indicator (only when clear) */}
@@ -317,9 +281,42 @@ export const UserCard = ({
           </div>
         )}
         
-        {/* Name overlay */}
+        {/* Name overlay with icons right-aligned */}
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-          <p className="text-white font-medium truncate">{displayName}</p>
+          {/* Name + Age row with icons right-aligned - nowrap flex */}
+          <div className="flex justify-between items-center flex-nowrap">
+            {/* Left: Name + Age */}
+            <p className="text-white font-medium truncate min-w-0 flex-shrink">{displayName}</p>
+            {/* Right: Icon group (horizontal) - hidden on thumbs, shown in detail views */}
+            <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+              {user.show_as && (
+                <div 
+                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shadow-sm ${
+                    user.show_as === "male" 
+                      ? "bg-blue-400/90 text-white" 
+                      : "bg-pink-400/90 text-white"
+                  }`}
+                >
+                  {user.show_as === "male" ? "M" : "F"}
+                </div>
+              )}
+              {user.rainbow && (
+                <div 
+                  className="w-5 h-5 rounded-full flex items-center justify-center shadow-sm overflow-hidden"
+                  style={{ 
+                    background: 'linear-gradient(135deg, #ef4444 0%, #f97316 20%, #eab308 40%, #22c55e 60%, #3b82f6 80%, #8b5cf6 100%)'
+                  }}
+                >
+                  <div className="w-3 h-3 rounded-full bg-slate-900/50" />
+                </div>
+              )}
+              {user.open_to_all && (
+                <div className="w-5 h-5 rounded-full flex items-center justify-center shadow-sm bg-amber-400/90">
+                  <span className="text-[8px]">🤗</span>
+                </div>
+              )}
+            </div>
+          </div>
           
           {/* Intent badge */}
           {user.intent && (
