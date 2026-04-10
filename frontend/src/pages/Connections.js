@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth, API } from "@/App";
 import { toast } from "sonner";
 import axios from "axios";
 import Layout from "../components/Layout";
 import { UserCard } from "../components/UserCard";
 import { NotForNowSheet } from "../components/NotForNowSheet";
-import { MessageCircle, MapPin, Loader2, Users, Sparkles, Eye, Heart, Snowflake, UserPlus, Check, X, Clock, UserCheck, ArrowUpRight, ArrowDownLeft, MessageSquare, Trash2, Ban, UserMinus, MoreVertical, Wine, Archive } from "lucide-react";
+import { MessageCircle, MapPin, Loader2, Users, Sparkles, Eye, Heart, Snowflake, UserPlus, Check, X, Clock, UserCheck, ArrowUpRight, ArrowDownLeft, MessageSquare, Trash2, Ban, UserMinus, MoreVertical, Wine, Archive, CheckSquare, Square } from "lucide-react";
 import { getErrorMessage } from "../utils/errorUtils";
 import BlurredImage from "../components/BlurredImage";
 import { ConfirmHint, useConfirmHintGlobal } from "../components/ConfirmHint";
@@ -49,6 +50,12 @@ const Connections = () => {
   const [chatActionSheet, setChatActionSheet] = useState(null); // For chat request actions
   const [clearConfirmUser, setClearConfirmUser] = useState(null); // For clear from matches confirmation
   const [tab, setTab] = useState(searchParams.get("tab") || "messages"); // "messages" | "glances" | "icebreakers" | "chats" | "requests" | "friends" | "connections"
+  
+  // Selection state for bulk delete
+  const [selectedGlances, setSelectedGlances] = useState(new Set());
+  const [selectedIcebreakers, setSelectedIcebreakers] = useState(new Set());
+  const [selectedChatRequests, setSelectedChatRequests] = useState(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   
   // Global ref for confirmation hints (only one visible at a time)
   const confirmHintRef = useConfirmHintGlobal();
@@ -358,6 +365,131 @@ const Connections = () => {
     }
   };
 
+  // ============================================================================
+  // BULK DELETE HANDLERS (Non-destructive - hides items for current user only)
+  // ============================================================================
+  
+  const handleBulkDeleteGlances = async () => {
+    if (selectedGlances.size === 0) return;
+    
+    setBulkDeleting(true);
+    try {
+      const response = await axios.post(`${API}/glances/bulk-delete`, {
+        glance_ids: Array.from(selectedGlances)
+      });
+      toast.success(`Removed ${response.data.count} glances from your list`);
+      setSelectedGlances(new Set());
+      fetchAllData();
+    } catch (error) {
+      toast.error("Failed to remove glances");
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+  const handleBulkDeleteIcebreakers = async () => {
+    if (selectedIcebreakers.size === 0) return;
+    
+    setBulkDeleting(true);
+    try {
+      const response = await axios.post(`${API}/icebreakers/bulk-delete`, {
+        icebreaker_ids: Array.from(selectedIcebreakers)
+      });
+      toast.success(`Removed ${response.data.count} icebreakers from your list`);
+      setSelectedIcebreakers(new Set());
+      fetchAllData();
+    } catch (error) {
+      toast.error("Failed to remove icebreakers");
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+  const handleBulkDeleteChatRequests = async () => {
+    if (selectedChatRequests.size === 0) return;
+    
+    setBulkDeleting(true);
+    try {
+      const response = await axios.post(`${API}/chat-requests/bulk-delete`, {
+        request_ids: Array.from(selectedChatRequests)
+      });
+      toast.success(`Removed ${response.data.count} chat requests from your list`);
+      setSelectedChatRequests(new Set());
+      fetchAllData();
+    } catch (error) {
+      toast.error("Failed to remove chat requests");
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+  // Selection toggle helpers
+  const toggleGlanceSelection = (glanceId) => {
+    setSelectedGlances(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(glanceId)) {
+        newSet.delete(glanceId);
+      } else {
+        newSet.add(glanceId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleIcebreakerSelection = (icebreakerId) => {
+    setSelectedIcebreakers(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(icebreakerId)) {
+        newSet.delete(icebreakerId);
+      } else {
+        newSet.add(icebreakerId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleChatRequestSelection = (requestId) => {
+    setSelectedChatRequests(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(requestId)) {
+        newSet.delete(requestId);
+      } else {
+        newSet.add(requestId);
+      }
+      return newSet;
+    });
+  };
+
+  // Select All helpers
+  const selectAllGlances = () => {
+    const allIds = [
+      ...(glances.incoming || []).map(g => g.id),
+      ...(glances.outgoing || []).map(g => g.id)
+    ];
+    setSelectedGlances(new Set(allIds));
+  };
+
+  const selectAllIcebreakers = () => {
+    const allIds = [
+      ...(icebreakers.incoming || []).map(ib => ib.id),
+      ...(icebreakers.outgoing || []).map(ib => ib.id)
+    ];
+    setSelectedIcebreakers(new Set(allIds));
+  };
+
+  const selectAllChatRequests = () => {
+    const allIds = [
+      ...(chatRequests.incoming || []).map(r => r.id),
+      ...(chatRequests.outgoing || []).map(r => r.id)
+    ];
+    setSelectedChatRequests(new Set(allIds));
+  };
+
+  // Check if all are selected
+  const allGlancesSelected = totalGlances > 0 && selectedGlances.size === totalGlances;
+  const allIcebreakersSelected = totalIcebreakers > 0 && selectedIcebreakers.size === totalIcebreakers;
+  const allChatRequestsSelected = totalChatRequests > 0 && selectedChatRequests.size === totalChatRequests;
+
   // Clear a user from mutual matches without breaking chat
   const handleClearFromMatches = async (userId, displayName) => {
     try {
@@ -588,6 +720,46 @@ const Connections = () => {
             </div>
           ) : (
             <div className="space-y-6" data-testid="glances-list">
+              {/* Bulk Actions Header */}
+              <div className="glass rounded-2xl p-3 flex items-center justify-between" data-testid="glances-bulk-header">
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="select-all-glances"
+                    checked={allGlancesSelected}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        selectAllGlances();
+                      } else {
+                        setSelectedGlances(new Set());
+                      }
+                    }}
+                    data-testid="select-all-glances-checkbox"
+                  />
+                  <label 
+                    htmlFor="select-all-glances" 
+                    className="text-sm text-slate-300 cursor-pointer select-none"
+                  >
+                    Select All ({totalGlances})
+                  </label>
+                </div>
+                {selectedGlances.size > 0 && (
+                  <Button
+                    data-testid="bulk-delete-glances-btn"
+                    onClick={handleBulkDeleteGlances}
+                    disabled={bulkDeleting}
+                    size="sm"
+                    className="rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30"
+                  >
+                    {bulkDeleting ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4 mr-2" />
+                    )}
+                    Delete Selected ({selectedGlances.size})
+                  </Button>
+                )}
+              </div>
+
               {/* Received Glances */}
               {glances.incoming?.length > 0 && (
                 <div>
@@ -600,8 +772,15 @@ const Connections = () => {
                       <div
                         key={glance.id}
                         data-testid={`received-glance-${glance.id}`}
-                        className="glass rounded-2xl p-4 flex items-center gap-4"
+                        className={`glass rounded-2xl p-4 flex items-center gap-4 ${selectedGlances.has(glance.id) ? 'ring-2 ring-indigo-500/50 bg-indigo-500/10' : ''}`}
                       >
+                        {/* Selection Checkbox */}
+                        <Checkbox
+                          checked={selectedGlances.has(glance.id)}
+                          onCheckedChange={() => toggleGlanceSelection(glance.id)}
+                          data-testid={`select-glance-${glance.id}`}
+                          className="flex-shrink-0"
+                        />
                         <div 
                           className="relative cursor-pointer"
                           onClick={() => navigate(`/profile/${glance.user_id}`)}
@@ -665,8 +844,15 @@ const Connections = () => {
                       <div
                         key={glance.id}
                         data-testid={`sent-glance-${glance.id}`}
-                        className="glass rounded-2xl p-4 flex items-center gap-4"
+                        className={`glass rounded-2xl p-4 flex items-center gap-4 ${selectedGlances.has(glance.id) ? 'ring-2 ring-indigo-500/50 bg-indigo-500/10' : ''}`}
                       >
+                        {/* Selection Checkbox */}
+                        <Checkbox
+                          checked={selectedGlances.has(glance.id)}
+                          onCheckedChange={() => toggleGlanceSelection(glance.id)}
+                          data-testid={`select-sent-glance-${glance.id}`}
+                          className="flex-shrink-0"
+                        />
                         <div 
                           className="relative cursor-pointer"
                           onClick={() => navigate(`/profile/${glance.user_id}`)}
@@ -722,6 +908,46 @@ const Connections = () => {
             </div>
           ) : (
             <div className="space-y-6" data-testid="icebreakers-list">
+              {/* Bulk Actions Header */}
+              <div className="glass rounded-2xl p-3 flex items-center justify-between" data-testid="icebreakers-bulk-header">
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="select-all-icebreakers"
+                    checked={allIcebreakersSelected}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        selectAllIcebreakers();
+                      } else {
+                        setSelectedIcebreakers(new Set());
+                      }
+                    }}
+                    data-testid="select-all-icebreakers-checkbox"
+                  />
+                  <label 
+                    htmlFor="select-all-icebreakers" 
+                    className="text-sm text-slate-300 cursor-pointer select-none"
+                  >
+                    Select All ({totalIcebreakers})
+                  </label>
+                </div>
+                {selectedIcebreakers.size > 0 && (
+                  <Button
+                    data-testid="bulk-delete-icebreakers-btn"
+                    onClick={handleBulkDeleteIcebreakers}
+                    disabled={bulkDeleting}
+                    size="sm"
+                    className="rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30"
+                  >
+                    {bulkDeleting ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4 mr-2" />
+                    )}
+                    Delete Selected ({selectedIcebreakers.size})
+                  </Button>
+                )}
+              </div>
+
               {/* Received Icebreakers */}
               {icebreakers.incoming?.length > 0 && (
                 <div>
@@ -734,8 +960,15 @@ const Connections = () => {
                       <div
                         key={ib.id}
                         data-testid={`received-icebreaker-${ib.id}`}
-                        className={`glass rounded-2xl p-4 flex items-center gap-4 ${ib.is_new ? 'border border-cyan-500/30 bg-cyan-500/5' : ''}`}
+                        className={`glass rounded-2xl p-4 flex items-center gap-4 ${ib.is_new ? 'border border-cyan-500/30 bg-cyan-500/5' : ''} ${selectedIcebreakers.has(ib.id) ? 'ring-2 ring-cyan-500/50 bg-cyan-500/10' : ''}`}
                       >
+                        {/* Selection Checkbox */}
+                        <Checkbox
+                          checked={selectedIcebreakers.has(ib.id)}
+                          onCheckedChange={() => toggleIcebreakerSelection(ib.id)}
+                          data-testid={`select-icebreaker-${ib.id}`}
+                          className="flex-shrink-0"
+                        />
                         <div 
                           className="cursor-pointer relative"
                           onClick={() => navigate(`/profile/${ib.user_id}`)}
@@ -792,6 +1025,15 @@ const Connections = () => {
                             Chat
                           </Button>
                         ) : null}
+                        <Button
+                          data-testid={`delete-icebreaker-${ib.id}`}
+                          onClick={(e) => { e.stopPropagation(); handleDeleteIcebreaker(ib.id); }}
+                          size="sm"
+                          variant="ghost"
+                          className="rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     ))}
                   </div>
@@ -810,8 +1052,15 @@ const Connections = () => {
                       <div
                         key={ib.id}
                         data-testid={`sent-icebreaker-${ib.id}`}
-                        className="glass rounded-2xl p-4 flex items-center gap-4"
+                        className={`glass rounded-2xl p-4 flex items-center gap-4 ${selectedIcebreakers.has(ib.id) ? 'ring-2 ring-cyan-500/50 bg-cyan-500/10' : ''}`}
                       >
+                        {/* Selection Checkbox */}
+                        <Checkbox
+                          checked={selectedIcebreakers.has(ib.id)}
+                          onCheckedChange={() => toggleIcebreakerSelection(ib.id)}
+                          data-testid={`select-sent-icebreaker-${ib.id}`}
+                          className="flex-shrink-0"
+                        />
                         <div 
                           className="cursor-pointer"
                           onClick={() => navigate(`/profile/${ib.user_id}`)}
@@ -856,6 +1105,15 @@ const Connections = () => {
                             {user?.is_premium && ib.viewed_at ? "👁" : "⏳"}
                           </span>
                         )}
+                        <Button
+                          data-testid={`delete-sent-icebreaker-${ib.id}`}
+                          onClick={(e) => { e.stopPropagation(); handleDeleteIcebreaker(ib.id); }}
+                          size="sm"
+                          variant="ghost"
+                          className="rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     ))}
                   </div>
@@ -877,6 +1135,46 @@ const Connections = () => {
             </div>
           ) : (
             <div className="space-y-6" data-testid="chat-requests-list">
+              {/* Bulk Actions Header */}
+              <div className="glass rounded-2xl p-3 flex items-center justify-between" data-testid="chat-requests-bulk-header">
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="select-all-chat-requests"
+                    checked={allChatRequestsSelected}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        selectAllChatRequests();
+                      } else {
+                        setSelectedChatRequests(new Set());
+                      }
+                    }}
+                    data-testid="select-all-chat-requests-checkbox"
+                  />
+                  <label 
+                    htmlFor="select-all-chat-requests" 
+                    className="text-sm text-slate-300 cursor-pointer select-none"
+                  >
+                    Select All ({totalChatRequests})
+                  </label>
+                </div>
+                {selectedChatRequests.size > 0 && (
+                  <Button
+                    data-testid="bulk-delete-chat-requests-btn"
+                    onClick={handleBulkDeleteChatRequests}
+                    disabled={bulkDeleting}
+                    size="sm"
+                    className="rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30"
+                  >
+                    {bulkDeleting ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4 mr-2" />
+                    )}
+                    Delete Selected ({selectedChatRequests.size})
+                  </Button>
+                )}
+              </div>
+
               {/* Received Chat Requests */}
               {chatRequests.incoming?.length > 0 && (
                 <div>
@@ -889,8 +1187,15 @@ const Connections = () => {
                       <div
                         key={request.id}
                         data-testid={`received-chat-${request.id}`}
-                        className="glass rounded-2xl p-4 flex items-center gap-4"
+                        className={`glass rounded-2xl p-4 flex items-center gap-4 ${selectedChatRequests.has(request.id) ? 'ring-2 ring-pink-500/50 bg-pink-500/10' : ''}`}
                       >
+                        {/* Selection Checkbox */}
+                        <Checkbox
+                          checked={selectedChatRequests.has(request.id)}
+                          onCheckedChange={() => toggleChatRequestSelection(request.id)}
+                          data-testid={`select-chat-request-${request.id}`}
+                          className="flex-shrink-0"
+                        />
                         <div 
                           className="cursor-pointer"
                           onClick={() => navigate(`/profile/${request.user_id}`)}
@@ -927,37 +1232,25 @@ const Connections = () => {
                             Respond
                           </Button>
                         ) : request.status === "accepted" ? (
-                          <div className="flex gap-2">
-                            <Button
-                              data-testid={`message-${request.id}`}
-                              onClick={() => navigate(`/chat/${request.user_id}`)}
-                              size="sm"
-                              className="rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white"
-                            >
-                              <MessageCircle className="w-4 h-4 mr-1" />
-                              Chat
-                            </Button>
-                            <Button
-                              data-testid={`delete-chat-${request.id}`}
-                              onClick={() => handleDeleteChatRequest(request.id)}
-                              size="sm"
-                              variant="ghost"
-                              className="rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        ) : (
                           <Button
-                            data-testid={`delete-chat-${request.id}`}
-                            onClick={() => handleDeleteChatRequest(request.id)}
+                            data-testid={`message-${request.id}`}
+                            onClick={() => navigate(`/chat/${request.user_id}`)}
                             size="sm"
-                            variant="ghost"
-                            className="rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                            className="rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <MessageCircle className="w-4 h-4 mr-1" />
+                            Chat
                           </Button>
-                        )}
+                        ) : null}
+                        <Button
+                          data-testid={`delete-chat-${request.id}`}
+                          onClick={(e) => { e.stopPropagation(); handleDeleteChatRequest(request.id); }}
+                          size="sm"
+                          variant="ghost"
+                          className="rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     ))}
                   </div>
@@ -976,8 +1269,15 @@ const Connections = () => {
                       <div
                         key={request.id}
                         data-testid={`sent-chat-${request.id}`}
-                        className="glass rounded-2xl p-4 flex items-center gap-4"
+                        className={`glass rounded-2xl p-4 flex items-center gap-4 ${selectedChatRequests.has(request.id) ? 'ring-2 ring-pink-500/50 bg-pink-500/10' : ''}`}
                       >
+                        {/* Selection Checkbox */}
+                        <Checkbox
+                          checked={selectedChatRequests.has(request.id)}
+                          onCheckedChange={() => toggleChatRequestSelection(request.id)}
+                          data-testid={`select-sent-chat-request-${request.id}`}
+                          className="flex-shrink-0"
+                        />
                         <div 
                           className="cursor-pointer"
                           onClick={() => navigate(`/profile/${request.user_id}`)}
@@ -1005,37 +1305,29 @@ const Connections = () => {
                           )}
                         </div>
                         {request.status === "accepted" ? (
-                          <div className="flex gap-2">
-                            <Button
-                              data-testid={`message-out-${request.id}`}
-                              onClick={(e) => { e.stopPropagation(); navigate(`/chat/${request.user_id}`); }}
-                              size="sm"
-                              className="rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white"
-                            >
-                              <MessageCircle className="w-4 h-4 mr-1" />
-                              Chat
-                            </Button>
-                            <Button
-                              data-testid={`delete-sent-chat-${request.id}`}
-                              onClick={(e) => { e.stopPropagation(); handleDeleteChatRequest(request.id); }}
-                              size="sm"
-                              variant="ghost"
-                              className="rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        ) : (
                           <Button
-                            data-testid={`delete-sent-chat-${request.id}`}
-                            onClick={(e) => { e.stopPropagation(); handleDeleteChatRequest(request.id); }}
+                            data-testid={`message-out-${request.id}`}
+                            onClick={(e) => { e.stopPropagation(); navigate(`/chat/${request.user_id}`); }}
                             size="sm"
-                            variant="ghost"
-                            className="rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                            className="rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <MessageCircle className="w-4 h-4 mr-1" />
+                            Chat
                           </Button>
+                        ) : (
+                          <span className="text-slate-500 text-xs">
+                            {request.status === "pending" ? "⏳" : ""}
+                          </span>
                         )}
+                        <Button
+                          data-testid={`delete-sent-chat-${request.id}`}
+                          onClick={(e) => { e.stopPropagation(); handleDeleteChatRequest(request.id); }}
+                          size="sm"
+                          variant="ghost"
+                          className="rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     ))}
                   </div>
