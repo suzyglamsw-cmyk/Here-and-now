@@ -448,7 +448,9 @@ async def get_people_at_venue(
         "has_glanced_at_me": False,
         "i_glanced_at": False,
         "is_connected": False,
-        "is_revealed": False,  # Always show as pre-reveal (blurred or silhouette)
+        "is_mutual": False,
+        "is_connection_accepted": False,  # Self is always clear, this is ignored for self
+        "is_revealed": True,  # Self card is always clear (no blur on your own photo)
         "is_premium": current_user.get("is_premium", False),
         "last_active_at": current_user.get("last_active_at"),
         "presence_note": current_user.get("presence_note", ""),
@@ -461,6 +463,8 @@ async def get_people_at_venue(
         "rainbow": current_user.get("rainbow", False),
         "open_to_all": current_user.get("open_to_all", False),
         "intent": current_user.get("intent", ""),
+        "icebreaker_sent": False,
+        "icebreaker_received": False,
     }
     
     # Calculate 1-hour cutoff for inactivity
@@ -557,9 +561,9 @@ async def get_people_at_venue(
             "status": "pending"
         }) is not None
         
-        # REVEAL LOGIC - Two triggers:
-        # 1. Mutual glance (both users glanced at each other)
-        # 2. Accepted icebreaker/chat request (creates connection)
+        # REVEAL LOGIC - Two stages:
+        # 1. is_connection_accepted = mutual glance OR accepted icebreaker/chat (gives 6px medium blur)
+        # 2. is_revealed = ONLY when both users explicitly press "Reveal" button (gives 0px clear)
         # Note: Presence/venue status NEVER triggers reveal
         is_mutual_glance = has_glanced_at_me and i_glanced_at
         
@@ -579,8 +583,22 @@ async def get_people_at_venue(
             ]
         })
         
-        # Revealed if: mutual glance OR accepted icebreaker/chat OR connected
-        is_revealed = is_mutual_glance or bool(accepted_icebreaker) or bool(accepted_chat) or is_connected
+        # is_connection_accepted = mutual glance OR accepted icebreaker/chat (medium blur)
+        is_connection_accepted = is_mutual_glance or bool(accepted_icebreaker) or bool(accepted_chat)
+        
+        # Check for explicit reveal (both users pressed reveal button)
+        # Only truly revealed if BOTH users have pressed reveal
+        i_revealed = await db.reveals.find_one({
+            "from_user_id": current_user["id"],
+            "to_user_id": user["id"]
+        }) is not None
+        
+        they_revealed = await db.reveals.find_one({
+            "from_user_id": user["id"],
+            "to_user_id": current_user["id"]
+        }) is not None
+        
+        is_revealed = i_revealed and they_revealed
         
         first_name = get_first_name(user.get("display_name", "Someone"))
         
@@ -597,7 +615,8 @@ async def get_people_at_venue(
         # Check if user wants to hide their photo in venues (silhouette mode)
         hide_photo = user.get("hide_photo_in_venues", False)
         
-        # Get photo URL with appropriate blur based on reveal status
+        # Get photo URL - blur is handled client-side based on is_connection_accepted/is_revealed
+        # Server returns blurred version for non-revealed users (security layer)
         blur_photos = not is_revealed
         avatar_url = get_photo_url(user.get("avatar_url", ""), blur=blur_photos)
         
@@ -613,7 +632,9 @@ async def get_people_at_venue(
             "has_glanced_at_me": has_glanced_at_me,
             "i_glanced_at": i_glanced_at,
             "is_connected": is_connected,
-            "is_revealed": is_revealed,
+            "is_mutual": is_mutual_glance,  # Both users have glanced at each other
+            "is_connection_accepted": is_connection_accepted,  # For blur logic: mutual glance OR accepted icebreaker/chat
+            "is_revealed": is_revealed,  # ONLY when both users explicitly pressed reveal
             "is_premium": user.get("is_premium", False),
             "last_active_at": checkin.get("last_activity_at"),
             "presence_note": user.get("presence_note", ""),

@@ -861,7 +861,9 @@ class WhoIsHereUser(BaseModel):
     has_glanced_at_me: bool = False
     i_glanced_at: bool = False
     is_connected: bool = False
-    is_revealed: bool = False
+    is_mutual: bool = False  # Both users have glanced at each other
+    is_connection_accepted: bool = False  # Mutual glance OR accepted icebreaker/chat (for blur logic)
+    is_revealed: bool = False  # ONLY when both users explicitly pressed reveal
     is_premium: bool = False
     last_active_at: Optional[str] = None
     presence_note: Optional[str] = ""
