@@ -184,11 +184,11 @@ export const SelfCard = ({
 // ============================================================================
 export const UserCard = ({ 
   user,
-  isMatched = false,
+  isMatched = false,  // Now equals is_connection_accepted from parent
   matchType = null,
-  photoState = 'unmatched', // 'unmatched' | 'connection_accepted' | 'revealed' | 'blocked'
+  photoState = 'unmatched', // DEPRECATED: Now derived from backend flags (user.is_revealed, isMatched)
   isBlocked = false,
-  revealState = { iRevealed: false, theyRevealed: false },
+  revealState = { iRevealed: false, theyRevealed: false, is_revealed: false },
   onGlance,
   onIcebreaker,
   onChatRequest,
@@ -206,17 +206,24 @@ export const UserCard = ({
   const longPressTimer = useRef(null);
   const [longPressTriggered, setLongPressTriggered] = useState(false);
   
-  // Normalize photoState to new naming convention
-  const normalizePhotoState = () => {
-    if (isBlocked) return 'blocked';
-    // Map legacy names to new names
-    if (photoState === 'high_blur') return 'unmatched';
-    if (photoState === 'low_blur') return 'connection_accepted';
-    if (photoState === 'clear') return 'revealed';
-    return photoState;
+  // Determine photo state using ONLY backend flags (12px / 6px / 0px)
+  // Priority: blocked → revealed → connection_accepted → unmatched
+  const getEffectivePhotoState = () => {
+    // 1. BLOCKED: Hide photos entirely
+    if (isBlocked || user.is_blocked) return 'blocked';
+    
+    // 2. REVEALED (0px): ONLY when both users pressed Reveal
+    if (revealState?.is_revealed || user.is_revealed) return 'revealed';
+    
+    // 3. CONNECTION_ACCEPTED (6px): Mutual glance, accepted icebreaker/chat
+    // Use the passed isMatched prop which now equals is_connection_accepted from parent
+    if (isMatched || user.is_connection_accepted) return 'connection_accepted';
+    
+    // 4. UNMATCHED (12px): No connection
+    return 'unmatched';
   };
   
-  const effectivePhotoState = normalizePhotoState();
+  const effectivePhotoState = getEffectivePhotoState();
   
   // Get blur style using unified blur values (12px / 6px / 0px)
   const getBlurStyle = () => {
@@ -265,7 +272,7 @@ export const UserCard = ({
     ? `${user.display_name}${user.age ? `, ${user.age}` : ""}`
     : `${(user.display_name || "?").charAt(0)}${user.age ? `, ${user.age}` : ""}`;
   
-  // Connection state for styling
+  // Connection state for styling (used for card border color)
   const isConnected = effectivePhotoState === 'connection_accepted' || effectivePhotoState === 'revealed';
   
   return (
