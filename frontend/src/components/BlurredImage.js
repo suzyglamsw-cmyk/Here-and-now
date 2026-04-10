@@ -136,16 +136,14 @@ const BlurredImage = ({
   }
 
   // Calculate blur style
-  // For external images, we always use CSS blur
-  // For server-side, we use CSS blur only for LOW_BLUR (light blur)
+  // For HIGH_BLUR: Request server-side blur AND apply CSS blur as fallback
+  // For LOW_BLUR: Apply CSS blur only (server doesn't support light blur)
+  // For CLEAR: No blur
   const isExternalUrl = src.startsWith('http');
   const blurValue = getBlurValue(effectiveBlurState);
   
-  // Only apply CSS blur if:
-  // 1. External URL (server blur not available), OR
-  // 2. LOW_BLUR state (server only supports high blur)
-  const needsCssBlur = isExternalUrl || effectiveBlurState === BLUR_STATES.LOW_BLUR;
-  const cssBlurValue = needsCssBlur ? blurValue : 0;
+  // Always apply CSS blur when blur is needed - serves as fallback for server blur
+  const cssBlurValue = blurValue;
   
   const blurStyle = {
     filter: cssBlurValue > 0 ? `blur(${cssBlurValue}px)` : 'none',
