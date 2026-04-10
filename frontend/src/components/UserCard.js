@@ -467,36 +467,89 @@ export const UserCard = ({
         ) : (
           /* NON-MATCHED USER: Show pre-match actions */
           <div className="flex gap-2 justify-center">
-            {/* Glance Button */}
-            {disabled.glanced ? (
-              <Button
-                data-testid={`glance-btn-${user.id}`}
-                size="icon"
-                variant="ghost"
-                className="w-10 h-10 rounded-full bg-pink-500/20 text-pink-400"
-                disabled
-              >
-                <Eye className="w-5 h-5" />
-              </Button>
-            ) : (
-              <ConfirmHint
-                hint="Send a glance?"
-                onConfirm={() => onGlance && onGlance(user.id, venueId)}
-                disabled={loading.glance}
-                globalPendingRef={globalPendingRef}
-                compact
-              >
-                <Button
-                  data-testid={`glance-btn-${user.id}`}
-                  size="icon"
-                  variant="ghost"
-                  className="w-10 h-10 rounded-full bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white"
+            {/* Glance Button - shows different states based on glance relationship */}
+            {(() => {
+              const iGlanced = disabled.glanced;  // I sent a glance to them
+              const theyGlanced = user.has_glanced_at_me;  // They sent a glance to me
+              const isMutualGlance = iGlanced && theyGlanced;
+              
+              // Mutual glance - show filled pink (connection formed)
+              if (isMutualGlance) {
+                return (
+                  <Button
+                    data-testid={`glance-btn-${user.id}`}
+                    size="icon"
+                    variant="ghost"
+                    className="w-10 h-10 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 text-white"
+                    disabled
+                    title="Mutual glance!"
+                  >
+                    <Eye className="w-5 h-5" />
+                  </Button>
+                );
+              }
+              
+              // They glanced at me (incoming interest) - show amber/yellow
+              if (theyGlanced && !iGlanced) {
+                return (
+                  <ConfirmHint
+                    hint="They glanced at you! Glance back?"
+                    onConfirm={() => onGlance && onGlance(user.id, venueId)}
+                    disabled={loading.glance}
+                    globalPendingRef={globalPendingRef}
+                    compact
+                  >
+                    <Button
+                      data-testid={`glance-btn-${user.id}`}
+                      size="icon"
+                      variant="ghost"
+                      className="w-10 h-10 rounded-full bg-amber-500/30 text-amber-400 hover:bg-amber-500/40 ring-2 ring-amber-500/50 animate-pulse"
+                      disabled={loading.glance}
+                      title="They glanced at you"
+                    >
+                      <Eye className="w-5 h-5" />
+                    </Button>
+                  </ConfirmHint>
+                );
+              }
+              
+              // I glanced at them (waiting for response) - show pink outline
+              if (iGlanced && !theyGlanced) {
+                return (
+                  <Button
+                    data-testid={`glance-btn-${user.id}`}
+                    size="icon"
+                    variant="ghost"
+                    className="w-10 h-10 rounded-full bg-pink-500/20 text-pink-400 ring-1 ring-pink-500/30"
+                    disabled
+                    title="Glance sent"
+                  >
+                    <Eye className="w-5 h-5" />
+                  </Button>
+                );
+              }
+              
+              // No glances - default state
+              return (
+                <ConfirmHint
+                  hint="Send a glance?"
+                  onConfirm={() => onGlance && onGlance(user.id, venueId)}
                   disabled={loading.glance}
+                  globalPendingRef={globalPendingRef}
+                  compact
                 >
-                  <Eye className="w-5 h-5" />
-                </Button>
-              </ConfirmHint>
-            )}
+                  <Button
+                    data-testid={`glance-btn-${user.id}`}
+                    size="icon"
+                    variant="ghost"
+                    className="w-10 h-10 rounded-full bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white"
+                    disabled={loading.glance}
+                  >
+                    <Eye className="w-5 h-5" />
+                  </Button>
+                </ConfirmHint>
+              );
+            })()}
             
             {/* Icebreaker Button */}
             {disabled.icebreaker ? (
