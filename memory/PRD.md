@@ -825,3 +825,40 @@ Each section shows:
 
 ---
 *Last Updated: April 9, 2026 - Lifestyle & Food Mood Profile Categories*
+
+---
+
+## Select All / Multi-Delete Feature (April 10, 2026)
+
+**Implementation Summary:**
+
+1. **Frontend UI Changes (`Connections.js` / HereHub tab):**
+   - Added "Select All" checkbox in header of each interaction list (Glances, Icebreakers, Chat Requests)
+   - Added individual checkboxes on each item for multi-selection
+   - Added "Delete Selected (N)" button that appears when items are selected
+   - Visual feedback: Selected items show ring highlight and colored background
+   - Individual trash icons still work for single-item deletion
+   - Selection state resets after successful bulk delete
+
+2. **Backend Endpoints (already implemented in `/routes/connections.py`):**
+   - `POST /api/glances/bulk-delete` - Expects `{"glance_ids": [...]}`
+   - `POST /api/icebreakers/bulk-delete` - Expects `{"icebreaker_ids": [...]}`
+   - `POST /api/chat-requests/bulk-delete` - Expects `{"request_ids": [...]}`
+
+3. **Non-Destructive Delete Logic:**
+   - Items are NOT actually deleted from database
+   - Instead, `hidden_by_sender` or `hidden_by_recipient` flag is set to `true`
+   - Hidden items are excluded from GET endpoints via MongoDB query filters
+   - The other party still sees the interaction in their view
+
+4. **HereHub Tab Rename:**
+   - Bottom navigation "Matches" tab renamed to "HereHub" (already done in previous session)
+
+**Files Modified:**
+- `/app/frontend/src/pages/Connections.js` - Added selection state, bulk delete handlers, Select All UI, checkboxes on items
+- `/app/backend/routes/connections.py` - Backend bulk-delete endpoints (already existed)
+
+**Test Results:** 100% pass rate on both backend (9/9 tests) and frontend (empty state verification)
+
+---
+*Last Updated: April 10, 2026 - Select All / Multi-Delete Feature*
