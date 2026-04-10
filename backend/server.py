@@ -4034,8 +4034,38 @@ async def get_people_at_venue(
             ]
         }) is not None
         
-        # Revealed if mutual glance or connected
-        is_revealed = (has_glanced_at_me and i_glanced_at) or is_connected
+        # Check for accepted icebreaker
+        has_accepted_icebreaker = await db.icebreakers.find_one({
+            "$or": [
+                {"from_user_id": current_user["id"], "to_user_id": checkin["user_id"], "status": "accepted"},
+                {"from_user_id": checkin["user_id"], "to_user_id": current_user["id"], "status": "accepted"}
+            ]
+        }) is not None
+        
+        # Check for accepted chat request
+        has_accepted_chat_request = await db.chat_requests.find_one({
+            "$or": [
+                {"from_user_id": current_user["id"], "to_user_id": checkin["user_id"], "status": "accepted"},
+                {"from_user_id": checkin["user_id"], "to_user_id": current_user["id"], "status": "accepted"}
+            ]
+        }) is not None
+        
+        # Connection accepted = mutual glance OR accepted icebreaker/chat OR connected
+        is_mutual = has_glanced_at_me and i_glanced_at
+        is_connection_accepted = is_mutual or has_accepted_icebreaker or has_accepted_chat_request or is_connected
+        
+        # REVEAL requires BOTH users to explicitly press Reveal
+        i_revealed_to_them = await db.reveals.find_one({
+            "revealer_id": current_user["id"],
+            "revealed_to_id": checkin["user_id"]
+        }) is not None
+        
+        they_revealed_to_me = await db.reveals.find_one({
+            "revealer_id": checkin["user_id"],
+            "revealed_to_id": current_user["id"]
+        }) is not None
+        
+        is_revealed = i_revealed_to_them and they_revealed_to_me
         
         # Always show first name and age
         # Always send avatar_url so frontend can show blurred version before reveal
@@ -4053,6 +4083,8 @@ async def get_people_at_venue(
             "has_glanced_at_me": has_glanced_at_me,
             "i_glanced_at": i_glanced_at,
             "is_connected": is_connected,
+            "is_mutual": is_mutual,
+            "is_connection_accepted": is_connection_accepted,
             "is_revealed": is_revealed,
             "is_premium": user.get("is_premium", False),
             "last_active_at": user.get("last_active_at"),
@@ -4060,6 +4092,11 @@ async def get_people_at_venue(
             "presence_note": user.get("presence_note", ""),
             "celebrity_crush": user.get("celebrity_crush", ""),
             "shy_indicator": user.get("shy_indicator", False),
+            # Gender/orientation icons - always visible
+            "show_as": user.get("show_as", ""),
+            "rainbow": user.get("rainbow", False),
+            "open_to_all": user.get("open_to_all", False),
+            "intent": user.get("intent", ""),
             # Only shown after reveal
             "voice_intro_url": user.get("voice_intro_url", "") if is_revealed else "",
         })
@@ -5574,36 +5611,43 @@ async def get_user_profile(user_id: str, current_user: dict = Depends(get_curren
     friend_request_sent = existing_friend is not None and existing_friend.get("status") == "pending" and existing_friend.get("user1_id") == current_user["id"]
     friend_request_received = existing_friend is not None and existing_friend.get("status") == "pending" and existing_friend.get("user2_id") == current_user["id"]
     
-    # Determine if profile photo should be revealed
-    # REVEAL TRIGGERS (either one triggers reveal for BOTH users):
-    # 1. Mutual glance (both users glanced at each other)
-    # 2. Accepted icebreaker (icebreaker sent + response accepted)
-    # 3. Accepted chat request
-    # 4. Already friends
-    # Note: Presence/venue status NEVER triggers reveal
-    is_revealed = is_mutual or is_friend
+    # CONNECTION STATE (determines blur level):
+    # 1. UNMATCHED (12px blur): No connection established
+    # 2. CONNECTION_ACCEPTED (6px blur): Mutual glance OR accepted icebreaker OR accepted chat request
+    # 3. REVEALED (0px blur): BOTH users have explicitly pressed the Reveal button
     
-    # Check accepted icebreaker (either direction = reveal)
-    if not is_revealed:
-        accepted_icebreaker = await db.icebreakers.find_one({
-            "$or": [
-                {"from_user_id": current_user["id"], "to_user_id": user_id, "status": "accepted"},
-                {"from_user_id": user_id, "to_user_id": current_user["id"], "status": "accepted"}
-            ]
-        })
-        if accepted_icebreaker:
-            is_revealed = True
+    # Check for accepted connections (triggers connection_accepted state, NOT revealed)
+    has_accepted_icebreaker = await db.icebreakers.find_one({
+        "$or": [
+            {"from_user_id": current_user["id"], "to_user_id": user_id, "status": "accepted"},
+            {"from_user_id": user_id, "to_user_id": current_user["id"], "status": "accepted"}
+        ]
+    }) is not None
     
-    # Check accepted chat request (either direction = reveal)
-    if not is_revealed:
-        accepted_chat = await db.chat_requests.find_one({
-            "$or": [
-                {"from_user_id": current_user["id"], "to_user_id": user_id, "status": "accepted"},
-                {"from_user_id": user_id, "to_user_id": current_user["id"], "status": "accepted"}
-            ]
-        })
-        if accepted_chat:
-            is_revealed = True
+    has_accepted_chat_request = await db.chat_requests.find_one({
+        "$or": [
+            {"from_user_id": current_user["id"], "to_user_id": user_id, "status": "accepted"},
+            {"from_user_id": user_id, "to_user_id": current_user["id"], "status": "accepted"}
+        ]
+    }) is not None
+    
+    # Connection accepted = mutual glance OR accepted icebreaker OR accepted chat request OR friends
+    is_connection_accepted = is_mutual or has_accepted_icebreaker or has_accepted_chat_request or is_friend
+    
+    # REVEAL requires BOTH users to explicitly press the Reveal button
+    # Check the reveals collection for both directions
+    i_revealed_to_them = await db.reveals.find_one({
+        "revealer_id": current_user["id"],
+        "revealed_to_id": user_id
+    }) is not None
+    
+    they_revealed_to_me = await db.reveals.find_one({
+        "revealer_id": user_id,
+        "revealed_to_id": current_user["id"]
+    }) is not None
+    
+    # ONLY set is_revealed to true when BOTH users have pressed Reveal
+    is_revealed = i_revealed_to_them and they_revealed_to_me
     
     # Check if icebreaker or chat request was already sent (for UI state)
     icebreaker_sent = await db.icebreakers.find_one({
@@ -5669,11 +5713,17 @@ async def get_user_profile(user_id: str, current_user: dict = Depends(get_curren
         "they_glanced_at_me": they_glanced_at_me,
         "i_glanced_at_them": i_glanced_at_them,
         "is_mutual": is_mutual,
+        # Connection states for blur logic:
+        # - is_connection_accepted: mutual glance OR accepted icebreaker/chat (6px blur)
+        # - is_revealed: BOTH users pressed Reveal (0px blur)
+        "is_connection_accepted": is_connection_accepted,
         "is_revealed": is_revealed,
+        "i_revealed": i_revealed_to_them,
+        "they_revealed": they_revealed_to_me,
         "can_glance_back": they_glanced_at_me and not i_glanced_at_them,
-        # Message requires BOTH reveal AND chat unlocked
-        "can_message": is_revealed and can_message,
-        "can_add_friend": can_add_friend and not friend_request_sent and is_revealed,  # Can't send if already sent or not revealed
+        # Message requires connection_accepted AND chat unlocked
+        "can_message": is_connection_accepted and can_message,
+        "can_add_friend": can_add_friend and not friend_request_sent and is_connection_accepted,
         "is_friend": is_friend,
         "friend_request_sent": friend_request_sent,
         "friend_request_received": friend_request_received,

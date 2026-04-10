@@ -304,17 +304,15 @@ const WhosHere = () => {
 
   // Determine photo state for a user
   // Get photo state based on connection/reveal status (12px / 6px / 0px)
+  // Uses the API-provided is_connection_accepted and is_revealed flags
   const getPhotoState = (person) => {
     if (person.is_blocked) return 'blocked';
-    // Connection = mutual glance OR icebreaker accepted
-    const isConnectionAccepted = person.is_mutual || person.is_connected || person.is_matched;
-    if (isConnectionAccepted) {
-      if (person.is_revealed || person.reveal_state?.is_mutual) {
-        return 'revealed'; // 0px - clear
-      }
-      return 'connection_accepted'; // 6px - medium blur
-    }
-    return 'unmatched'; // 12px - heavy blur
+    // REVEALED (0px): ONLY when both users pressed Reveal
+    if (person.is_revealed) return 'revealed';
+    // CONNECTION_ACCEPTED (6px): mutual glance OR accepted icebreaker/chat
+    if (person.is_connection_accepted) return 'connection_accepted';
+    // UNMATCHED (12px): No connection
+    return 'unmatched';
   };
 
   return (

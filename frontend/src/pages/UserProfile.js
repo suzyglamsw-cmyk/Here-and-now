@@ -93,16 +93,16 @@ const UserProfile = () => {
     }
   };
 
-  // Helper: Check connection status
-  // Connection = mutual glance OR icebreaker accepted (NOT just one-way)
-  const isConnectionAccepted = profile?.is_mutual || profile?.is_connected || 
-    (profile?.icebreaker_received && profile?.icebreaker_sent); // Both sent = accepted
+  // Helper: Check connection status from API
+  // connection_accepted = mutual glance OR accepted icebreaker/chat request
+  const isConnectionAccepted = profile?.is_connection_accepted || false;
   
   // Helper: Legacy alias for isMatched (used in UI conditions)
   const isMatched = isConnectionAccepted;
   
-  // Helper: Check if revealed (both users pressed Reveal)
-  const isRevealed = profile?.is_revealed || matchStatus?.reveal_state?.is_mutual;
+  // Helper: Check if revealed (BOTH users pressed Reveal)
+  // This is the ONLY way to get 0px blur
+  const isRevealed = profile?.is_revealed || false;
   
   // Helper: Check if blocked
   const isBlocked = profile?.is_blocked;
@@ -111,9 +111,9 @@ const UserProfile = () => {
   // States: 'unmatched' (12px) | 'connection_accepted' (6px) | 'revealed' (0px) | 'blocked'
   const getPhotoState = () => {
     if (isBlocked) return 'blocked';
-    if (isRevealed) return 'revealed';
-    if (isConnectionAccepted) return 'connection_accepted';
-    return 'unmatched';
+    if (isRevealed) return 'revealed';           // 0px - ONLY when both pressed Reveal
+    if (isConnectionAccepted) return 'connection_accepted'; // 6px - mutual glance/accepted icebreaker/chat
+    return 'unmatched';                          // 12px - no connection
   };
 
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
