@@ -116,7 +116,7 @@ const Profile = () => {
   const [micPermissionDenied, setMicPermissionDenied] = useState(false);
   const [isPlayingVoice, setIsPlayingVoice] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [previewMode, setPreviewMode] = useState("pre-match"); // "pre-match" | "post-match" | "post-reveal"
+  const [previewMode, setPreviewMode] = useState("unmatched"); // "unmatched" | "connection_accepted" | "revealed"
   const [previewAudioPlaying, setPreviewAudioPlaying] = useState(false);
   const [previewPhotoIndex, setPreviewPhotoIndex] = useState(0);
   const [hidePhotoInVenues, setHidePhotoInVenues] = useState(false);
@@ -944,7 +944,7 @@ const Profile = () => {
           <Button
             onClick={() => {
               setPreviewPhotoIndex(0); // Reset to first photo when opening
-              setPreviewMode("pre-match"); // Start with pre-match view
+              setPreviewMode("unmatched"); // Start with unmatched view
               setShowPreview(true);
             }}
             variant="outline"
@@ -1779,48 +1779,48 @@ const Profile = () => {
               <div className="flex rounded-xl p-1" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
                 <button
                   onClick={() => {
-                    setPreviewMode("pre-match");
+                    setPreviewMode("unmatched");
                     setPreviewPhotoIndex(0);
                   }}
                   className={`flex-1 py-2 px-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1 ${
-                    previewMode === "pre-match"
+                    previewMode === "unmatched"
                       ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
                       : "text-purple-300/60 hover:text-purple-200"
                   }`}
-                  data-testid="preview-pre-match-tab"
+                  data-testid="preview-unmatched-tab"
                 >
                   <EyeOff className="w-3.5 h-3.5" />
-                  Pre-match
+                  Unmatched
                 </button>
                 <button
                   onClick={() => {
-                    setPreviewMode("post-match");
+                    setPreviewMode("connection_accepted");
                     setPreviewPhotoIndex(0);
                   }}
                   className={`flex-1 py-2 px-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1 ${
-                    previewMode === "post-match"
+                    previewMode === "connection_accepted"
                       ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
                       : "text-purple-300/60 hover:text-purple-200"
                   }`}
-                  data-testid="preview-post-match-tab"
+                  data-testid="preview-connection-tab"
                 >
                   <Eye className="w-3.5 h-3.5" />
-                  Post-match
+                  Connected
                 </button>
                 <button
                   onClick={() => {
-                    setPreviewMode("post-reveal");
+                    setPreviewMode("revealed");
                     setPreviewPhotoIndex(0);
                   }}
                   className={`flex-1 py-2 px-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1 ${
-                    previewMode === "post-reveal"
+                    previewMode === "revealed"
                       ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
                       : "text-purple-300/60 hover:text-purple-200"
                   }`}
-                  data-testid="preview-post-reveal-tab"
+                  data-testid="preview-revealed-tab"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  Post-reveal
+                  Revealed
                 </button>
               </div>
             </div>
@@ -1829,9 +1829,9 @@ const Profile = () => {
           {/* Preview Content */}
           <div className="max-w-lg mx-auto px-4 py-6 pb-24 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 160px)' }}>
             {/* ============================================ */}
-            {/* PRE-MATCH STATE - HIGH BLUR (12px) */}
+            {/* UNMATCHED STATE - HEAVY BLUR (12px) */}
             {/* ============================================ */}
-            {previewMode === "pre-match" && (
+            {previewMode === "unmatched" && (
               <div className="space-y-6">
                 <p className="text-sm text-purple-300/60 text-center mb-6">
                   This is how others see you before matching
@@ -1979,22 +1979,22 @@ const Profile = () => {
             )}
             
             {/* ============================================ */}
-            {/* POST-MATCH STATE - LOW BLUR (4px) */}
+            {/* CONNECTION_ACCEPTED STATE - MEDIUM BLUR (6px) */}
             {/* ============================================ */}
-            {previewMode === "post-match" && (
+            {previewMode === "connection_accepted" && (
               <div className="space-y-6">
                 <p className="text-sm text-purple-300/60 text-center mb-6">
-                  This is how others see you after matching (before reveal)
+                  This is how others see you after connecting (before reveal)
                 </p>
                 
-                {/* LOW BLUR Photo */}
+                {/* MEDIUM BLUR Photo (6px) */}
                 <div className="relative aspect-[3/4] max-w-xs mx-auto rounded-2xl overflow-hidden" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
                   {allPhotos.length > 0 ? (
                     <img 
                       src={getPhotoUrl(allPhotos[previewPhotoIndex] || mainPhoto)} 
                       alt="Profile" 
                       className="w-full h-full object-cover transition-opacity duration-300"
-                      style={{ filter: 'blur(4px)', transform: 'scale(1.02)' }}
+                      style={{ filter: 'blur(6px)', transform: 'scale(1.02)' }}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-purple-400/50">
@@ -2134,9 +2134,9 @@ const Profile = () => {
             )}
             
             {/* ============================================ */}
-            {/* POST-REVEAL STATE - CLEAR (0px blur) */}
+            {/* REVEALED STATE - CLEAR (0px blur) */}
             {/* ============================================ */}
-            {previewMode === "post-reveal" && (
+            {previewMode === "revealed" && (
               <div className="space-y-4">
                 <p className="text-sm text-purple-300/60 text-center mb-6">
                   This is how others see you after mutual reveal

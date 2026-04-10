@@ -2,17 +2,18 @@
  * Unified UserCard Component
  * Used across: Here Now (WhosHere.js), Not Here (Discovery.js), and all venue pages
  * 
- * CONSISTENT BEHAVIOR ACROSS ALL CONTEXTS:
- * - 3-stage blur: high_blur (pre-match) → low_blur (post-match) → clear (post-reveal)
- * - Name display: Initial only until post-reveal, then full name
- * - Icon layout: Name+Age left, icons (gender/rainbow/open_to_all) right, flex no-wrap
- * - Clicking any card navigates to UserProfile.js (clicked-thumb expanded view)
+ * BLUR STATES (12px / 6px / 0px):
+ * - unmatched (12px): No interaction, one-way glance/icebreaker
+ * - connection_accepted (6px): Mutual glance OR icebreaker accepted
+ * - revealed (0px): Both users pressed Reveal
+ * - blocked: Photo hidden entirely
+ * - self: Always clear (own photos)
  * 
  * Props:
  * - user: User object with profile data
- * - isMatched: Boolean indicating if users are matched
- * - matchType: Type of match (icebreaker_accepted, chat_request_accepted, mutual_glance, etc.)
- * - photoState: 'high_blur' | 'low_blur' | 'clear' - controls blur level AND name display
+ * - photoState: 'unmatched' | 'connection_accepted' | 'revealed' | 'blocked' | 'self'
+ * - isBlocked: Boolean - if true, hide photo entirely
+ * - isSelf: Boolean - if true, always show clear
  * - revealState: { iRevealed, theyRevealed } - controls reveal logic
  * - onGlance, onIcebreaker, onChatRequest, onMessage, onReveal: Action handlers
  * - onLongPress: Handler for "Not for now" action
@@ -29,7 +30,7 @@ import {
   Eye, Snowflake, MessageSquare, MessageCircle, Crown, 
   Heart, MapPin, Sparkles, Mic, UserPlus
 } from "lucide-react";
-import BlurredImage from "./BlurredImage";
+import BlurredImage, { getBlurValue } from "./BlurredImage";
 import { ConfirmHint } from "./ConfirmHint";
 
 // Convert photo ID/URL to full URL
@@ -185,7 +186,8 @@ export const UserCard = ({
   user,
   isMatched = false,
   matchType = null,
-  photoState = 'high_blur', // 'high_blur' | 'low_blur' | 'clear'
+  photoState = 'unmatched', // 'unmatched' | 'connection_accepted' | 'revealed' | 'blocked'
+  isBlocked = false,
   revealState = { iRevealed: false, theyRevealed: false },
   onGlance,
   onIcebreaker,
@@ -204,22 +206,25 @@ export const UserCard = ({
   const longPressTimer = useRef(null);
   const [longPressTriggered, setLongPressTriggered] = useState(false);
   
-  // Get blur value based on photoState (same logic as BlurredImage.js)
-  const getBlurValue = () => {
-    switch (photoState) {
-      case 'clear':
-        return 0;
-      case 'low_blur':
-        return 4;
-      case 'high_blur':
-      default:
-        return 12;
-    }
+  // Normalize photoState to new naming convention
+  const normalizePhotoState = () => {
+    if (isBlocked) return 'blocked';
+    // Map legacy names to new names
+    if (photoState === 'high_blur') return 'unmatched';
+    if (photoState === 'low_blur') return 'connection_accepted';
+    if (photoState === 'clear') return 'revealed';
+    return photoState;
   };
   
-  // Get blur style (same approach as BlurredImage.js - always apply CSS blur)
+  const effectivePhotoState = normalizePhotoState();
+  
+  // Get blur style using unified blur values (12px / 6px / 0px)
   const getBlurStyle = () => {
-    const blurValue = getBlurValue();
+    const blurValue = getBlurValue(effectivePhotoState);
+    if (blurValue < 0) {
+      // Blocked - will be handled by showing placeholder
+      return { display: 'none' };
+    }
     return {
       filter: blurValue > 0 ? `blur(${blurValue}px)` : 'none',
       transition: 'filter 0.3s ease-out',
@@ -227,8 +232,8 @@ export const UserCard = ({
     };
   };
   
-  // Check if we should show silhouette
-  const showSilhouette = user.hide_photo_in_venues && context === 'here_now' && !isMatched;
+  // Check if we should show silhouette (blocked or hide_photo_in_venues)
+  const showSilhouette = effectivePhotoState === 'blocked' || (user.hide_photo_in_venues && context === 'here_now' && effectivePhotoState === 'unmatched');
   
   // Handle card click
   const handleClick = () => {
@@ -254,11 +259,14 @@ export const UserCard = ({
     }
   };
   
-  // Display name logic - Only show full name when photoState is 'clear' (post-reveal)
-  // Pre-match and post-match (before reveal) show initial only
-  const displayName = photoState === 'clear'
+  // Display name logic - Only show full name when revealed (0px blur)
+  // Unmatched and connection_accepted show initial only
+  const displayName = effectivePhotoState === 'revealed'
     ? `${user.display_name}${user.age ? `, ${user.age}` : ""}`
     : `${(user.display_name || "?").charAt(0)}${user.age ? `, ${user.age}` : ""}`;
+  
+  // Connection state for styling
+  const isConnected = effectivePhotoState === 'connection_accepted' || effectivePhotoState === 'revealed';
   
   return (
     <div
@@ -270,7 +278,7 @@ export const UserCard = ({
       onMouseUp={handleTouchEnd}
       onMouseLeave={handleTouchEnd}
       className={`rounded-2xl overflow-hidden border transition-all group cursor-pointer ${
-        isMatched 
+        isConnected 
           ? "bg-emerald-500/10 border-emerald-500/30 hover:border-emerald-500/50"
           : "bg-white/5 border-white/10 hover:border-indigo-500/50"
       }`}

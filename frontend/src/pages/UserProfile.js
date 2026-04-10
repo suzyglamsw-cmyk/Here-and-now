@@ -93,16 +93,27 @@ const UserProfile = () => {
     }
   };
 
-  // Helper: Check if users are matched (mutual glance, accepted icebreaker, etc.)
-  const isMatched = matchStatus?.is_matched || profile?.is_mutual || profile?.is_matched || profile?.is_connected;
+  // Helper: Check connection status
+  // Connection = mutual glance OR icebreaker accepted (NOT just one-way)
+  const isConnectionAccepted = profile?.is_mutual || profile?.is_connected || 
+    (profile?.icebreaker_received && profile?.icebreaker_sent); // Both sent = accepted
   
-  // Helper: Get photo state based on match/reveal status
+  // Helper: Legacy alias for isMatched (used in UI conditions)
+  const isMatched = isConnectionAccepted;
+  
+  // Helper: Check if revealed (both users pressed Reveal)
+  const isRevealed = profile?.is_revealed || matchStatus?.reveal_state?.is_mutual;
+  
+  // Helper: Check if blocked
+  const isBlocked = profile?.is_blocked;
+  
+  // Helper: Get photo state based on connection/reveal status
+  // States: 'unmatched' (12px) | 'connection_accepted' (6px) | 'revealed' (0px) | 'blocked'
   const getPhotoState = () => {
-    if (!isMatched) return 'high_blur';
-    // Check reveal status from profile or matchStatus
-    const isRevealed = profile?.is_revealed || matchStatus?.reveal_state?.is_mutual;
-    if (isRevealed) return 'clear';
-    return 'low_blur';
+    if (isBlocked) return 'blocked';
+    if (isRevealed) return 'revealed';
+    if (isConnectionAccepted) return 'connection_accepted';
+    return 'unmatched';
   };
 
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
@@ -307,7 +318,7 @@ const UserProfile = () => {
               {/* Left: Name + Age */}
               <div className="min-w-0 flex-shrink">
                 <h1 className="text-2xl font-bold text-white truncate">
-                  {getPhotoState() === 'clear' ? profile.display_name : (profile.display_name || "?").charAt(0)}
+                  {getPhotoState() === 'revealed' ? profile.display_name : (profile.display_name || "?").charAt(0)}
                   {profile.age && <span className="text-slate-400 ml-2">{profile.age}</span>}
                 </h1>
               </div>

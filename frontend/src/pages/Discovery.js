@@ -372,14 +372,18 @@ const Discovery = () => {
   };
 
   // Determine photo state for a user
+  // Get photo state based on connection/reveal status (12px / 6px / 0px)
   const getPhotoState = (person) => {
-    if (person.is_matched) {
-      if (person.reveal_state?.is_mutual) {
-        return 'clear';
+    if (person.is_blocked) return 'blocked';
+    // Connection = mutual glance OR icebreaker accepted
+    const isConnectionAccepted = person.is_mutual || person.is_connected || person.is_matched;
+    if (isConnectionAccepted) {
+      if (person.is_revealed || person.reveal_state?.is_mutual) {
+        return 'revealed'; // 0px - clear
       }
-      return 'low_blur';
+      return 'connection_accepted'; // 6px - medium blur
     }
-    return 'high_blur';
+    return 'unmatched'; // 12px - heavy blur
   };
 
   // ============================================================================
