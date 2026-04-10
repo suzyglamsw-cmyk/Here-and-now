@@ -32,6 +32,27 @@ import {
 import BlurredImage from "./BlurredImage";
 import { ConfirmHint } from "./ConfirmHint";
 
+// Convert photo ID/URL to full URL
+// Handles multiple formats:
+// - Full http URLs -> return as-is
+// - /api/photos/serve/UUID -> return as-is (backend serve endpoint)
+// - /api/photos/UUID -> convert to serve endpoint
+// - UUID only -> convert to serve endpoint
+const getPhotoUrl = (photoIdOrUrl, apiBase = '') => {
+  if (!photoIdOrUrl) return null;
+  // Already a full URL
+  if (photoIdOrUrl.startsWith('http')) return photoIdOrUrl;
+  // Already a serve endpoint path
+  if (photoIdOrUrl.startsWith('/api/photos/serve/')) return photoIdOrUrl;
+  // Direct photo path: /api/photos/UUID -> convert to serve endpoint
+  if (photoIdOrUrl.startsWith('/api/photos/')) {
+    const uuid = photoIdOrUrl.replace('/api/photos/', '');
+    return `/api/photos/serve/${uuid}`;
+  }
+  // Just a UUID -> construct serve URL
+  return `/api/photos/serve/${photoIdOrUrl}`;
+};
+
 // Silhouette Avatar for hidden photos
 const SilhouetteAvatar = () => (
   <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center">
@@ -73,7 +94,7 @@ export const SelfCard = ({
           <SilhouetteAvatar />
         ) : (
           <img
-            src={user.avatar_url || user.photos?.[0] || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200"}
+            src={getPhotoUrl(user.avatar_url) || getPhotoUrl(user.photos?.[0]) || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200"}
             alt="You"
             className="w-full h-full object-cover"
           />
@@ -251,7 +272,7 @@ export const UserCard = ({
         ) : (
           <div className="w-full h-full overflow-hidden">
             <img
-              src={user.avatar_url || user.thumbnail_url || user.photos?.[0] || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200"}
+              src={getPhotoUrl(user.avatar_url) || getPhotoUrl(user.thumbnail_url) || getPhotoUrl(user.photos?.[0]) || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200"}
               alt={user.display_name}
               className={`w-full h-full object-cover transition-all ${getBlurClass()}`}
             />
