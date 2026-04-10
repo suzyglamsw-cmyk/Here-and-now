@@ -263,10 +263,12 @@ async def validate_and_expire_checkin(checkin: dict) -> bool:
       - checked_out_at = now
       - checkout_reason = "auto_expired"
     
-    Expiration rules:
+    Expiration rules (in order):
       1. If expires_at exists and is in the past -> expired
       2. If last_activity_at is older than AUTO_CHECKOUT_MINUTES (2 hours) -> expired
       3. If checked_in_at is older than AUTO_CHECKOUT_MINUTES and no activity -> expired
+      4. FALLBACK: If checked_in_at exists and is older than 2 hours -> expired (catches any edge cases)
+      5. LEGACY FALLBACK: If no timestamps exist at all -> expired immediately
     """
     if not checkin.get("is_active", False):
         return False
@@ -308,6 +310,30 @@ async def validate_and_expire_checkin(checkin: dict) -> bool:
                 expiry_reason = "checkin_timeout"
         except:
             pass
+    
+    # FALLBACK Check 4: ANY check-in older than 2 hours must be expired
+    # This catches edge cases where expires_at or last_activity_at might have passed checks
+    if not is_expired and checkin.get("checked_in_at"):
+        try:
+            checked_in = datetime.fromisoformat(checkin["checked_in_at"].replace('Z', '+00:00'))
+            if checked_in < now - timedelta(minutes=AUTO_CHECKOUT_MINUTES):
+                is_expired = True
+                expiry_reason = "auto_expired_fallback"
+        except:
+            pass
+    
+    # LEGACY FALLBACK Check 5: If check-in has no timestamps at all, expire immediately
+    # This handles legacy/incomplete data that somehow has is_active=True but no useful timestamps
+    if not is_expired:
+        has_expires_at = checkin.get("expires_at") is not None
+        has_last_activity = checkin.get("last_activity_at") is not None
+        has_checked_in_at = checkin.get("checked_in_at") is not None
+        has_checked_out_at = checkin.get("checked_out_at") is not None
+        
+        # If none of the timestamp fields exist, this is invalid/legacy data - expire it
+        if not has_expires_at and not has_last_activity and not has_checked_in_at and not has_checked_out_at:
+            is_expired = True
+            expiry_reason = "legacy_auto_expired"
     
     # If expired, auto-update the database
     if is_expired:
