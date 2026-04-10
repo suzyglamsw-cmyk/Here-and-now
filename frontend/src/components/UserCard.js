@@ -307,7 +307,7 @@ export const UserCard = ({
             </div>
           )}
           
-          {/* Match badge - for matched users */}
+          {/* Mutual connection badge */}
           {isMatched && (
             <div 
               className="w-6 h-6 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg"
@@ -388,7 +388,7 @@ export const UserCard = ({
         </div>
       </div>
       
-      {/* Matched Banner */}
+      {/* Mutual Connection Banner */}
       {isMatched && (
         <div className="bg-emerald-500/20 border-t border-emerald-500/30 px-3 py-2">
           <p className="text-emerald-300 text-xs text-center">
@@ -409,7 +409,7 @@ export const UserCard = ({
       {/* Actions */}
       <div className="p-3">
         {isMatched ? (
-          /* MATCHED USER: Show Message button + Add Friend */
+          /* MUTUAL CONNECTION: Show Message button + Add Friend */
           <div className="flex gap-2">
             <Button
               data-testid={`message-btn-${user.id}`}
