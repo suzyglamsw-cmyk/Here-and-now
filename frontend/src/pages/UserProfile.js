@@ -127,7 +127,7 @@ const UserProfile = () => {
         venue_id: "profile_view"
       });
       
-      toast.success(response.data.is_mutual ? "It's mutual!" : "Glance sent!");
+      toast.success(response.data.is_connection_accepted ? "It's mutual!" : "Glance sent!");
       
       // Refresh profile to update glance status
       await fetchProfile();
@@ -366,7 +366,7 @@ const UserProfile = () => {
             
             {/* Glance Status Badge */}
             <div className="mb-4">
-              {profile.is_mutual && (
+              {profile.is_connection_accepted && (
                 <div className="inline-flex items-center gap-1 bg-pink-500/20 text-pink-400 px-3 py-1 rounded-full text-sm">
                   <Heart className="w-4 h-4" />
                   Mutual
@@ -820,7 +820,7 @@ const UserProfile = () => {
               )}
             </div>
 
-            {profile.i_glanced_at_them && !profile.is_mutual && (
+            {profile.i_glanced_at_them && !profile.is_connection_accepted && (
               <p className="text-center text-slate-500 text-sm mt-4">
                 You've glanced at {profile.display_name}. Waiting for them to glance back...
               </p>
