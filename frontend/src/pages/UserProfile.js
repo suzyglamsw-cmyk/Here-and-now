@@ -5,8 +5,7 @@ import { useAuth, API } from "@/App";
 import { toast } from "sonner";
 import axios from "axios";
 import Layout from "../components/Layout";
-import PageHeader from "../components/PageHeader";
-import { Eye, MessageCircle, Loader2, Heart, Crown, Coins, X, UserPlus, Snowflake, MessageSquare, Lock, ShieldOff, AlertTriangle } from "lucide-react";
+import { Eye, MessageCircle, Loader2, Heart, Crown, Coins, X, UserPlus, Snowflake, MessageSquare, Lock, ShieldOff, AlertTriangle, ArrowLeft } from "lucide-react";
 import { getErrorMessage } from "../utils/errorUtils";
 import BlurredImage from "../components/BlurredImage";
 import { ConfirmHint, useConfirmHintGlobal } from "../components/ConfirmHint";
@@ -295,17 +294,36 @@ const UserProfile = () => {
   return (
     <Layout>
       <div className="max-w-2xl mx-auto h-[calc(100vh-80px)] flex flex-col" data-testid="user-profile-page">
-        {/* Fixed Header with Close Button */}
-        <div className="flex-shrink-0 px-4 py-4 flex items-center justify-between">
-          <PageHeader title="Profile" />
-          <button
-            data-testid="close-profile-btn"
-            onClick={() => navigate(-1)}
-            className="w-10 h-10 rounded-full bg-slate-800/80 hover:bg-slate-700 flex items-center justify-center transition-colors"
-            aria-label="Close profile"
-          >
-            <X className="w-5 h-5 text-slate-300" />
-          </button>
+        {/* Header Section - Separated containers to prevent collision */}
+        <div className="flex-shrink-0 px-4 pt-4">
+          {/* Row 1: Close (X) Button - Right aligned, isolated container */}
+          <div className="flex justify-end mb-2">
+            <button
+              data-testid="close-profile-btn"
+              onClick={() => navigate(-1)}
+              className="w-10 h-10 rounded-full bg-slate-800/80 hover:bg-slate-700 flex items-center justify-center transition-colors"
+              aria-label="Close profile"
+            >
+              <X className="w-5 h-5 text-slate-300" />
+            </button>
+          </div>
+          
+          {/* Row 2: Back link - Left aligned, isolated container */}
+          <div className="flex justify-start mb-2">
+            <button
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors p-2 -ml-2 rounded-xl hover:bg-white/5"
+              data-testid="page-back-btn"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="text-sm font-medium">Return</span>
+            </button>
+          </div>
+          
+          {/* Row 3: Page Title - Centered, isolated container */}
+          <div className="text-center mb-4">
+            <h1 className="text-xl font-bold text-white">Profile</h1>
+          </div>
         </div>
 
         {/* Scrollable Profile Content */}

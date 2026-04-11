@@ -176,10 +176,11 @@ const BlurredImage = ({
   
   const blurStyle = isHeavyBlur ? {
     // Heavy blur: Identity protected, silhouette + rough colours visible
-    filter: 'blur(10px) brightness(0.6) saturate(0.7)',
-    opacity: 0.9,
+    // No dullness, consistent across all screen sizes
+    filter: 'blur(8px) brightness(0.75) saturate(0.9)',
+    opacity: 0.85,
     transition: 'filter 0.3s ease-out, opacity 0.3s ease-out',
-    transform: 'scale(1.08)', // Slightly larger scale to prevent edge artifacts
+    transform: 'scale(1.06)', // Slightly larger scale to prevent edge artifacts
   } : {
     filter: cssBlurValue > 0 ? `blur(${cssBlurValue}px)` : 'none',
     transition: 'filter 0.3s ease-out',
