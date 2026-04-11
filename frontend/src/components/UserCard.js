@@ -118,13 +118,13 @@ export const SelfCard = ({
         
         {/* Name overlay with icons right-aligned */}
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-          {/* Name + Age row with icons right-aligned - nowrap flex */}
+          {/* Name + Age row with gender badge only */}
           <div className="flex justify-between items-center flex-nowrap">
             {/* Left: Name + Age */}
             <p className="text-white font-medium truncate min-w-0 flex-shrink">
               You{user.age ? `, ${user.age}` : ""}
             </p>
-            {/* Right: Icon group (horizontal) */}
+            {/* Right: Gender badge only (rainbow/open_to_all removed - shown in full profile) */}
             <div className="flex items-center gap-1 flex-shrink-0 ml-2">
               {user.show_as && (
                 <div 
@@ -135,21 +135,6 @@ export const SelfCard = ({
                   }`}
                 >
                   {user.show_as === "male" ? "M" : "F"}
-                </div>
-              )}
-              {user.rainbow && (
-                <div 
-                  className="w-5 h-5 rounded-full flex items-center justify-center shadow-sm overflow-hidden"
-                  style={{ 
-                    background: 'linear-gradient(135deg, #ef4444 0%, #f97316 20%, #eab308 40%, #22c55e 60%, #3b82f6 80%, #8b5cf6 100%)'
-                  }}
-                >
-                  <div className="w-3 h-3 rounded-full bg-slate-900/50" />
-                </div>
-              )}
-              {user.open_to_all && (
-                <div className="w-5 h-5 rounded-full flex items-center justify-center shadow-sm bg-amber-400/90">
-                  <span className="text-[8px]">🤗</span>
                 </div>
               )}
             </div>
@@ -330,11 +315,11 @@ export const UserCard = ({
         
         {/* Name overlay with icons right-aligned */}
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-          {/* Name + Age row with icons right-aligned - nowrap flex */}
+          {/* Name + Age row with gender badge only */}
           <div className="flex justify-between items-center flex-nowrap">
             {/* Left: Name + Age */}
             <p className="text-white font-medium truncate min-w-0 flex-shrink">{displayName}</p>
-            {/* Right: Icon group (horizontal) - hidden on thumbs, shown in detail views */}
+            {/* Right: Gender badge only (rainbow/open_to_all removed - shown in full profile) */}
             <div className="flex items-center gap-1 flex-shrink-0 ml-2">
               {user.show_as && (
                 <div 
@@ -345,21 +330,6 @@ export const UserCard = ({
                   }`}
                 >
                   {user.show_as === "male" ? "M" : "F"}
-                </div>
-              )}
-              {user.rainbow && (
-                <div 
-                  className="w-5 h-5 rounded-full flex items-center justify-center shadow-sm overflow-hidden"
-                  style={{ 
-                    background: 'linear-gradient(135deg, #ef4444 0%, #f97316 20%, #eab308 40%, #22c55e 60%, #3b82f6 80%, #8b5cf6 100%)'
-                  }}
-                >
-                  <div className="w-3 h-3 rounded-full bg-slate-900/50" />
-                </div>
-              )}
-              {user.open_to_all && (
-                <div className="w-5 h-5 rounded-full flex items-center justify-center shadow-sm bg-amber-400/90">
-                  <span className="text-[8px]">🤗</span>
                 </div>
               )}
             </div>
