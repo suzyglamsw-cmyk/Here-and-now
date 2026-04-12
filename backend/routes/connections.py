@@ -601,9 +601,17 @@ async def get_connections(current_user: dict = Depends(get_current_user)):
     - Accepted icebreakers
     - Accepted chat requests
     - Mutual messagers (users who've exchanged messages)
+    
+    Excludes users hidden from matches via /connections/{user_id}/hide-from-matches
     """
     all_connections = []
     seen_users = set()
+    
+    # Get list of users hidden from matches
+    hidden_list = await db.hidden_from_matches.find({
+        "user_id": current_user["id"]
+    }, {"_id": 0}).to_list(100)
+    hidden_user_ids = {h["hidden_user_id"] for h in hidden_list}
     
     # 1. Get explicit connections from the connections collection
     explicit_connections = await db.connections.find({
@@ -615,7 +623,7 @@ async def get_connections(current_user: dict = Depends(get_current_user)):
     
     for conn in explicit_connections:
         other_id = conn["user2_id"] if conn["user1_id"] == current_user["id"] else conn["user1_id"]
-        if other_id in seen_users:
+        if other_id in seen_users or other_id in hidden_user_ids:
             continue
         seen_users.add(other_id)
         
@@ -647,7 +655,7 @@ async def get_connections(current_user: dict = Depends(get_current_user)):
     
     for glance in mutual_glances:
         from_user_id = glance["from_user_id"]
-        if from_user_id in seen_users:
+        if from_user_id in seen_users or from_user_id in hidden_user_ids:
             continue
         seen_users.add(from_user_id)
         
@@ -676,7 +684,7 @@ async def get_connections(current_user: dict = Depends(get_current_user)):
     
     for ib in accepted_icebreakers:
         other_user_id = ib["to_user_id"] if ib["from_user_id"] == current_user["id"] else ib["from_user_id"]
-        if other_user_id in seen_users:
+        if other_user_id in seen_users or other_user_id in hidden_user_ids:
             continue
         seen_users.add(other_user_id)
         
@@ -705,7 +713,7 @@ async def get_connections(current_user: dict = Depends(get_current_user)):
     
     for req in accepted_chat_requests:
         other_user_id = req["to_user_id"] if req["from_user_id"] == current_user["id"] else req["from_user_id"]
-        if other_user_id in seen_users:
+        if other_user_id in seen_users or other_user_id in hidden_user_ids:
             continue
         seen_users.add(other_user_id)
         
@@ -730,7 +738,7 @@ async def get_connections(current_user: dict = Depends(get_current_user)):
     mutual_messagers = set(my_sent_messages) & set(my_received_messages)
     
     for other_id in mutual_messagers:
-        if other_id in seen_users:
+        if other_id in seen_users or other_id in hidden_user_ids:
             continue
         seen_users.add(other_id)
         
@@ -786,6 +794,65 @@ async def clear_connection(user_id: str, current_user: dict = Depends(get_curren
         raise HTTPException(status_code=404, detail="Connection not found")
     
     return {"message": "Connection cleared. Chat history preserved."}
+
+
+@router.post("/connections/{user_id}/hide-from-matches")
+async def hide_from_matches(user_id: str, current_user: dict = Depends(get_current_user)):
+    """
+    Hide a user from the Mutual Matches section in HereHub.
+    This is a personal-view cleanup only - it does NOT:
+    - Unmatch
+    - Block
+    - Delete messages
+    - Affect any other interactions
+    
+    The user will simply not appear in your Mutual Matches list.
+    """
+    # Check if already hidden
+    existing = await db.hidden_from_matches.find_one({
+        "user_id": current_user["id"],
+        "hidden_user_id": user_id
+    })
+    
+    if existing:
+        return {"message": "Already hidden from matches"}
+    
+    # Add to hidden list
+    await db.hidden_from_matches.insert_one({
+        "id": str(uuid.uuid4()),
+        "user_id": current_user["id"],
+        "hidden_user_id": user_id,
+        "hidden_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {"message": "Hidden from Mutual Matches. They won't see any change."}
+
+
+@router.delete("/connections/{user_id}/unhide-from-matches")
+async def unhide_from_matches(user_id: str, current_user: dict = Depends(get_current_user)):
+    """
+    Unhide a user from the Mutual Matches section.
+    They will appear in your matches list again.
+    """
+    result = await db.hidden_from_matches.delete_one({
+        "user_id": current_user["id"],
+        "hidden_user_id": user_id
+    })
+    
+    if result.deleted_count == 0:
+        return {"message": "User was not hidden"}
+    
+    return {"message": "User will appear in Mutual Matches again"}
+
+
+@router.get("/connections/hidden-from-matches")
+async def get_hidden_from_matches(current_user: dict = Depends(get_current_user)):
+    """Get list of users hidden from Mutual Matches"""
+    hidden = await db.hidden_from_matches.find({
+        "user_id": current_user["id"]
+    }, {"_id": 0}).to_list(100)
+    
+    return [h["hidden_user_id"] for h in hidden]
 
 
 @router.get("/connections/mutual-glances")

@@ -8,7 +8,7 @@ import axios from "axios";
 import Layout from "../components/Layout";
 import { UserCard } from "../components/UserCard";
 import { NotForNowSheet } from "../components/NotForNowSheet";
-import { MessageCircle, MapPin, Loader2, Users, Sparkles, Eye, Heart, Snowflake, UserPlus, Check, X, Clock, UserCheck, ArrowUpRight, ArrowDownLeft, MessageSquare, Trash2, Ban, UserMinus, MoreVertical, Wine, Archive, CheckSquare, Square } from "lucide-react";
+import { MessageCircle, MapPin, Loader2, Users, Sparkles, Eye, Heart, Snowflake, UserPlus, Check, X, Clock, UserCheck, ArrowUpRight, ArrowDownLeft, MessageSquare, Trash2, Ban, UserMinus, MoreVertical, Wine, Archive, CheckSquare, Square, Crown } from "lucide-react";
 import { getErrorMessage } from "../utils/errorUtils";
 import { obscureBioText } from "../utils/bioObscure";
 import BlurredImage from "../components/BlurredImage";
@@ -51,6 +51,7 @@ const Connections = () => {
   const [actionSheet, setActionSheet] = useState(null); // For icebreaker actions
   const [chatActionSheet, setChatActionSheet] = useState(null); // For chat request actions
   const [clearConfirmUser, setClearConfirmUser] = useState(null); // For clear from matches confirmation
+  const [hideConfirmUser, setHideConfirmUser] = useState(null); // For hide from mutual matches confirmation
   const [tab, setTab] = useState(searchParams.get("tab") || "messages"); // "messages" | "glances" | "icebreakers" | "chats" | "requests" | "friends" | "connections"
   
   // Selection state for bulk delete
@@ -501,6 +502,18 @@ const Connections = () => {
       fetchAllData();
     } catch (error) {
       toast.error("Failed to clear from matches");
+    }
+  };
+
+  // Hide a user from Mutual Matches (personal-view cleanup only)
+  const handleHideFromMatches = async (userId, displayName) => {
+    try {
+      await axios.post(`${API}/connections/${userId}/hide-from-matches`);
+      toast.success(`${displayName} hidden from Mutual Matches`);
+      setHideConfirmUser(null);
+      fetchAllData();
+    } catch (error) {
+      toast.error("Failed to hide from matches");
     }
   };
 
@@ -1552,43 +1565,79 @@ const Connections = () => {
               <h2 className="text-xl font-semibold text-white mb-2">No mutual connections yet</h2>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4" data-testid="connections-list">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3" data-testid="connections-list">
               {connections.map((connection) => (
-                <UserCard
+                <div 
                   key={connection.id}
-                  user={{
-                    id: connection.user_id,
-                    display_name: connection.display_name,
-                    avatar_url: connection.avatar_url,
-                    thumbnail_url: connection.thumbnail_url,
-                    bio: connection.bio,
-                    age: connection.age,
-                    show_as: connection.show_as,
-                    rainbow: connection.rainbow,
-                    open_to_all: connection.open_to_all,
-                    is_premium: connection.is_premium,
-                    venue_name: connection.venue_name
-                  }}
-                  isMatched={true}
-                  matchType={connection.connection_type}
-                  photoState={
-                    connection.reveal_state?.is_revealed ? 'revealed' :
-                    connection.is_connection_accepted ? 'connection_accepted' :
-                    'unmatched'
-                  }
-                  revealState={connection.reveal_state || { iRevealed: false, theyRevealed: false }}
-                  onMessage={(userId) => navigate(`/chat/${userId}`)}
-                  onReveal={async (userId) => {
-                    try {
-                      await axios.post(`${API}/reveal/${userId}`);
-                      toast.success("Photo revealed!");
-                      fetchAllData();
-                    } catch (error) {
-                      toast.error("Failed to reveal photo");
-                    }
-                  }}
-                  context="matches"
-                />
+                  className="bg-white/5 rounded-xl overflow-hidden border border-white/10 hover:border-emerald-500/50 transition-all cursor-pointer group"
+                  data-testid={`match-card-${connection.user_id}`}
+                >
+                  {/* Compact Photo - Square */}
+                  <div 
+                    className="relative aspect-square"
+                    onClick={() => navigate(`/profile/${connection.user_id}`)}
+                  >
+                    {connection.avatar_url ? (
+                      <img
+                        src={connection.thumbnail_url || connection.avatar_url}
+                        alt={connection.display_name}
+                        className="w-full h-full object-cover"
+                        style={{
+                          filter: connection.reveal_state?.is_revealed ? 'none' : 'blur(6px)',
+                          transition: 'filter 0.3s ease-out'
+                        }}
+                      />
+                    ) : (
+                      <SilhouetteAvatar />
+                    )}
+                    
+                    {/* Name overlay */}
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent px-2 py-1.5">
+                      <p className="text-white text-xs font-medium truncate">
+                        {connection.reveal_state?.is_revealed 
+                          ? connection.display_name 
+                          : connection.display_name?.charAt(0)}
+                        {connection.age ? `, ${connection.age}` : ""}
+                      </p>
+                    </div>
+                    
+                    {/* Premium badge */}
+                    {connection.is_premium && (
+                      <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-amber-500/90 flex items-center justify-center">
+                        <Crown className="w-2.5 h-2.5 text-white" />
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Compact Actions */}
+                  <div className="p-1.5 flex gap-1">
+                    <Button
+                      data-testid={`message-btn-${connection.user_id}`}
+                      size="sm"
+                      className="flex-1 h-7 text-xs bg-emerald-500/80 hover:bg-emerald-600 text-white px-2"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/chat/${connection.user_id}`);
+                      }}
+                    >
+                      <MessageCircle className="w-3 h-3 mr-1" />
+                      Chat
+                    </Button>
+                    <Button
+                      data-testid={`hide-match-btn-${connection.user_id}`}
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 w-7 p-0 text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setHideConfirmUser({ user_id: connection.user_id, display_name: connection.display_name });
+                      }}
+                      title="Hide from Mutual Matches"
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </div>
               ))}
             </div>
           )
@@ -1664,6 +1713,62 @@ const Connections = () => {
               <p className="text-slate-600 text-xs text-center">
                 Unmatching does not block. To block a user, visit their profile.
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hide from Mutual Matches Confirmation Modal */}
+      {hideConfirmUser && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-in fade-in duration-200" 
+          onClick={() => setHideConfirmUser(null)}
+          data-testid="hide-confirm-modal"
+        >
+          <div 
+            className="w-full max-w-sm bg-slate-900 rounded-2xl p-6 mx-4 border border-white/10 animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 rounded-full bg-slate-700/50 flex items-center justify-center mx-auto mb-4">
+                <Eye className="w-8 h-8 text-slate-400" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Hide from Matches?</h3>
+              <p className="text-slate-400 text-sm">
+                Hide <span className="text-white font-medium">{hideConfirmUser.display_name}</span> from your Mutual Matches list?
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {/* What this does */}
+              <div className="bg-slate-800/50 rounded-xl p-3 text-xs text-slate-400">
+                <p className="font-medium text-slate-300 mb-1">This will:</p>
+                <p>• Remove them from your Mutual Matches view</p>
+                <p className="mt-2 font-medium text-slate-300 mb-1">This will NOT:</p>
+                <p>• Unmatch or block them</p>
+                <p>• Delete your messages</p>
+                <p>• Affect any other interactions</p>
+              </div>
+              
+              {/* Hide button */}
+              <Button
+                data-testid="confirm-hide-btn"
+                onClick={() => handleHideFromMatches(hideConfirmUser.user_id, hideConfirmUser.display_name)}
+                className="w-full h-12 rounded-xl bg-slate-600 hover:bg-slate-500 text-white font-semibold"
+              >
+                <X className="w-4 h-4 mr-2" />
+                Hide from Matches
+              </Button>
+              
+              {/* Cancel */}
+              <Button
+                data-testid="cancel-hide-btn"
+                onClick={() => setHideConfirmUser(null)}
+                variant="ghost"
+                className="w-full h-12 rounded-xl text-slate-300 hover:bg-white/5"
+              >
+                Cancel
+              </Button>
             </div>
           </div>
         </div>
