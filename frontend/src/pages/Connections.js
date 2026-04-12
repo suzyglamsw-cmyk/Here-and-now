@@ -710,11 +710,15 @@ const Connections = () => {
                     onClick={() => navigate(`/profile/${thread.user_id}`)}
                   >
                     <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all">
-                      <img
-                        src={thread.thumbnail_url || thread.profile_photo_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200"}
-                        alt={thread.display_name}
-                        className="w-full h-full object-cover"
-                      />
+                      {thread.thumbnail_url || thread.profile_photo_url ? (
+                        <img
+                          src={thread.thumbnail_url || thread.profile_photo_url}
+                          alt={thread.display_name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <SilhouetteAvatar />
+                      )}
                     </div>
                     {thread.unread_count > 0 && (
                       <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-pink-500 flex items-center justify-center text-white text-xs font-bold">

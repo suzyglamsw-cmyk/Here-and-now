@@ -83,12 +83,14 @@ export const SelfCard = ({
       <div className="relative aspect-[3/4]">
         {showSilhouette ? (
           <SilhouetteAvatar />
-        ) : (
+        ) : getPhotoUrl(user.avatar_url) || getPhotoUrl(user.photos?.[0]) ? (
           <img
-            src={getPhotoUrl(user.avatar_url) || getPhotoUrl(user.photos?.[0]) || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200"}
+            src={getPhotoUrl(user.avatar_url) || getPhotoUrl(user.photos?.[0])}
             alt="You"
             className="w-full h-full object-cover"
           />
+        ) : (
+          <SilhouetteAvatar />
         )}
         
         {/* Top-right badges (You badge, Premium only) */}
@@ -259,15 +261,17 @@ export const UserCard = ({
       <div className="relative aspect-[3/4]">
         {showSilhouette ? (
           <SilhouetteAvatar />
-        ) : (
+        ) : (getPhotoUrl(user.avatar_url) || getPhotoUrl(user.thumbnail_url) || getPhotoUrl(user.photos?.[0])) ? (
           <div className="w-full h-full overflow-hidden">
             <img
-              src={getPhotoUrl(user.avatar_url) || getPhotoUrl(user.thumbnail_url) || getPhotoUrl(user.photos?.[0]) || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200"}
+              src={getPhotoUrl(user.avatar_url) || getPhotoUrl(user.thumbnail_url) || getPhotoUrl(user.photos?.[0])}
               alt={user.display_name}
               className="w-full h-full object-cover"
               style={getBlurStyle()}
             />
           </div>
+        ) : (
+          <SilhouetteAvatar />
         )}
         
         {/* Snooze icon - Top-left corner */}

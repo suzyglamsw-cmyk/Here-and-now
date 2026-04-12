@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import axios from "axios";
 import { ArrowLeft, Send, Loader2, Check, CheckCheck, Lock, Unlock, Shield } from "lucide-react";
 import BlurredImage, { BLUR_STATES } from "../components/BlurredImage";
+import SilhouetteAvatar from "../components/SilhouetteAvatar";
 
 const Chat = () => {
   const { userId } = useParams();
@@ -27,6 +28,7 @@ const Chat = () => {
 
   useEffect(() => {
     fetchMessages();
+    fetchUserProfile(); // Always fetch user profile directly
     connectWebSocket();
     const interval = setInterval(fetchMessages, 5000);
     return () => {
@@ -36,6 +38,16 @@ const Chat = () => {
       }
     };
   }, [userId]);
+
+  // Direct profile fetch to ensure we always have user data
+  const fetchUserProfile = async () => {
+    try {
+      const response = await axios.get(`${API}/users/${userId}/profile`);
+      setOtherUser(response.data);
+    } catch (error) {
+      console.error("Failed to fetch user profile:", error);
+    }
+  };
 
   useEffect(() => {
     scrollToBottom();
@@ -204,7 +216,7 @@ const Chat = () => {
               data-testid="back-btn"
               variant="ghost"
               size="icon"
-              onClick={() => navigate("/matches")}
+              onClick={() => navigate(-1)}
               className="text-slate-400 hover:text-white hover:bg-white/10 shrink-0"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -217,16 +229,19 @@ const Chat = () => {
                 onClick={() => navigate(`/profile/${userId}`)}
                 data-testid="chat-user-header"
               >
-                {/* Profile photo - 2-stage blur: light blur (match, no reveal) or clear (revealed) */}
-                {/* Heavy blur should NEVER appear in message threads */}
+                {/* Profile photo - use SilhouetteAvatar as fallback */}
                 <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-800 shrink-0 ring-2 ring-white/10">
-                  <BlurredImage
-                    src={otherUser.avatar_url || (otherUser.photos && otherUser.photos[0])}
-                    alt={otherUser.display_name}
-                    blurState={isRevealed ? BLUR_STATES.CLEAR : BLUR_STATES.LOW_BLUR}
-                    isThumbnail={true}
-                    fallbackInitial={otherUser.display_name?.charAt(0) || "?"}
-                  />
+                  {otherUser.avatar_url || (otherUser.photos && otherUser.photos[0]) ? (
+                    <BlurredImage
+                      src={otherUser.avatar_url || (otherUser.photos && otherUser.photos[0])}
+                      alt={otherUser.display_name}
+                      blurState={isRevealed ? BLUR_STATES.CLEAR : BLUR_STATES.LOW_BLUR}
+                      isThumbnail={true}
+                      fallbackInitial={otherUser.display_name?.charAt(0) || "?"}
+                    />
+                  ) : (
+                    <SilhouetteAvatar />
+                  )}
                 </div>
                 
                 {/* Name and status */}
@@ -248,9 +263,11 @@ const Chat = () => {
                 </div>
               </div>
             ) : (
-              /* Loading placeholder */
+              /* Loading placeholder with silhouette */
               <div className="flex items-center gap-3 flex-1">
-                <div className="w-10 h-10 rounded-full bg-slate-800 animate-pulse shrink-0" />
+                <div className="w-10 h-10 rounded-full overflow-hidden shrink-0">
+                  <SilhouetteAvatar />
+                </div>
                 <div className="flex-1">
                   <div className="h-4 w-24 bg-slate-800 rounded animate-pulse mb-1" />
                   <div className="h-3 w-16 bg-slate-800 rounded animate-pulse" />

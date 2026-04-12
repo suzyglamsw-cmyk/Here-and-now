@@ -4,6 +4,7 @@ import { useAuth, API } from "@/App";
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { Logo, LogoIcon } from "./Logo";
+import SilhouetteAvatar from "./SilhouetteAvatar";
 
 // Helper function to construct photo URL from photo ID
 const getPhotoUrl = (photoIdOrUrl) => {
@@ -84,11 +85,15 @@ const Layout = ({ children, hideNav = false }) => {
                 onClick={() => navigate("/profile-tab")}
                 data-testid="user-avatar-btn"
               >
-                <img
-                  src={getPhotoUrl(user.avatar_url) || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200"}
-                  alt={user.display_name}
-                  className="w-full h-full object-cover"
-                />
+                {getPhotoUrl(user.avatar_url) ? (
+                  <img
+                    src={getPhotoUrl(user.avatar_url)}
+                    alt={user.display_name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <SilhouetteAvatar />
+                )}
               </div>
             </div>
           )}
