@@ -83,7 +83,16 @@ export const AuthProvider = ({ children }) => {
     setUser(userData);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    // Call backend to clear presence and venue checkin
+    try {
+      await axios.post(`${API}/auth/logout`);
+    } catch (error) {
+      console.error("Logout API error:", error);
+      // Continue with client-side logout even if API fails
+    }
+    
+    // Clear client-side auth state
     localStorage.removeItem("token");
     delete axios.defaults.headers.common["Authorization"];
     setToken(null);
