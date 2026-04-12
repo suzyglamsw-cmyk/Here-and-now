@@ -894,4 +894,45 @@ Each section shows:
 - Once connection is accepted (mutual glance, accepted icebreaker/chat), photo URL is revealed
 
 ---
-*Last Updated: April 12, 2026 - Hide Photo in Venues Server-Side Enforcement*
+
+## Friends Management Feature (April 2026)
+
+### Overview
+Extended the connection management system to support Friends with Hide/Unhide/Remove capabilities.
+
+### Features Implemented
+
+#### 1. Friends Filter in Venues (WhosHere.js)
+- **FRONTEND ONLY** filter - no backend changes required
+- Added "Friends" option to the match filter dropdown (alongside Unmatched/All/Mutual/Hidden)
+- Filter logic: Shows users where `friendIds.includes(person.id) && !hiddenFromMatches.includes(person.id)`
+- Fetches friend IDs from `/api/friends/list` on component mount
+
+#### 2. Friends Tab Enhancements (Connections.js)
+- **Visible Friends**: Shows friends not in the hidden list with Chat, Hide, and Remove buttons
+- **Hidden Friends Section**: Shows friends that have been hidden, with Unhide and Remove buttons
+- **Hide Friend**: Uses existing `POST /api/connections/{user_id}/hide-from-matches` endpoint
+  - Removes friend from Venues & Discovery
+  - Keeps friend visible in Friends list, Messages, and Chat
+- **Unhide Friend**: Uses existing `DELETE /api/connections/{user_id}/unhide-from-matches` endpoint
+  - Restores friend to normal visibility
+- **Remove Friend**: Uses existing `DELETE /api/friends/{friend_id}` endpoint
+  - Removes the friendship relationship
+  - Keeps chat history intact
+
+### Files Modified
+- `/app/frontend/src/pages/WhosHere.js` - Added Friends filter option and friendIds state
+- `/app/frontend/src/pages/Connections.js` - Enhanced Friends tab with Hide/Unhide/Remove actions
+
+### Data Flow
+1. Friends are stored in `db.friends` collection (separate from connections)
+2. Hidden state uses `db.hidden_from_matches` collection (same as mutual matches)
+3. Frontend fetches both friends list and hidden matches list to compute visibility
+
+### Test Coverage
+- All backend APIs tested (hide-from-matches, unhide-from-matches, remove friend)
+- Frontend code review verified data-testid attributes
+- Test report: `/app/test_reports/iteration_31.json`
+
+---
+*Last Updated: April 12, 2026 - Friends Management Feature Implementation*
