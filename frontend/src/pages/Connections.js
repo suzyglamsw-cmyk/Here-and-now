@@ -1525,78 +1525,192 @@ const Connections = () => {
           )
         ) : tab === "friends" ? (
           /* Friends Tab */
-          friends.length === 0 ? (
-            <div className="text-center py-20">
-              <div className="w-20 h-20 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-4">
-                <UserCheck className="w-10 h-10 text-slate-600" />
+          (() => {
+            // Separate visible friends from hidden friends
+            const hiddenFriendIds = new Set(hiddenMatches.map(h => h.user_id));
+            const visibleFriends = friends.filter(f => !hiddenFriendIds.has(f.id));
+            const hiddenFriends = friends.filter(f => hiddenFriendIds.has(f.id));
+            
+            return friends.length === 0 ? (
+              <div className="text-center py-20">
+                <div className="w-20 h-20 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-4">
+                  <UserCheck className="w-10 h-10 text-slate-600" />
+                </div>
+                <h2 className="text-xl font-semibold text-white mb-2">No friends yet</h2>
+                <p className="text-slate-400 mb-6">
+                  Accept or send friend requests to add people here
+                </p>
               </div>
-              <h2 className="text-xl font-semibold text-white mb-2">No friends yet</h2>
-              <p className="text-slate-400 mb-6">
-                Accept or send friend requests to add people here
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3" data-testid="friends-list">
-              {friends.map((friend) => (
-                <div
-                  key={friend.id}
-                  data-testid={`friend-${friend.id}`}
-                  className="bg-slate-800/40 backdrop-blur-sm rounded-2xl p-4 flex items-center gap-4 border border-white/10 shadow-md transition-all hover:bg-slate-800/60"
-                >
-                  <div 
-                    className="cursor-pointer"
-                    onClick={() => navigate(`/profile/${friend.id}`)}
-                  >
-                    <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-emerald-500 transition-all">
-                      {friend.avatar_url ? (
-                        <img
-                          src={friend.thumbnail_url || friend.avatar_url}
-                          alt={friend.display_name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <SilhouetteAvatar />
-                      )}
+            ) : (
+              <div className="space-y-6" data-testid="friends-list">
+                {/* Visible Friends */}
+                {visibleFriends.length > 0 && (
+                  <div className="space-y-3">
+                    {visibleFriends.map((friend) => (
+                      <div
+                        key={friend.id}
+                        data-testid={`friend-${friend.id}`}
+                        className="bg-slate-800/40 backdrop-blur-sm rounded-2xl p-4 flex items-center gap-4 border border-white/10 shadow-md transition-all hover:bg-slate-800/60"
+                      >
+                        <div 
+                          className="cursor-pointer"
+                          onClick={() => navigate(`/profile/${friend.id}`)}
+                        >
+                          <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-emerald-500 transition-all">
+                            {friend.avatar_url ? (
+                              <img
+                                src={friend.thumbnail_url || friend.avatar_url}
+                                alt={friend.display_name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <SilhouetteAvatar />
+                            )}
+                          </div>
+                        </div>
+                        <div 
+                          className="flex-1 min-w-0 cursor-pointer"
+                          onClick={() => navigate(`/chat/${friend.id}`)}
+                        >
+                          <h4 className="font-semibold text-white truncate">{friend.display_name}</h4>
+                          {friend.bio && (
+                            <p className="text-slate-400 text-sm truncate">
+                              {obscureBioText(friend.bio, true)}
+                            </p>
+                          )}
+                          <p className="text-slate-500 text-xs mt-1">
+                            Friends since {formatDate(friend.friends_since)}
+                          </p>
+                        </div>
+                        <Button
+                          data-testid={`message-friend-${friend.id}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/chat/${friend.id}`);
+                          }}
+                          className="rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white"
+                        >
+                          <MessageCircle className="w-4 h-4 mr-2" />
+                          Chat
+                        </Button>
+                        <Button
+                          data-testid={`hide-friend-${friend.id}`}
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            handleHideFromMatches(friend.id, friend.display_name);
+                          }}
+                          size="sm"
+                          variant="ghost"
+                          className="rounded-xl text-slate-400 hover:text-amber-400 hover:bg-amber-500/10"
+                          title="Hide from Venues & Discovery"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          data-testid={`remove-friend-${friend.id}`}
+                          onClick={(e) => { e.stopPropagation(); handleRemoveFriend(friend.id); }}
+                          size="sm"
+                          variant="ghost"
+                          className="rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                          title="Remove Friend"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Hidden Friends Section */}
+                {hiddenFriends.length > 0 && showHiddenMatchesSection && (
+                  <div className="mt-6" data-testid="hidden-friends-section">
+                    <h3 className="text-sm font-medium text-slate-400 mb-3 flex items-center gap-2">
+                      <Eye className="w-4 h-4" />
+                      Hidden Friends ({hiddenFriends.length})
+                    </h3>
+                    <p className="text-slate-500 text-xs mb-3">
+                      Hidden from Venues & Discovery. Still visible in Friends list, Messages & Chat.
+                    </p>
+                    <div className="space-y-3">
+                      {hiddenFriends.map((friend) => (
+                        <div
+                          key={friend.id}
+                          data-testid={`hidden-friend-${friend.id}`}
+                          className="bg-slate-800/30 backdrop-blur-sm rounded-2xl p-4 flex items-center gap-4 border border-amber-500/20 shadow-md transition-all hover:bg-slate-800/50"
+                        >
+                          <div 
+                            className="cursor-pointer"
+                            onClick={() => navigate(`/profile/${friend.id}`)}
+                          >
+                            <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-amber-500 transition-all opacity-70">
+                              {friend.avatar_url ? (
+                                <img
+                                  src={friend.thumbnail_url || friend.avatar_url}
+                                  alt={friend.display_name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <SilhouetteAvatar />
+                              )}
+                            </div>
+                          </div>
+                          <div 
+                            className="flex-1 min-w-0 cursor-pointer"
+                            onClick={() => navigate(`/chat/${friend.id}`)}
+                          >
+                            <h4 className="font-semibold text-white/80 truncate">{friend.display_name}</h4>
+                            <p className="text-amber-500/70 text-xs mt-1">
+                              Hidden from discovery
+                            </p>
+                          </div>
+                          <Button
+                            data-testid={`message-hidden-friend-${friend.id}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/chat/${friend.id}`);
+                            }}
+                            size="sm"
+                            className="rounded-xl bg-indigo-500/70 hover:bg-indigo-600 text-white"
+                          >
+                            <MessageCircle className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            data-testid={`unhide-friend-${friend.id}`}
+                            onClick={(e) => { 
+                              e.stopPropagation(); 
+                              handleUnhideFromMatches(friend.id, friend.display_name);
+                            }}
+                            size="sm"
+                            className="rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/30"
+                          >
+                            Unhide
+                          </Button>
+                          <Button
+                            data-testid={`remove-hidden-friend-${friend.id}`}
+                            onClick={(e) => { e.stopPropagation(); handleRemoveFriend(friend.id); }}
+                            size="sm"
+                            variant="ghost"
+                            className="rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                            title="Remove Friend"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                  <div 
-                    className="flex-1 min-w-0 cursor-pointer"
-                    onClick={() => navigate(`/chat/${friend.id}`)}
-                  >
-                    <h4 className="font-semibold text-white truncate">{friend.display_name}</h4>
-                    {friend.bio && (
-                      <p className="text-slate-400 text-sm truncate">
-                        {obscureBioText(friend.bio, true)}
-                      </p>
-                    )}
-                    <p className="text-slate-500 text-xs mt-1">
-                      Friends since {formatDate(friend.friends_since)}
-                    </p>
+                )}
+
+                {/* Empty state when all friends are hidden */}
+                {visibleFriends.length === 0 && hiddenFriends.length > 0 && (
+                  <div className="text-center py-10">
+                    <p className="text-slate-400">All your friends are currently hidden.</p>
+                    <p className="text-slate-500 text-sm mt-1">Check the Hidden Friends section below.</p>
                   </div>
-                  <Button
-                    data-testid={`message-friend-${friend.id}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/chat/${friend.id}`);
-                    }}
-                    className="rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white"
-                  >
-                    <MessageCircle className="w-4 h-4 mr-2" />
-                    Chat
-                  </Button>
-                  <Button
-                    data-testid={`remove-friend-${friend.id}`}
-                    onClick={(e) => { e.stopPropagation(); handleRemoveFriend(friend.id); }}
-                    size="sm"
-                    variant="ghost"
-                    className="rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )
+                )}
+              </div>
+            );
+          })()
         ) : (
           /* All Connections Tab - Mutual Matches */
           connections.length === 0 ? (

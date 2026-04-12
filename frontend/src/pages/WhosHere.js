@@ -45,6 +45,7 @@ const MATCH_FILTER_OPTIONS = [
   { value: "unmatched", label: "Unmatched" },
   { value: "all", label: "All" },
   { value: "mutual", label: "Mutual" },
+  { value: "friends", label: "Friends" },
   { value: "hidden", label: "Hidden Matches" },
 ];
 
@@ -87,6 +88,7 @@ const WhosHere = () => {
   const [notForNowUser, setNotForNowUser] = useState(null);
   const [hiddenUsers, setHiddenUsers] = useState([]);
   const [hiddenFromMatches, setHiddenFromMatches] = useState([]); // Users hidden from Mutual Matches
+  const [friendIds, setFriendIds] = useState([]); // IDs of current user's friends
   const [showHiddenMatchesSection, setShowHiddenMatchesSection] = useState(() => {
     // Load preference from localStorage (same key as Connections.js)
     const saved = localStorage.getItem('showHiddenMatchesSection');
@@ -129,6 +131,19 @@ const WhosHere = () => {
       }
     };
     fetchHiddenFromMatches();
+  }, []);
+
+  // Fetch friends list (for the Friends filter)
+  useEffect(() => {
+    const fetchFriends = async () => {
+      try {
+        const response = await axios.get(`${API}/friends/list`);
+        setFriendIds(response.data.map(f => f.id));
+      } catch (error) {
+        console.error("Failed to fetch friends:", error);
+      }
+    };
+    fetchFriends();
   }, []);
 
   // Fetch venue and people
@@ -183,6 +198,11 @@ const WhosHere = () => {
         fetchedPeople = fetchedPeople.filter(p => 
           p.is_self || (p.is_connection_accepted && !hiddenFromMatches.includes(p.id))
         );
+      } else if (matchFilter === "friends") {
+        // Show ONLY friends (from friends list) - NOT hidden from matches
+        fetchedPeople = fetchedPeople.filter(p => 
+          p.is_self || (friendIds.includes(p.id) && !hiddenFromMatches.includes(p.id))
+        );
       } else if (matchFilter === "hidden") {
         // Show ONLY users that are hidden from matches AND are mutual matches at this venue
         fetchedPeople = fetchedPeople.filter(p => 
@@ -232,7 +252,7 @@ const WhosHere = () => {
     if (!loading) {
       fetchPeople();
     }
-  }, [matchFilter, activityFilter, ageFilter, hiddenUsers]);
+  }, [matchFilter, activityFilter, ageFilter, hiddenUsers, friendIds]);
 
   // Auto-refresh: Poll every 30 seconds
   useEffect(() => {
