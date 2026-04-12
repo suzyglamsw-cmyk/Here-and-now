@@ -54,9 +54,52 @@ const UserProfile = () => {
   // Global ref for confirmation hints (only one visible at a time)
   const confirmHintRef = useConfirmHintGlobal();
 
+  // Unified refresh function to get fresh connection state from backend
+  const refreshConnectionState = async () => {
+    try {
+      // Fetch both profile and match status in parallel for latest state
+      const [profileRes, matchRes] = await Promise.all([
+        axios.get(`${API}/users/${userId}/profile`),
+        axios.get(`${API}/match/status/${userId}`).catch(() => ({ data: null }))
+      ]);
+      
+      setProfile(profileRes.data);
+      if (matchRes.data) {
+        setMatchStatus(matchRes.data);
+      }
+    } catch (error) {
+      console.error("Failed to refresh connection state:", error);
+    }
+  };
+
   useEffect(() => {
     fetchProfile();
     fetchMatchStatus();
+  }, [userId]);
+
+  // Re-fetch connection state when user returns to this profile (visibility change)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && userId) {
+        // User returned to the tab - refresh to catch any mutual matches
+        refreshConnectionState();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [userId]);
+
+  // Re-fetch when navigating back to this profile (focus event)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (userId) {
+        refreshConnectionState();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, [userId]);
 
   const fetchProfile = async () => {
@@ -85,8 +128,8 @@ const UserProfile = () => {
     try {
       await axios.post(`${API}/reveal/${userId}`);
       toast.success("Photo revealed!");
-      fetchMatchStatus();
-      fetchProfile();
+      // Refresh both match status and profile for latest state
+      await refreshConnectionState();
     } catch (error) {
       toast.error(getErrorMessage(error, "Failed to reveal photo"));
     } finally {
@@ -128,10 +171,12 @@ const UserProfile = () => {
         venue_id: "profile_view"
       });
       
-      toast.success(response.data.is_connection_accepted ? "It's mutual!" : "Glance sent!");
+      const isMutual = response.data.is_connection_accepted;
+      toast.success(isMutual ? "It's mutual! You can now message each other." : "Glance sent!");
       
-      // Refresh profile to update glance status
-      await fetchProfile();
+      // Always refresh both profile AND match status to get latest connection state
+      // This ensures mutual match UI updates immediately
+      await refreshConnectionState();
     } catch (error) {
       if (error.response?.status === 429 || error.response?.data?.detail === "no_glances_remaining") {
         setShowUpgradePrompt(true);
@@ -155,7 +200,7 @@ const UserProfile = () => {
       const response = await axios.post(`${API}/friends/add`, { user_id: userId });
       // Show the backend's response message
       toast.success(response.data?.message || "Friend request sent!");
-      await fetchProfile();
+      await refreshConnectionState();
     } catch (error) {
       // Handle various error formats
       const errorData = error.response?.data;
@@ -185,7 +230,7 @@ const UserProfile = () => {
       if (request) {
         await axios.post(`${API}/friends/respond/${request.id}?accept=true`);
         toast.success(`You are now friends with ${profile.display_name}!`);
-        await fetchProfile();
+        await refreshConnectionState();
       } else {
         toast.error("Friend request not found");
       }
@@ -197,15 +242,19 @@ const UserProfile = () => {
   const handleSendIcebreaker = async (messageType) => {
     setSendingIcebreaker(true);
     try {
-      await axios.post(`${API}/icebreaker`, {
+      const response = await axios.post(`${API}/icebreaker`, {
         to_user_id: userId,
         message_type: messageType,
         venue_id: "profile_view"
       });
-      toast.success("Icebreaker sent!");
+      
+      // Check if this created an accepted connection (they already sent one to us)
+      const isAccepted = response.data?.status === "accepted" || response.data?.is_connection_accepted;
+      toast.success(isAccepted ? "It's mutual! You can now message each other." : "Icebreaker sent!");
+      
       setShowIcebreakerModal(false);
       setSelectedIcebreaker(null);
-      await fetchProfile();
+      await refreshConnectionState();
     } catch (error) {
       toast.error(getErrorMessage(error, "Failed to send icebreaker"));
     } finally {
@@ -216,14 +265,18 @@ const UserProfile = () => {
   const handleSendChatRequest = async () => {
     setSendingChatRequest(true);
     try {
-      await axios.post(`${API}/chat-request`, {
+      const response = await axios.post(`${API}/chat-request`, {
         to_user_id: userId,
         venue_id: "profile_view",
         request_type: "chat"
       });
-      toast.success("Chat request sent!");
+      
+      // Check if this created an accepted connection
+      const isAccepted = response.data?.status === "accepted" || response.data?.is_connection_accepted;
+      toast.success(isAccepted ? "It's mutual! You can now message each other." : "Chat request sent!");
+      
       setShowChatRequestModal(false);
-      await fetchProfile();
+      await refreshConnectionState();
     } catch (error) {
       toast.error(getErrorMessage(error, "Failed to send chat request"));
     } finally {
@@ -624,34 +677,6 @@ const UserProfile = () => {
                         Add Friend
                       </Button>
                     )}
-                  </div>
-                  
-                  {/* Greyed out pre-match actions (visible but disabled for matched users) */}
-                  <div className="pt-4 border-t border-white/10">
-                    <p className="text-slate-500 text-xs mb-2">Pre-match actions (disabled)</p>
-                    <div className="flex gap-2 flex-wrap opacity-50">
-                      <Button
-                        disabled
-                        className="rounded-full bg-slate-800/50 text-slate-500 h-10 px-4 cursor-not-allowed"
-                      >
-                        <Eye className="w-4 h-4 mr-1" />
-                        <span className="text-xs">Glance</span>
-                      </Button>
-                      <Button
-                        disabled
-                        className="rounded-full bg-slate-800/50 text-slate-500 h-10 px-4 cursor-not-allowed"
-                      >
-                        <Snowflake className="w-4 h-4 mr-1" />
-                        <span className="text-xs">Icebreaker</span>
-                      </Button>
-                      <Button
-                        disabled
-                        className="rounded-full bg-slate-800/50 text-slate-500 h-10 px-4 cursor-not-allowed"
-                      >
-                        <MessageSquare className="w-4 h-4 mr-1" />
-                        <span className="text-xs">Chat Request</span>
-                      </Button>
-                    </div>
                   </div>
                 </>
               )}
