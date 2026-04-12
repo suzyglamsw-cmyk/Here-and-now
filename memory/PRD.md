@@ -970,3 +970,44 @@ Uses existing `getPhotoState()` helper (lines 24-29):
 
 ---
 *Last Updated: April 12, 2026 - Unified Blur Logic Implementation*
+
+---
+
+## HereHub UI Consistency Fix (April 2026)
+
+### Overview
+Fixed three issues in HereHub (Connections.js): state refresh, Friends UI consistency, and layout collisions.
+
+### A) State Refresh — Already Working ✅
+Verified that all action handlers already call `fetchAllData()` after completion:
+- `handleAcceptRequest`, `handleRemoveFriend`, `handleHideFromMatches`, `handleUnhideFromMatches`, `handleClearFromMatches`, `handleAcceptChatRequest`
+
+No changes needed — instant state updates without logout.
+
+### B) Friends UI → Grid Layout Matching Mutual Matches
+Replaced Friends horizontal row layout with grid layout matching Mutual Matches:
+- 3-4 column responsive grid (`grid grid-cols-3 sm:grid-cols-4 gap-3`)
+- Square aspect-ratio photo cards with name overlay
+- Friend badge (green checkmark) in top-right corner
+- Hidden Friends section with amber styling and "Hidden" label
+- Action sheet modal for Hide/Unhide/Remove actions (same pattern as icebreaker/chat sheets)
+- Remove Friend confirmation modal (same pattern as Bin confirmation)
+
+### C) Layout Collisions — Fixed
+- Increased name overlay padding from `py-1.5` to `py-2` in Mutual Matches grid
+- All cards now have proper separation between photo (with overlay) and action buttons row
+- No text obscured by buttons
+
+### New Components Added
+| Component | Purpose |
+|-----------|---------|
+| `friendActionSheet` state | Opens Friend action menu (View Profile, Chat, Hide/Unhide, Remove) |
+| `removeFriendConfirm` state | Confirmation modal for Remove Friend action |
+| Friend Action Sheet modal | Same design pattern as icebreaker/chat action sheets |
+| Remove Friend Confirmation modal | Same design pattern as Bin confirmation |
+
+### Files Modified
+- `/app/frontend/src/pages/Connections.js` — Friends tab grid layout, action sheets, confirmation modals
+
+---
+*Last Updated: April 12, 2026 - HereHub UI Consistency Fix*
