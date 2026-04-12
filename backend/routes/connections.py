@@ -1045,10 +1045,14 @@ async def get_glances(current_user: dict = Depends(get_current_user)):
         user = await db.users.find_one({"id": g["to_user_id"]}, {"_id": 0})
         if user:
             blur_state = await get_blur_state(g["to_user_id"])
+            # Get the primary profile photo (photos[0] takes priority over avatar_url)
+            photos = user.get("photos", [])
+            profile_photo = photos[0] if photos else user.get("avatar_url", "")
             outgoing_list.append({
                 **g,
                 "user_id": g["to_user_id"],
                 "display_name": user.get("display_name"),
+                "photo_url": profile_photo,  # Primary profile photo for BlurredImage
                 "avatar_url": user.get("avatar_url", ""),
                 "thumbnail_url": user.get("thumbnail_url", ""),
                 **blur_state
@@ -1059,10 +1063,14 @@ async def get_glances(current_user: dict = Depends(get_current_user)):
         user = await db.users.find_one({"id": g["from_user_id"]}, {"_id": 0})
         if user:
             blur_state = await get_blur_state(g["from_user_id"])
+            # Get the primary profile photo (photos[0] takes priority over avatar_url)
+            photos = user.get("photos", [])
+            profile_photo = photos[0] if photos else user.get("avatar_url", "")
             incoming_list.append({
                 **g,
                 "user_id": g["from_user_id"],
                 "display_name": get_first_name(user.get("display_name")),
+                "photo_url": profile_photo,  # Primary profile photo for BlurredImage
                 "avatar_url": user.get("avatar_url", ""),
                 "thumbnail_url": user.get("thumbnail_url", ""),
                 **blur_state
@@ -1145,10 +1153,14 @@ async def get_icebreakers(current_user: dict = Depends(get_current_user)):
         user = await db.users.find_one({"id": ib["to_user_id"]}, {"_id": 0})
         if user:
             blur_state = await get_blur_state(ib["to_user_id"])
+            # Get the primary profile photo (photos[0] takes priority over avatar_url)
+            photos = user.get("photos", [])
+            profile_photo = photos[0] if photos else user.get("avatar_url", "")
             outgoing_list.append({
                 **ib,
                 "user_id": ib["to_user_id"],
                 "display_name": user.get("display_name"),
+                "photo_url": profile_photo,  # Primary profile photo for BlurredImage
                 "avatar_url": user.get("avatar_url", ""),
                 "thumbnail_url": user.get("thumbnail_url", ""),
                 **blur_state
@@ -1159,10 +1171,14 @@ async def get_icebreakers(current_user: dict = Depends(get_current_user)):
         user = await db.users.find_one({"id": ib["from_user_id"]}, {"_id": 0})
         if user:
             blur_state = await get_blur_state(ib["from_user_id"])
+            # Get the primary profile photo (photos[0] takes priority over avatar_url)
+            photos = user.get("photos", [])
+            profile_photo = photos[0] if photos else user.get("avatar_url", "")
             incoming_list.append({
                 **ib,
                 "user_id": ib["from_user_id"],
                 "display_name": user.get("display_name"),
+                "photo_url": profile_photo,  # Primary profile photo for BlurredImage
                 "avatar_url": user.get("avatar_url", ""),
                 "thumbnail_url": user.get("thumbnail_url", ""),
                 **blur_state
@@ -1246,11 +1262,15 @@ async def get_chat_requests(current_user: dict = Depends(get_current_user)):
         user = await db.users.find_one({"id": req["to_user_id"]}, {"_id": 0})
         if user:
             blur_state = await get_blur_state(req["to_user_id"])
+            # Get the primary profile photo (photos[0] takes priority over avatar_url)
+            photos = user.get("photos", [])
+            profile_photo = photos[0] if photos else user.get("avatar_url", "")
             outgoing_list.append({
                 **req,
                 "user_id": req["to_user_id"],
                 "display_name": user.get("display_name"),
-                "avatar_url": user.get("avatar_url", ""),
+                "photo_url": profile_photo,  # Primary profile photo for BlurredImage
+                "avatar_url": user.get("avatar_url", ""),  # Fallback only
                 "thumbnail_url": user.get("thumbnail_url", ""),
                 **blur_state
             })
@@ -1260,11 +1280,15 @@ async def get_chat_requests(current_user: dict = Depends(get_current_user)):
         user = await db.users.find_one({"id": req["from_user_id"]}, {"_id": 0})
         if user:
             blur_state = await get_blur_state(req["from_user_id"])
+            # Get the primary profile photo (photos[0] takes priority over avatar_url)
+            photos = user.get("photos", [])
+            profile_photo = photos[0] if photos else user.get("avatar_url", "")
             incoming_list.append({
                 **req,
                 "user_id": req["from_user_id"],
                 "display_name": user.get("display_name"),
-                "avatar_url": user.get("avatar_url", ""),
+                "photo_url": profile_photo,  # Primary profile photo for BlurredImage
+                "avatar_url": user.get("avatar_url", ""),  # Fallback only
                 "thumbnail_url": user.get("thumbnail_url", ""),
                 **blur_state
             })

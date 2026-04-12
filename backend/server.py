@@ -5893,16 +5893,67 @@ async def get_message_threads(current_user: dict = Depends(get_current_user)):
                 else:
                     profile_photo_url = avatar
             
+            # Get blur state for this user
+            other_user_id = user.get("id")
+            
+            # Check glance status
+            they_glanced_at_me = await db.glances.find_one({
+                "from_user_id": other_user_id,
+                "to_user_id": current_user["id"]
+            }) is not None
+            
+            i_glanced_at_them = await db.glances.find_one({
+                "from_user_id": current_user["id"],
+                "to_user_id": other_user_id
+            }) is not None
+            
+            # Check accepted icebreakers/chat requests
+            accepted_icebreaker = await db.icebreakers.find_one({
+                "$or": [
+                    {"from_user_id": current_user["id"], "to_user_id": other_user_id, "status": "accepted"},
+                    {"from_user_id": other_user_id, "to_user_id": current_user["id"], "status": "accepted"}
+                ]
+            }) is not None
+            
+            accepted_chat_request = await db.chat_requests.find_one({
+                "$or": [
+                    {"from_user_id": current_user["id"], "to_user_id": other_user_id, "status": "accepted"},
+                    {"from_user_id": other_user_id, "to_user_id": current_user["id"], "status": "accepted"}
+                ]
+            }) is not None
+            
+            # Connection accepted = mutual glance OR accepted icebreaker/chat
+            is_connection_accepted = (they_glanced_at_me and i_glanced_at_them) or accepted_icebreaker or accepted_chat_request
+            
+            # Check reveal status
+            i_revealed = await db.reveals.find_one({
+                "from_user_id": current_user["id"],
+                "to_user_id": other_user_id
+            }) is not None
+            
+            they_revealed = await db.reveals.find_one({
+                "from_user_id": other_user_id,
+                "to_user_id": current_user["id"]
+            }) is not None
+            
+            is_revealed = i_revealed and they_revealed
+            
             result.append({
                 "user_id": user.get("id"),
                 "display_name": user.get("display_name", "Someone"),
+                "photo_url": profile_photo_url,  # Primary profile photo for BlurredImage
                 "avatar_url": user.get("avatar_url", ""),
                 "thumbnail_url": user.get("thumbnail_url", ""),
                 "profile_photo_url": profile_photo_url,
                 "last_message": last_msg.get("content", "")[:50],
                 "last_message_at": last_msg.get("created_at"),
                 "unread_count": thread_data["unread_count"],
-                "is_from_me": last_msg["from_user_id"] == current_user["id"]
+                "is_from_me": last_msg["from_user_id"] == current_user["id"],
+                # Blur state fields
+                "is_connection_accepted": is_connection_accepted,
+                "is_revealed": is_revealed,
+                "they_glanced_at_me": they_glanced_at_me,
+                "i_glanced_at_them": i_glanced_at_them
             })
     
     # Sort by last message time

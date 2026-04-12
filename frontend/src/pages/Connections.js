@@ -710,15 +710,13 @@ const Connections = () => {
                     onClick={() => navigate(`/profile/${thread.user_id}`)}
                   >
                     <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all">
-                      {thread.thumbnail_url || thread.profile_photo_url ? (
-                        <img
-                          src={thread.thumbnail_url || thread.profile_photo_url}
-                          alt={thread.display_name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <SilhouetteAvatar />
-                      )}
+                      <BlurredImage
+                        src={thread.photo_url || thread.avatar_url}
+                        alt={thread.display_name}
+                        blurState={getPhotoState(thread)}
+                        isThumbnail={true}
+                        fallbackInitial={thread.display_name?.charAt(0) || "?"}
+                      />
                     </div>
                     {thread.unread_count > 0 && (
                       <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-pink-500 flex items-center justify-center text-white text-xs font-bold">
@@ -846,7 +844,7 @@ const Connections = () => {
                         >
                           <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all">
                             <BlurredImage
-                              src={glance.thumbnail_url || glance.avatar_url}
+                              src={glance.photo_url || glance.avatar_url}
                               alt={glance.display_name}
                               blurState={getPhotoState(glance)}
                               isThumbnail={true}
@@ -918,7 +916,7 @@ const Connections = () => {
                         >
                           <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all">
                             <BlurredImage
-                              src={glance.thumbnail_url || glance.avatar_url}
+                              src={glance.photo_url || glance.avatar_url}
                               alt={glance.display_name}
                               blurState={getPhotoState(glance)}
                               isThumbnail={true}
@@ -1034,7 +1032,7 @@ const Connections = () => {
                         >
                           <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-cyan-500 transition-all">
                             <BlurredImage
-                              src={ib.thumbnail_url || ib.avatar_url}
+                              src={ib.photo_url || ib.avatar_url}
                               alt={ib.display_name}
                               blurState={getPhotoState(ib)}
                               isThumbnail={true}
@@ -1126,7 +1124,7 @@ const Connections = () => {
                         >
                           <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-cyan-500 transition-all">
                             <BlurredImage
-                              src={ib.thumbnail_url || ib.avatar_url}
+                              src={ib.photo_url || ib.avatar_url}
                               alt={ib.display_name}
                               blurState={getPhotoState(ib)}
                               isThumbnail={true}
@@ -1261,7 +1259,7 @@ const Connections = () => {
                         >
                           <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-pink-500 transition-all">
                             <BlurredImage
-                              src={request.thumbnail_url || request.avatar_url}
+                              src={request.photo_url || request.avatar_url}
                               alt={request.display_name}
                               blurState={getPhotoState(request)}
                               isThumbnail={true}
@@ -1345,7 +1343,7 @@ const Connections = () => {
                         >
                           <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-pink-500 transition-all">
                             <BlurredImage
-                              src={request.thumbnail_url || request.avatar_url}
+                              src={request.photo_url || request.avatar_url}
                               alt={request.display_name}
                               blurState={getPhotoState(request)}
                               isThumbnail={true}
