@@ -6502,6 +6502,45 @@ async def get_unread_count(current_user: dict = Depends(get_current_user)):
     count = await db.messages.count_documents({"to_user_id": current_user["id"], "is_read": False})
     return {"unread_count": count}
 
+@api_router.get("/notifications/unread/count")
+async def get_notifications_unread_count(current_user: dict = Depends(get_current_user)):
+    """Get count of unread notifications (respects notifications_cleared_at timestamp)"""
+    # Get the notifications_cleared_at timestamp if set
+    user_data = await db.users.find_one({"id": current_user["id"]}, {"notifications_cleared_at": 1})
+    cleared_at = user_data.get("notifications_cleared_at") if user_data else None
+    
+    total_count = 0
+    
+    # Count glances (filter by cleared_at)
+    glance_query = {"to_user_id": current_user["id"]}
+    if cleared_at:
+        glance_query["created_at"] = {"$gt": cleared_at}
+    glance_count = await db.glances.count_documents(glance_query)
+    total_count += glance_count
+    
+    # Count pending icebreakers (filter by cleared_at)
+    icebreaker_query = {"to_user_id": current_user["id"], "status": "pending"}
+    if cleared_at:
+        icebreaker_query["created_at"] = {"$gt": cleared_at}
+    icebreaker_count = await db.icebreakers.count_documents(icebreaker_query)
+    total_count += icebreaker_count
+    
+    # Count pending chat requests (filter by cleared_at)
+    chat_query = {"to_user_id": current_user["id"], "status": "pending"}
+    if cleared_at:
+        chat_query["created_at"] = {"$gt": cleared_at}
+    chat_count = await db.chat_requests.count_documents(chat_query)
+    total_count += chat_count
+    
+    # Count stored notifications (filter by cleared_at - these are already filtered on insert)
+    notif_query = {"user_id": current_user["id"]}
+    if cleared_at:
+        notif_query["created_at"] = {"$gt": cleared_at}
+    notif_count = await db.notifications.count_documents(notif_query)
+    total_count += notif_count
+    
+    return {"unread_count": total_count}
+
 @api_router.post("/messages/accept-request/{from_user_id}")
 async def accept_message_request(from_user_id: str, current_user: dict = Depends(get_current_user)):
     """Accept a message request, which creates a connection and unlocks chat"""

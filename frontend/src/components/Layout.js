@@ -33,7 +33,7 @@ const Layout = ({ children, hideNav = false }) => {
 
   const fetchUnreadCount = async () => {
     try {
-      const response = await axios.get(`${API}/messages/unread/count`);
+      const response = await axios.get(`${API}/notifications/unread/count`);
       setUnreadCount(response.data.unread_count);
     } catch (error) {
       console.error("Failed to fetch unread count");
