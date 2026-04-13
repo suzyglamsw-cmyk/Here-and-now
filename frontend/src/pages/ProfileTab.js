@@ -1697,7 +1697,7 @@ const Profile = () => {
                 }}
                 data-testid="home-area-input"
               />
-              <p className="text-purple-300/50 text-xs">Enter your town or city (not your country)</p>
+              <p className="text-purple-300/50 text-xs">Set this to your home town. Here & Now uses your real-time location wherever you are.</p>
             </div>
           </section>
 

@@ -5,7 +5,7 @@ import { useAuth, API } from "@/App";
 import { toast } from "sonner";
 import axios from "axios";
 import Layout from "../components/Layout";
-import { Eye, MessageCircle, Loader2, Heart, Crown, Coins, X, UserPlus, Snowflake, MessageSquare, Lock, ShieldOff, AlertTriangle, ArrowLeft } from "lucide-react";
+import { Eye, MessageCircle, Loader2, Heart, Crown, Coins, X, UserPlus, Snowflake, MessageSquare, Lock, ShieldOff, AlertTriangle, ArrowLeft, MapPin } from "lucide-react";
 import { getErrorMessage } from "../utils/errorUtils";
 import { obscureBioText } from "../utils/bioObscure";
 import BlurredImage from "../components/BlurredImage";
@@ -499,6 +499,19 @@ const UserProfile = () => {
                     <h3 className="text-xs font-medium text-slate-400 mb-2 uppercase tracking-wide">About You</h3>
                     <p className="text-slate-300 text-sm leading-relaxed">
                       {obscureBioText(profile.bio, profile.is_connection_accepted)}
+                    </p>
+                  </div>
+                )}
+
+                {/* Based in - Town, Country (shown on all profile states) */}
+                {(profile.home_area || profile.home_country) && (
+                  <div className="bg-slate-800/40 rounded-2xl p-4 border border-white/10 shadow-sm">
+                    <h3 className="text-xs font-medium text-slate-400 mb-2 uppercase tracking-wide">Based in</h3>
+                    <p className="text-slate-300 text-sm flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-teal-400" />
+                      {profile.home_area && profile.home_country 
+                        ? `${profile.home_area}, ${profile.home_country}` 
+                        : profile.home_area || profile.home_country}
                     </p>
                   </div>
                 )}
