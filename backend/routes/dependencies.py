@@ -1108,16 +1108,18 @@ def check_visibility_match(current_user: dict, other_user: dict) -> bool:
     """
     Check if other_user should be visible to current_user based on:
     1. Block status - blocked users are never visible
-    2. Gender matching (seeking preferences) - bidirectional
-    3. Visibility boundary rules (rainbow + openToAll)
+    2. Seeking required - users with empty seeking are hidden from everyone
+    3. Gender matching (seeking preferences) - bidirectional
+    4. Visibility boundary rules (rainbow + openToAll)
     
     Returns True if other_user should be visible to current_user.
     
     Visibility rules:
     - User A sees User B only if:
       a) Neither has blocked the other
-      b) A's seeking includes B's show_as AND B's seeking includes A's show_as
-      c) Visibility boundary rules:
+      b) Both A and B have non-empty seeking lists
+      c) A's seeking includes B's show_as AND B's seeking includes A's show_as
+      d) Visibility boundary rules:
          - If openToAll=true (either user): Full visibility (overrides rainbow separation)
          - If rainbow=false AND openToAll=false: ONLY see rainbow=false AND openToAll=false
          - If rainbow=true AND openToAll=false: ONLY see rainbow=true AND openToAll=false
@@ -1144,19 +1146,20 @@ def check_visibility_match(current_user: dict, other_user: dict) -> bool:
         other_seeking = [other_seeking] if other_seeking else []
     other_show_as = (other_user.get("show_as") or "").lower()
     
-    # 1. Bidirectional Gender visibility check
-    # Skip if either user hasn't set their preferences yet (backward compatibility)
-    if current_seeking and other_show_as:
-        current_seeking_lower = [s.lower() for s in current_seeking]
-        if other_show_as not in current_seeking_lower:
-            return False
+    # 1. Require seeking to be set - users with empty seeking are hidden from everyone
+    if not current_seeking or not other_seeking:
+        return False
     
-    if other_seeking and current_show_as:
-        other_seeking_lower = [s.lower() for s in other_seeking]
-        if current_show_as not in other_seeking_lower:
-            return False
+    # 2. Bidirectional Gender visibility check
+    current_seeking_lower = [s.lower() for s in current_seeking]
+    if other_show_as and other_show_as not in current_seeking_lower:
+        return False
     
-    # 2. Visibility boundary check (rainbow + openToAll)
+    other_seeking_lower = [s.lower() for s in other_seeking]
+    if current_show_as and current_show_as not in other_seeking_lower:
+        return False
+    
+    # 3. Visibility boundary check (rainbow + openToAll)
     current_rainbow = current_user.get("rainbow", False)
     current_open_to_all = current_user.get("open_to_all", False)
     other_rainbow = other_user.get("rainbow", False)
