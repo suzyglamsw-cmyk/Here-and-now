@@ -737,7 +737,7 @@ class UserProfile(BaseModel):
     gender: Optional[str] = ""
     orientation: Optional[str] = ""
     relationship_status: Optional[str] = ""
-    seeking: Optional[str] = ""
+    seeking: Optional[str | List[str]] = ""
     # New connection comfort fields
     presence_note: Optional[str] = ""  # 40 chars max
     celebrity_crush: Optional[str] = ""
@@ -766,7 +766,7 @@ class UserResponse(BaseModel):
     gender: str = ""
     orientation: str = ""
     relationship_status: str = ""
-    seeking: str = ""
+    seeking: Optional[str | List[str]] = ""
     created_at: str
     is_visible: bool = True
     is_premium: bool = False
@@ -1290,10 +1290,22 @@ async def login(data: UserLogin):
         }
     }
 
-@api_router.get("/auth/me", response_model=UserResponse)
+@api_router.get("/auth/me")
 async def get_me(current_user: dict = Depends(get_current_user)):
     # Check premium expiration
     current_user = await handle_premium_expiration(current_user["id"], current_user)
+    
+    # WORKAROUND: Fetch home_area and home_country directly from DB and ensure they're in response
+    home_data = await db.users.find_one(
+        {"id": current_user["id"]}, 
+        {"_id": 0, "home_area": 1, "home_country": 1}
+    )
+    
+    # Build response dict with guaranteed home fields
+    response = dict(current_user)
+    response["home_area"] = home_data.get("home_area", "") if home_data else ""
+    response["home_country"] = home_data.get("home_country", "") if home_data else ""
+    response["test_home_area"] = "TEST_VALUE"  # Debug: add test field
     
     # Check for active venue check-in
     checkin = await db.checkins.find_one({
@@ -1311,24 +1323,24 @@ async def get_me(current_user: dict = Depends(get_current_user)):
         is_valid = await validate_and_expire_checkin(checkin)
         if is_valid:
             # User has valid active check-in
-            current_user["active_venue_id"] = checkin.get("venue_id")
-            current_user["active_venue_timestamp"] = checkin.get("checked_in_at")
+            response["active_venue_id"] = checkin.get("venue_id")
+            response["active_venue_timestamp"] = checkin.get("checked_in_at")
         else:
             # Check-in was auto-expired - ensure presence is reset
             await ensure_presence_consistency(current_user["id"])
-            current_user["active_venue_id"] = None
-            current_user["active_venue_timestamp"] = None
-            current_user["presence_status"] = "not_here"
+            response["active_venue_id"] = None
+            response["active_venue_timestamp"] = None
+            response["presence_status"] = "not_here"
     else:
         # No active check-in - ensure presence consistency
         await ensure_presence_consistency(current_user["id"])
-        current_user["active_venue_id"] = None
-        current_user["active_venue_timestamp"] = None
+        response["active_venue_id"] = None
+        response["active_venue_timestamp"] = None
         # Force presence_status to "not_here" if no check-in
-        if current_user.get("presence_status") == "here":
-            current_user["presence_status"] = "not_here"
+        if response.get("presence_status") == "here":
+            response["presence_status"] = "not_here"
     
-    return current_user
+    return response
 
 @api_router.put("/auth/profile")
 async def update_profile(data: UserProfile, current_user: dict = Depends(get_current_user)):
