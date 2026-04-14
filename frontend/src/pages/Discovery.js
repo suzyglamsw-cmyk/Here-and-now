@@ -414,26 +414,49 @@ const Discovery = () => {
       <Layout>
         <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 flex flex-col items-center justify-center p-6">
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400 bg-clip-text text-transparent mb-2">Discover</h1>
-            <p className="text-slate-300/70 text-sm">Choose how you want to explore people around you.</p>
+            {/* Header with 3D depth effect and white glow */}
+            <div className="relative inline-block">
+              {/* Shadow layer - offset and blurred for 3D depth */}
+              <h1 
+                className="absolute text-4xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 bg-clip-text text-transparent"
+                style={{ 
+                  transform: 'translate(2px, 2px)',
+                  filter: 'blur(3px)',
+                  opacity: 0.5
+                }}
+                aria-hidden="true"
+              >
+                Discover
+              </h1>
+              {/* Main text with white glow edge */}
+              <h1 
+                className="relative text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400 bg-clip-text text-transparent"
+                style={{
+                  textShadow: '0 0 1px rgba(255,255,255,0.8), 0 0 2px rgba(255,255,255,0.4)'
+                }}
+              >
+                Discover
+              </h1>
+            </div>
+            <p className="text-slate-300/70 text-sm mt-2">Choose how you want to explore people around you.</p>
           </div>
           
           <div className="w-full max-w-md space-y-4">
-            {/* Here & Now Option */}
+            {/* Here & Now Option - Lighter purple */}
             <button
               data-testid="select-here-now"
               onClick={() => navigate("/venues")}
-              className="w-full p-6 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 hover:border-indigo-400/50 transition-all group"
+              className="w-full p-6 rounded-2xl bg-gradient-to-br from-purple-500/30 to-violet-500/25 border border-purple-400/30 hover:border-purple-300/50 transition-all group"
             >
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-xl bg-indigo-500/20 flex items-center justify-center">
+                <div className="w-14 h-14 rounded-xl bg-purple-500/20 flex items-center justify-center">
                   <MapPin className="w-7 h-7 text-indigo-400" />
                 </div>
                 <div className="text-left flex-1">
-                  <h2 className="text-xl font-bold text-white group-hover:text-indigo-300 transition-colors">
+                  <h2 className="text-xl font-bold text-white group-hover:text-purple-200 transition-colors">
                     Here Now
                   </h2>
-                  <p className="text-slate-400/70 text-sm">
+                  <p className="text-white text-sm">
                     A real-time list of nearby venues you can check into and see who else is there.
                   </p>
                 </div>
@@ -441,21 +464,21 @@ const Discovery = () => {
               </div>
             </button>
             
-            {/* Not Here Option */}
+            {/* Not Here Option - Darker purple */}
             <button
               data-testid="select-not-here"
               onClick={() => navigate("/discover/not-here")}
-              className="w-full p-6 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-teal-500/20 border border-cyan-500/30 hover:border-cyan-400/50 transition-all group"
+              className="w-full p-6 rounded-2xl bg-gradient-to-br from-purple-700/30 to-violet-800/25 border border-purple-500/30 hover:border-purple-400/50 transition-all group"
             >
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-xl bg-cyan-500/20 flex items-center justify-center">
+                <div className="w-14 h-14 rounded-xl bg-purple-700/20 flex items-center justify-center">
                   <Users className="w-7 h-7 text-cyan-400" />
                 </div>
                 <div className="text-left flex-1">
-                  <h2 className="text-xl font-bold text-white group-hover:text-cyan-300 transition-colors">
+                  <h2 className="text-xl font-bold text-white group-hover:text-purple-200 transition-colors">
                     Not Here
                   </h2>
-                  <p className="text-slate-400/70 text-sm">
+                  <p className="text-white text-sm">
                     See and be seen by people nearby who aren't in a venue.
                   </p>
                 </div>
