@@ -25,8 +25,30 @@ const Notifications = () => {
   const fetchData = async () => {
     try {
       const response = await axios.get(`${API}/notifications`);
-      setNotifications(response.data);
+      console.log("[Notifications] Raw backend response:", JSON.stringify(response.data, null, 2));
+      
+      // Filter out malformed notifications and log any issues
+      const validNotifications = response.data.filter((notification, index) => {
+        try {
+          // Check for required fields
+          if (!notification.type) {
+            console.warn(`[Notifications] Skipping notification at index ${index}: missing 'type'`, notification);
+            return false;
+          }
+          if (!notification.created_at) {
+            console.warn(`[Notifications] Skipping notification at index ${index}: missing 'created_at'`, notification);
+            return false;
+          }
+          return true;
+        } catch (err) {
+          console.error(`[Notifications] Error validating notification at index ${index}:`, err, notification);
+          return false;
+        }
+      });
+      
+      setNotifications(validNotifications);
     } catch (error) {
+      console.error("[Notifications] Failed to fetch notifications:", error);
       toast.error("Failed to load notifications");
     } finally {
       setLoading(false);
@@ -207,34 +229,39 @@ const Notifications = () => {
         ) : (
           <div className="space-y-3" data-testid="notifications-list">
             {notifications.map((notification, index) => {
-              const { title, subtitle } = getNotificationMessage(notification);
-              
-              return (
-                <div
-                  key={notification.id || index}
-                  data-testid={`notification-${index}`}
-                  className="glass rounded-2xl p-4 flex items-start gap-4"
-                >
-                  {/* Icon */}
-                  <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center flex-shrink-0">
-                    {getNotificationIcon(notification.type)}
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white font-medium">{title}</p>
-                    {subtitle && (
-                      <p className="text-slate-400 text-sm mt-1">{subtitle}</p>
-                    )}
-                    <div className="mt-2 flex gap-2">
-                      {getViewButton(notification)}
+              try {
+                const { title, subtitle } = getNotificationMessage(notification);
+                
+                return (
+                  <div
+                    key={notification.id || index}
+                    data-testid={`notification-${index}`}
+                    className="glass rounded-2xl p-4 flex items-start gap-4"
+                  >
+                    {/* Icon */}
+                    <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center flex-shrink-0">
+                      {getNotificationIcon(notification.type)}
                     </div>
-                    <p className="text-slate-500 text-xs mt-2">
-                      {formatTime(notification.created_at)}
-                    </p>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white font-medium">{title}</p>
+                      {subtitle && (
+                        <p className="text-slate-400 text-sm mt-1">{subtitle}</p>
+                      )}
+                      <div className="mt-2 flex gap-2">
+                        {getViewButton(notification)}
+                      </div>
+                      <p className="text-slate-500 text-xs mt-2">
+                        {notification.created_at ? formatTime(notification.created_at) : "Unknown time"}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              );
+                );
+              } catch (renderError) {
+                console.error(`[Notifications] Error rendering notification at index ${index}:`, renderError, notification);
+                return null; // Skip malformed notifications
+              }
             })}
           </div>
         )}
