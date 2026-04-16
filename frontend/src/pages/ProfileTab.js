@@ -10,6 +10,7 @@ import axios from "axios";
 import Layout from "../components/Layout";
 import SilhouetteAvatar from "../components/SilhouetteAvatar";
 import { getErrorMessage } from "../utils/errorUtils";
+import { obscureBioText } from "../utils/bioObscure";
 
 // Helper function to construct photo URL from photo ID
 const getPhotoUrl = (photoIdOrUrl) => {
@@ -51,6 +52,7 @@ import {
   Target,
   Crown,
   ArrowLeft,
+  MessageCircle,
 } from "lucide-react";
 
 const MAX_BIO_LENGTH = 500;
@@ -1981,15 +1983,19 @@ const Profile = () => {
                   </div>
                 )}
                 
+                {/* About You - obscured in unmatched state */}
+                {formData.bio && (
+                  <div className="rounded-xl p-4 max-w-xs mx-auto" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
+                    <h4 className="text-xs font-medium text-purple-300/60 mb-1.5 uppercase tracking-wide">About</h4>
+                    <p className="text-purple-100 text-sm">{obscureBioText(formData.bio, false)}</p>
+                  </div>
+                )}
+                
                 {/* Hidden fields indicator - No reveal button */}
                 <div className="flex flex-wrap justify-center gap-2">
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-purple-300/60 text-xs" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
                     <EyeOff className="w-3 h-3" />
                     Name hidden
-                  </div>
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-purple-300/60 text-xs" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
-                    <EyeOff className="w-3 h-3" />
-                    Bio hidden
                   </div>
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-purple-300/60 text-xs" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
                     <EyeOff className="w-3 h-3" />
@@ -2144,6 +2150,28 @@ const Profile = () => {
                   </div>
                 )}
                 
+                {/* About You - full/clear in connected state */}
+                {formData.bio && (
+                  <div className="rounded-xl p-4 max-w-xs mx-auto" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
+                    <h4 className="text-xs font-medium text-purple-300/60 mb-1.5 uppercase tracking-wide">About</h4>
+                    <p className="text-purple-100 text-sm">{obscureBioText(formData.bio, true)}</p>
+                  </div>
+                )}
+                
+                {/* Message Button - Visible in connected state */}
+                <div className="max-w-xs mx-auto">
+                  <button 
+                    className="w-full py-3 px-4 rounded-xl bg-emerald-500 text-white font-medium flex items-center justify-center gap-2"
+                    disabled
+                  >
+                    <MessageCircle className="w-5 h-5" />
+                    Message
+                  </button>
+                  <p className="text-center text-purple-300/40 text-xs mt-2">
+                    (Messaging unlocked after mutual match)
+                  </p>
+                </div>
+                
                 {/* Reveal Button - Visible in post-match */}
                 <div className="max-w-xs mx-auto">
                   <button 
@@ -2156,18 +2184,6 @@ const Profile = () => {
                   <p className="text-center text-purple-300/40 text-xs mt-2">
                     (This button would reveal your photo to the matched user)
                   </p>
-                </div>
-                
-                {/* Still hidden fields */}
-                <div className="flex flex-wrap justify-center gap-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-purple-300/60 text-xs" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
-                    <EyeOff className="w-3 h-3" />
-                    Name hidden
-                  </div>
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-purple-300/60 text-xs" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
-                    <EyeOff className="w-3 h-3" />
-                    Bio hidden
-                  </div>
                 </div>
                 
                 {/* Based in - Town, Country */}

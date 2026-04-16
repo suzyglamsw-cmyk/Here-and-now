@@ -3,92 +3,77 @@
 ## Original Problem Statement
 Building a real-time, location-based social connection app called "Here & Now" with:
 - Strict visibility logic based on gender, seeking, rainbow, and openToAll rules
-- Strict 3-stage photo blurring system: Unmatched (12px/8px heavy blur), Connection Accepted (6px blur), Full Reveal (0px blur/clear)
+- Strict 3-stage photo blurring system: Unmatched (12px heavy blur), Connection Accepted (6px blur), Full Reveal (0px blur)
 - Precise mutually exclusive presence logic: checked into a venue OR Not Here
-- Non-destructive interaction lists (glances, icebreakers, chat requests) with daily reset at 5am local time
+- Non-destructive interaction lists with daily reset at 5am local time
 - Clean mutual/hidden/bin/friends behavior for connections
 
 ## Tech Stack
 - **Backend:** FastAPI, Python, MongoDB (motor)
 - **Frontend:** React, TailwindCSS, Shadcn UI
-- **Push Notifications:** Web Push (VAPID)
-- **3rd Party:** Stripe, Google Maps Platform, OpenAI Whisper & Vision
+- **3rd Party:** Stripe, Google Maps Platform, OpenAI Whisper & Vision (Emergent LLM Key)
 
-## Core Features Implemented
+## Core Visibility Model
 
-### Authentication & Profile
-- [x] Registration with age gate, email/password, DOB, gender selection
-- [x] Login with password validation (8+ chars, letters + numbers)
-- [x] Show/hide password toggles on Register + Login
-- [x] Profile with required fields: bio, home_country, home_area, seeking, intent, photos (min 1)
-- [x] Town/Country persistence fixed (home_area field name corrected)
+### 3-Stage Blur System
+1. **UNMATCHED (strangers)**: 12px heavy blur
+2. **CONNECTED (mutual match)**: 6px medium blur  
+3. **REVEALED (both pressed Reveal)**: 0px clear
 
-### Visibility & Matching
-- [x] 3-stage blur system: Heavy (unmatched) → Medium (connection accepted) → Clear (both revealed)
-- [x] Bidirectional gender matching (seeking preferences)
-- [x] Rainbow + openToAll visibility boundaries
-- [x] Users with empty `seeking` hidden from everyone
-- [x] Block functionality
+### Profile Preview (ProfileTab.js) - Fixed Dec 2025
+The preview simulates exactly what others see:
 
-### Venue & Discovery
-- [x] Venue check-in with heartbeat
-- [x] Here Now (Inside Venue) with filters: All, Unmatched, Mutual, Friends, Hidden Matches
-- [x] Not Here discovery with same filters and visibility logic
-- [x] Default filter changed to "All" (both screens)
-- [x] 30-second auto-refresh polling on all screens
+**UNMATCHED:**
+- Initial only, Age, Gender
+- Lifestyle questions, Food mood
+- About You: obscured via `obscureBioText(bio, false)`
+- Here for (intent badge), City+Country
+- Premium badge, Presence note
+- "Name hidden" + "Additional photos locked" badges
 
-### Connections (HereHub)
-- [x] Glances system
-- [x] Icebreakers
-- [x] Chat requests
-- [x] Mutual Matches
-- [x] Friends list
-- [x] Hidden Matches
+**CONNECTED:**
+- Initial only, Age, Gender
+- Lifestyle questions, Food mood
+- About You: full clear via `obscureBioText(bio, true)`
+- Here for (intent badge), City+Country
+- Premium badge, Presence note
+- Message button + Reveal button
 
-### Notifications
-- [x] Unread badge count from 4 sources (glances, icebreakers, chat requests, stored notifications)
-- [x] Soft-delete via `notifications_cleared_at` timestamp
-- [x] Error handling for malformed notifications
+**REVEALED:**
+- First name, Age, Gender
+- Lifestyle questions, Food mood
+- About You: full clear
+- Here for section, City+Country
+- Premium badge, Presence note
+- All photos unblurred, Voice intro
+- No Reveal button
 
-### UI/UX
-- [x] Discover screen with purple→pink gradient header
-- [x] Intent ("What are you here for") displayed on all profile surfaces
-- [x] Global readability pass (text opacity /50 → /70)
-- [x] Push notification auto-resubscription
+## Completed Work (Dec 2025)
+- ✅ Town/Country persistence fix (auth.py route shadowing)
+- ✅ `seeking` field required on frontend/backend
+- ✅ `intent` field required with color-coded badges
+- ✅ Discover screen UI gradient styling
+- ✅ Password validation (Create/Confirm fields, regex)
+- ✅ "Not Here" screen uses identical filter/blur logic as "Here Now"
+- ✅ Minimum 1 photo validation on profile update
+- ✅ Notifications.js error handling (try/catch)
+- ✅ Profile Preview fix - mirrors real visibility exactly
 
-## Database Schema (Key Fields)
-```
-users:
-  - id, email, password, display_name
-  - date_of_birth, age, gender, show_as
-  - seeking (array), intent, rainbow, open_to_all
-  - home_country, home_area
-  - photos (array, min 1 required)
-  - bio, presence_note
-  - is_visible, is_premium
-  - notifications_cleared_at
-  - presence_status
-```
+## Pending Tasks
+- **P1**: Consolidate `server.py` route duplication into `/routes/` modules
+- **P2**: Implement group check-ins
 
-## API Endpoints (Key)
-- `POST /api/auth/register` - Create account
-- `POST /api/auth/login` - Login (returns home_country, home_area)
-- `GET /api/auth/me` - Get current user (returns home_area correctly now)
-- `PUT /api/auth/profile` - Update profile (validates photos, seeking, intent)
-- `GET /api/venues` - Venue overview
-- `GET /api/venues/{id}/people` - People in venue
-- `GET /api/discovery/not-here` - Not Here discovery (with is_connection_accepted, is_revealed)
-- `GET /api/notifications` - Get notifications
-- `GET /api/notifications/unread/count` - Unread badge count
-- `DELETE /api/notifications/clear` - Clear notifications
+## Known Issues
+- `server.py` is 7800+ lines with duplicate logic that exists in `/routes/`
 
-## Known Issues / Technical Debt
-- P1: Monolithic `server.py` (7800+ lines) needs consolidation into `/routes/`
-- Route shadowing between `server.py` and `/routes/` (partially resolved)
+## Key Files
+- `/app/backend/server.py` - Main backend (needs refactoring)
+- `/app/backend/routes/auth.py` - Auth routes
+- `/app/backend/routes/discovery.py` - Discovery routes
+- `/app/frontend/src/pages/ProfileTab.js` - Profile editing + preview
+- `/app/frontend/src/pages/UserProfile.js` - Viewing other users
+- `/app/frontend/src/utils/bioObscure.js` - Bio obscuring utility
 
-## Backlog
-- P1: Route consolidation refactor
-- P2: Group check-ins feature
-
-## Last Updated
-April 2025 - Session completed with notifications error handling, filter defaults, and field validations.
+## Test Credentials
+- Email: `suzyglam.sw@googlemail.com`
+- Password: `keyboard`
