@@ -2092,20 +2092,22 @@ async def respond_to_chat_request(request_id: str, data: ChatRequestResponse, cu
             }
         })
         
-        # Send push notification
-        await send_push_notification(
-            request["from_user_id"],
-            "You made a mutual connection 🎉",
-            f"You and {current_user['display_name']} are now connected!",
-            {
-                "type": "mutual_match_created",
-                "source": "chat_request",
-                "user_id": current_user["id"],
-                "from_user_id": current_user["id"],
-                "from_user_name": current_user["display_name"],
-                "from_user_photo": current_user.get("avatar_url", "")
-            }
-        )
+        # Send push notification (if settings allow)
+        settings = await db.push_settings.find_one({"user_id": request["from_user_id"]})
+        if not settings or settings.get("matches", True):
+            await send_push_notification(
+                request["from_user_id"],
+                "You made a mutual connection 🎉",
+                f"You and {current_user['display_name']} are now connected!",
+                {
+                    "type": "mutual_match_created",
+                    "source": "chat_request",
+                    "user_id": current_user["id"],
+                    "from_user_id": current_user["id"],
+                    "from_user_name": current_user["display_name"],
+                    "from_user_photo": current_user.get("avatar_url", "")
+                }
+            )
         
         return {"message": "You accepted. Chat unlocked.", "response_message": data.message}
     else:
@@ -5064,20 +5066,22 @@ async def send_glance(data: GlanceCreate, current_user: dict = Depends(get_curre
             }
         })
         
-        # Send push notification for match
-        await send_push_notification(
-            data.to_user_id,
-            "You made a mutual connection 🎉",
-            f"You and {current_user['display_name']} are now connected!",
-            {
-                "type": "mutual_match_created",
-                "source": "glance",
-                "user_id": current_user["id"],
-                "from_user_id": current_user["id"],
-                "from_user_name": current_user["display_name"],
-                "from_user_photo": current_user.get("avatar_url", "")
-            }
-        )
+        # Send push notification for match (if settings allow)
+        settings = await db.push_settings.find_one({"user_id": data.to_user_id})
+        if not settings or settings.get("matches", True):
+            await send_push_notification(
+                data.to_user_id,
+                "You made a mutual connection 🎉",
+                f"You and {current_user['display_name']} are now connected!",
+                {
+                    "type": "mutual_match_created",
+                    "source": "glance",
+                    "user_id": current_user["id"],
+                    "from_user_id": current_user["id"],
+                    "from_user_name": current_user["display_name"],
+                    "from_user_photo": current_user.get("avatar_url", "")
+                }
+            )
         
         return {"message": "It's a match! You can now connect.", "is_mutual": True, "used_token": use_token}
     
@@ -5315,20 +5319,22 @@ async def respond_to_icebreaker(icebreaker_id: str, data: IcebreakerActionReques
             }
         })
         
-        # Send push notification
-        await send_push_notification(
-            icebreaker["from_user_id"],
-            "You made a mutual connection 🎉",
-            f"You and {current_user['display_name']} are now connected!",
-            {
-                "type": "mutual_match_created",
-                "source": "icebreaker",
-                "user_id": current_user["id"],
-                "from_user_id": current_user["id"],
-                "from_user_name": current_user["display_name"],
-                "from_user_photo": current_user.get("avatar_url", "")
-            }
-        )
+        # Send push notification (if settings allow)
+        settings = await db.push_settings.find_one({"user_id": icebreaker["from_user_id"]})
+        if not settings or settings.get("matches", True):
+            await send_push_notification(
+                icebreaker["from_user_id"],
+                "You made a mutual connection 🎉",
+                f"You and {current_user['display_name']} are now connected!",
+                {
+                    "type": "mutual_match_created",
+                    "source": "icebreaker",
+                    "user_id": current_user["id"],
+                    "from_user_id": current_user["id"],
+                    "from_user_name": current_user["display_name"],
+                    "from_user_photo": current_user.get("avatar_url", "")
+                }
+            )
         
         return {"message": "Icebreaker accepted! You can now chat."}
     
