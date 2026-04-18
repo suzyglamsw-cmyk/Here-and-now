@@ -831,20 +831,14 @@ const Connections = () => {
                       <div
                         key={glance.id}
                         data-testid={`received-glance-${glance.id}`}
-                        className={`bg-slate-800/40 backdrop-blur-sm rounded-2xl p-4 flex items-center gap-4 border border-white/10 shadow-md transition-all ${selectedGlances.has(glance.id) ? 'ring-2 ring-indigo-500/50 bg-indigo-500/10 border-indigo-500/30' : 'hover:bg-slate-800/60'}`}
+                        className={`bg-slate-800/40 backdrop-blur-sm rounded-2xl p-3 flex items-center gap-3 border border-white/10 shadow-md transition-all ${selectedGlances.has(glance.id) ? 'ring-2 ring-indigo-500/50 bg-indigo-500/10 border-indigo-500/30' : 'hover:bg-slate-800/60'}`}
                       >
-                        {/* Selection Checkbox */}
-                        <Checkbox
-                          checked={selectedGlances.has(glance.id)}
-                          onCheckedChange={() => toggleGlanceSelection(glance.id)}
-                          data-testid={`select-glance-${glance.id}`}
-                          className="flex-shrink-0"
-                        />
+                        {/* Avatar - tappable to profile */}
                         <div 
-                          className="relative cursor-pointer"
+                          className="relative cursor-pointer flex-shrink-0"
                           onClick={() => navigate(`/profile/${glance.user_id}`)}
                         >
-                          <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all">
+                          <div className="w-12 h-12 rounded-xl overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all">
                             <BlurredImage
                               src={glance.photo_url || glance.avatar_url}
                               alt={glance.display_name}
@@ -854,34 +848,35 @@ const Connections = () => {
                             />
                           </div>
                           {glance.is_connection_accepted && (
-                            <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-pink-500 flex items-center justify-center">
-                              <Heart className="w-3 h-3 text-white" />
+                            <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-pink-500 flex items-center justify-center">
+                              <Heart className="w-2.5 h-2.5 text-white" />
                             </div>
                           )}
                         </div>
+
+                        {/* Info */}
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-white truncate">{glance.display_name}</h4>
-                          <p className="text-slate-500/70 text-xs">
-                            {glance.is_connection_accepted ? "Mutual glance" : "Glanced at you"} • {formatDate(glance.created_at)}
+                          <p className="font-medium text-white text-sm truncate">{glance.display_name}</p>
+                          <p className="text-xs text-slate-400 truncate">
+                            {glance.is_connection_accepted ? "Mutual" : "Glanced at you"} · {formatDate(glance.created_at)}
                           </p>
                         </div>
-                        {!glance.is_connection_accepted && (
-                          <Button
-                            data-testid={`glance-back-${glance.id}`}
-                            onClick={(e) => { e.stopPropagation(); navigate(`/profile/${glance.user_id}`); }}
-                            size="sm"
-                            className="rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white"
-                          >
-                            <Eye className="w-4 h-4 mr-1" />
-                            Glance Back
-                          </Button>
-                        )}
+
+                        {/* Selection Checkbox */}
+                        <Checkbox
+                          checked={selectedGlances.has(glance.id)}
+                          onCheckedChange={() => toggleGlanceSelection(glance.id)}
+                          data-testid={`select-glance-${glance.id}`}
+                          className="flex-shrink-0"
+                        />
+
+                        {/* Delete button */}
                         <Button
                           data-testid={`delete-glance-${glance.id}`}
                           onClick={(e) => { e.stopPropagation(); handleDeleteGlance(glance.id); }}
                           size="sm"
                           variant="ghost"
-                          className="rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                          className="h-8 w-8 p-0 text-slate-400 hover:text-red-400 hover:bg-red-500/10 flex-shrink-0"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -903,20 +898,14 @@ const Connections = () => {
                       <div
                         key={glance.id}
                         data-testid={`sent-glance-${glance.id}`}
-                        className={`bg-slate-800/40 backdrop-blur-sm rounded-2xl p-4 flex items-center gap-4 border border-white/10 shadow-md transition-all ${selectedGlances.has(glance.id) ? 'ring-2 ring-indigo-500/50 bg-indigo-500/10 border-indigo-500/30' : 'hover:bg-slate-800/60'}`}
+                        className={`bg-slate-800/40 backdrop-blur-sm rounded-2xl p-3 flex items-center gap-3 border border-white/10 shadow-md transition-all ${selectedGlances.has(glance.id) ? 'ring-2 ring-indigo-500/50 bg-indigo-500/10 border-indigo-500/30' : 'hover:bg-slate-800/60'}`}
                       >
-                        {/* Selection Checkbox */}
-                        <Checkbox
-                          checked={selectedGlances.has(glance.id)}
-                          onCheckedChange={() => toggleGlanceSelection(glance.id)}
-                          data-testid={`select-sent-glance-${glance.id}`}
-                          className="flex-shrink-0"
-                        />
+                        {/* Avatar - tappable to profile */}
                         <div 
-                          className="relative cursor-pointer"
+                          className="relative cursor-pointer flex-shrink-0"
                           onClick={() => navigate(`/profile/${glance.user_id}`)}
                         >
-                          <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all">
+                          <div className="w-12 h-12 rounded-xl overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all">
                             <BlurredImage
                               src={glance.photo_url || glance.avatar_url}
                               alt={glance.display_name}
@@ -926,23 +915,35 @@ const Connections = () => {
                             />
                           </div>
                           {glance.is_connection_accepted && (
-                            <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-pink-500 flex items-center justify-center">
-                              <Heart className="w-3 h-3 text-white" />
+                            <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-pink-500 flex items-center justify-center">
+                              <Heart className="w-2.5 h-2.5 text-white" />
                             </div>
                           )}
                         </div>
+
+                        {/* Info */}
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-white truncate">{glance.display_name}</h4>
-                          <p className="text-slate-500/70 text-xs">
-                            {glance.is_connection_accepted ? "Mutual glance" : "Waiting for them to glance back"} • {formatDate(glance.created_at)}
+                          <p className="font-medium text-white text-sm truncate">{glance.display_name}</p>
+                          <p className="text-xs text-slate-400 truncate">
+                            {glance.is_connection_accepted ? "Mutual" : "Waiting"} · {formatDate(glance.created_at)}
                           </p>
                         </div>
+
+                        {/* Selection Checkbox */}
+                        <Checkbox
+                          checked={selectedGlances.has(glance.id)}
+                          onCheckedChange={() => toggleGlanceSelection(glance.id)}
+                          data-testid={`select-sent-glance-${glance.id}`}
+                          className="flex-shrink-0"
+                        />
+
+                        {/* Delete button */}
                         <Button
                           data-testid={`delete-sent-glance-${glance.id}`}
                           onClick={(e) => { e.stopPropagation(); handleDeleteGlance(glance.id); }}
                           size="sm"
                           variant="ghost"
-                          className="rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                          className="h-8 w-8 p-0 text-slate-400 hover:text-red-400 hover:bg-red-500/10 flex-shrink-0"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
