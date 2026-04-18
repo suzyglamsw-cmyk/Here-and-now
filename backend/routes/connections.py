@@ -1503,6 +1503,12 @@ async def send_message(data: MessageCreate, current_user: dict = Depends(get_cur
 @router.get("/messages/{user_id}")
 async def get_messages(user_id: str, current_user: dict = Depends(get_current_user)):
     """Get messages with a specific user"""
+    # Check if user is blocked (bilateral check)
+    is_blocked = (
+        user_id in current_user.get("blocked_users", []) or
+        user_id in current_user.get("blocked_by_users", [])
+    )
+    
     messages = await db.messages.find({
         "$or": [
             {"from_user_id": current_user["id"], "to_user_id": user_id},
@@ -1510,14 +1516,26 @@ async def get_messages(user_id: str, current_user: dict = Depends(get_current_us
         ]
     }, {"_id": 0}).sort("created_at", 1).to_list(500)
     
-    # Mark received messages as read
-    await db.messages.update_many(
-        {"from_user_id": user_id, "to_user_id": current_user["id"], "is_read": False},
-        {"$set": {"is_read": True, "read_at": datetime.now(timezone.utc).isoformat()}}
-    )
+    # Mark received messages as read (only if not blocked)
+    if not is_blocked:
+        await db.messages.update_many(
+            {"from_user_id": user_id, "to_user_id": current_user["id"], "is_read": False},
+            {"$set": {"is_read": True, "read_at": datetime.now(timezone.utc).isoformat()}}
+        )
     
     # Get user info for response
-    other_user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    other_user = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0})
+    
+    # Check reveal status
+    i_revealed = await db.reveals.find_one({
+        "from_user_id": current_user["id"],
+        "to_user_id": user_id
+    })
+    they_revealed = await db.reveals.find_one({
+        "from_user_id": user_id,
+        "to_user_id": current_user["id"]
+    })
+    is_revealed = bool(i_revealed and they_revealed)
     
     result = []
     for msg in messages:
@@ -1525,16 +1543,32 @@ async def get_messages(user_id: str, current_user: dict = Depends(get_current_us
             result.append({
                 **msg,
                 "from_user_name": current_user["display_name"],
-                "from_user_avatar": current_user.get("avatar_url", "")
+                "from_user_avatar": current_user.get("avatar_url", ""),
+                "is_request": False,
+                "is_masked": False
             })
         else:
             result.append({
                 **msg,
                 "from_user_name": other_user.get("display_name", "Unknown") if other_user else "Unknown",
-                "from_user_avatar": other_user.get("avatar_url", "") if other_user else ""
+                "from_user_avatar": other_user.get("avatar_url", "") if other_user else "",
+                "is_request": False,
+                "is_masked": False
             })
     
-    return result
+    return {
+        "messages": result,
+        "is_unlocked": True,
+        "is_revealed": is_revealed,
+        "is_blocked": is_blocked,
+        "unlock_reason": "connection",
+        "other_user": {
+            "id": user_id,
+            "display_name": other_user.get("display_name", "Someone") if other_user else "Someone",
+            "avatar_url": other_user.get("avatar_url", "") if other_user else "",
+            "photos": other_user.get("photos", []) if other_user else []
+        }
+    }
 
 
 @router.post("/messages/mark-read")

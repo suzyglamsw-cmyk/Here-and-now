@@ -137,6 +137,38 @@ const Connections = () => {
       try {
         const data = JSON.parse(event.data);
         
+        // Handle user_blocked event - immediately remove from all lists
+        if (data.type === 'user_blocked') {
+          const blockedById = data.blocked_by;
+          
+          // Remove from matches
+          setMatches(prev => prev.filter(m => m.user_id !== blockedById && m.id !== blockedById));
+          
+          // Remove from glances
+          setGlances(prev => ({
+            incoming: prev.incoming.filter(g => g.from_user_id !== blockedById && g.user_id !== blockedById),
+            outgoing: prev.outgoing.filter(g => g.to_user_id !== blockedById && g.user_id !== blockedById)
+          }));
+          
+          // Remove from icebreakers
+          setIcebreakers(prev => ({
+            incoming: prev.incoming.filter(i => i.from_user_id !== blockedById),
+            outgoing: prev.outgoing.filter(i => i.to_user_id !== blockedById)
+          }));
+          
+          // Remove from chat requests
+          setChatRequests(prev => ({
+            incoming: prev.incoming.filter(r => r.from_user_id !== blockedById),
+            outgoing: prev.outgoing.filter(r => r.to_user_id !== blockedById)
+          }));
+          
+          // Remove from recent chats
+          setRecentChats(prev => prev.filter(c => c.user_id !== blockedById));
+          
+          // Refresh all data to ensure clean state
+          fetchAllData();
+        }
+        
         // Handle unified mutual match event
         if (data.type === 'mutual_match_created') {
           const matchUserId = data.by_user?.id || data.from_user?.id;

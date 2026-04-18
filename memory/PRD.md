@@ -72,6 +72,14 @@ The preview simulates exactly what others see:
   - Updated Add Friend error messages to reference "mutual connection"
   - Photo blur: 0px only when BOTH revealed, 6px when matched
 - ✅ Fixed `PageHeader is not defined` crash in UserProfile.js (missing import restored)
+- ✅ Block behavior for messaging updated:
+  - Chat thread opens normally (no full-screen "User Unavailable" page)
+  - Real name and avatar remain visible
+  - Chat history visible
+  - Input disabled with placeholder: "You can't message this user."
+  - Inline banner: "This user is not available."
+  - No redirect, no renaming to "Unavailable", no raw errors
+  - Blocked users removed from Mutual Matches immediately via WebSocket
 
 ## Pending Tasks
 - **P1**: Consolidate `server.py` route duplication into `/routes/` modules

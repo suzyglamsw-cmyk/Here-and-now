@@ -2543,6 +2543,13 @@ async def block_user(data: BlockUserRequest, current_user: dict = Depends(get_cu
     # NOTE: We do NOT delete from db.reveals - photo reveal status is PRESERVED
     # so that if they unblock, photos stay clear if they were clear before
     
+    # Send WebSocket notification to the blocked user so they immediately remove from their matches
+    await manager.send_to_user(data.user_id, {
+        "type": "user_blocked",
+        "blocked_by": current_user["id"],
+        "message": "A user has blocked you"
+    })
+    
     return {"message": "User blocked. They won't be able to see or contact you."}
 
 
@@ -6383,10 +6390,16 @@ async def send_message(data: MessageCreate, current_user: dict = Depends(get_cur
 
 @api_router.get("/messages/{user_id}")
 async def get_messages(user_id: str, current_user: dict = Depends(get_current_user)):
+    # Check if user is blocked (bilateral check)
+    is_blocked = (
+        user_id in current_user.get("blocked_users", []) or
+        user_id in current_user.get("blocked_by_users", [])
+    )
+    
     # Check chat unlock status
     unlock_status = await check_chat_unlocked(current_user["id"], user_id)
     
-    # Get all messages between users
+    # Get all messages between users (including hidden by block for history preservation)
     messages = await db.messages.find({
         "$or": [
             {"from_user_id": current_user["id"], "to_user_id": user_id},
@@ -6437,6 +6450,7 @@ async def get_messages(user_id: str, current_user: dict = Depends(get_current_us
             "messages": result,
             "is_unlocked": False,
             "is_revealed": False,
+            "is_blocked": is_blocked,
             "unlock_reason": None,
             "other_user": {
                 "id": user_id,
@@ -6520,6 +6534,7 @@ async def get_messages(user_id: str, current_user: dict = Depends(get_current_us
         "messages": result,
         "is_unlocked": True,
         "is_revealed": is_revealed,
+        "is_blocked": is_blocked,
         "unlock_reason": unlock_status["reason"],
         "other_user": {
             "id": user_id,

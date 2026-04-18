@@ -20,6 +20,7 @@ const Chat = () => {
   const [otherUser, setOtherUser] = useState(null);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [isRevealed, setIsRevealed] = useState(false);  // Mutual reveal state
+  const [isBlocked, setIsBlocked] = useState(false);    // Blocked state
   const [unlockReason, setUnlockReason] = useState(null);
   const [accepting, setAccepting] = useState(false);
   const messagesEndRef = useRef(null);
@@ -117,11 +118,12 @@ const Chat = () => {
       const response = await axios.get(`${API}/messages/${userId}`);
       const data = response.data;
       
-      // Handle new response format with unlock status and reveal state
+      // Handle new response format with unlock status, reveal state, and block state
       if (data.messages !== undefined) {
         setMessages(data.messages);
         setIsUnlocked(data.is_unlocked);
         setIsRevealed(data.is_revealed || false);  // Mutual reveal state
+        setIsBlocked(data.is_blocked || false);    // Blocked state
         setUnlockReason(data.unlock_reason);
         setOtherUser(data.other_user);
       } else {
@@ -129,6 +131,7 @@ const Chat = () => {
         setMessages(data);
         setIsUnlocked(true);
         setIsRevealed(false);
+        setIsBlocked(false);
       }
     } catch (error) {
       if (error.response?.status === 403) {
@@ -143,6 +146,11 @@ const Chat = () => {
   const handleSend = async (e) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
+    
+    // Prevent sending if blocked
+    if (isBlocked) {
+      return; // Silently ignore - input should be disabled anyway
+    }
 
     setSending(true);
     try {
@@ -159,7 +167,10 @@ const Chat = () => {
       fetchMessages();
       inputRef.current?.focus();
     } catch (error) {
-      toast.error("Failed to send message");
+      // Don't show raw "Failed to send" for blocked users
+      if (!isBlocked) {
+        toast.error("Failed to send message");
+      }
     } finally {
       setSending(false);
     }
@@ -324,6 +335,16 @@ const Chat = () => {
         </div>
       )}
 
+      {/* Blocked User Banner - Inline, NOT full-screen */}
+      {isBlocked && (
+        <div className="bg-slate-800/50 border-b border-slate-700/50 px-4 py-2">
+          <div className="max-w-2xl mx-auto flex items-center justify-center gap-2">
+            <Shield className="w-4 h-4 text-slate-400" />
+            <p className="text-slate-400 text-sm">This user is not available.</p>
+          </div>
+        </div>
+      )}
+
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="max-w-2xl mx-auto space-y-4">
@@ -399,15 +420,26 @@ const Chat = () => {
             ref={inputRef}
             data-testid="message-input"
             value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder={isUnlocked ? "Type a message..." : "Send a message request..."}
-            className="flex-1 h-12 bg-white/5 border-transparent focus:border-indigo-500 rounded-xl text-white"
+            onChange={(e) => !isBlocked && setNewMessage(e.target.value)}
+            placeholder={
+              isBlocked 
+                ? "You can't message this user." 
+                : isUnlocked 
+                  ? "Type a message..." 
+                  : "Send a message request..."
+            }
+            disabled={isBlocked}
+            className={`flex-1 h-12 bg-white/5 border-transparent focus:border-indigo-500 rounded-xl text-white ${
+              isBlocked ? "opacity-50 cursor-not-allowed" : ""
+            }`}
           />
           <Button
             data-testid="send-btn"
             type="submit"
-            disabled={sending || !newMessage.trim()}
-            className="h-12 px-6 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white"
+            disabled={sending || !newMessage.trim() || isBlocked}
+            className={`h-12 px-6 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white ${
+              isBlocked ? "opacity-50 cursor-not-allowed" : ""
+            }`}
           >
             {sending ? (
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -416,7 +448,7 @@ const Chat = () => {
             )}
           </Button>
         </form>
-        {!isUnlocked && (
+        {!isUnlocked && !isBlocked && (
           <p className="text-center text-amber-400 text-xs mt-2 flex items-center justify-center gap-1">
             <Shield className="w-3 h-3" />
             Contact details are hidden until chat is unlocked
