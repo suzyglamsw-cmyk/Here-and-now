@@ -5388,6 +5388,11 @@ async def get_connections(current_user: dict = Depends(get_current_user)):
     all_connections = []
     seen_users = set()
     
+    # Get blocked users to filter them out
+    blocked_users = set(current_user.get("blocked_users", []))
+    blocked_by_users = set(current_user.get("blocked_by_users", []))
+    all_blocked = blocked_users | blocked_by_users
+    
     # 1. Get connections from the connections collection (explicit connections)
     explicit_connections = await db.connections.find({
         "$or": [
@@ -5399,6 +5404,9 @@ async def get_connections(current_user: dict = Depends(get_current_user)):
     for conn in explicit_connections:
         other_user_id = conn["user2_id"] if conn["user1_id"] == current_user["id"] else conn["user1_id"]
         if other_user_id in seen_users:
+            continue
+        # Skip blocked users
+        if other_user_id in all_blocked:
             continue
         seen_users.add(other_user_id)
         
@@ -5430,6 +5438,9 @@ async def get_connections(current_user: dict = Depends(get_current_user)):
     for glance in glances_to_me:
         from_user_id = glance["from_user_id"]
         if from_user_id in seen_users:
+            continue
+        # Skip blocked users
+        if from_user_id in all_blocked:
             continue
         
         # Check for mutual glance
@@ -5476,6 +5487,9 @@ async def get_connections(current_user: dict = Depends(get_current_user)):
         other_user_id = ib["to_user_id"] if ib["from_user_id"] == current_user["id"] else ib["from_user_id"]
         if other_user_id in seen_users:
             continue
+        # Skip blocked users
+        if other_user_id in all_blocked:
+            continue
         seen_users.add(other_user_id)
         
         user = await db.users.find_one({"id": other_user_id}, {"_id": 0, "password": 0})
@@ -5512,6 +5526,9 @@ async def get_connections(current_user: dict = Depends(get_current_user)):
         other_user_id = req["to_user_id"] if req["from_user_id"] == current_user["id"] else req["from_user_id"]
         if other_user_id in seen_users:
             continue
+        # Skip blocked users
+        if other_user_id in all_blocked:
+            continue
         seen_users.add(other_user_id)
         
         user = await db.users.find_one({"id": other_user_id}, {"_id": 0, "password": 0})
@@ -5545,6 +5562,9 @@ async def get_connections(current_user: dict = Depends(get_current_user)):
     
     for other_user_id in mutual_messagers:
         if other_user_id in seen_users:
+            continue
+        # Skip blocked users
+        if other_user_id in all_blocked:
             continue
         seen_users.add(other_user_id)
         

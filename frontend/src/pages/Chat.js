@@ -29,7 +29,8 @@ const Chat = () => {
 
   useEffect(() => {
     fetchMessages();
-    fetchUserProfile(); // Always fetch user profile directly
+    // Note: fetchUserProfile is called AFTER fetchMessages sets isBlocked
+    // We'll handle the profile fetch in a separate effect to avoid overwriting blocked user data
     connectWebSocket();
     const interval = setInterval(fetchMessages, 5000);
     return () => {
@@ -40,11 +41,25 @@ const Chat = () => {
     };
   }, [userId]);
 
-  // Direct profile fetch to ensure we always have user data
+  // Only fetch user profile if NOT blocked - blocked users get their data from messages endpoint
+  // This prevents the profile endpoint from overwriting the real name with "Unavailable"
+  useEffect(() => {
+    if (!isBlocked && !loading) {
+      fetchUserProfile();
+    }
+  }, [isBlocked, loading, userId]);
+
+  // Direct profile fetch - only called for non-blocked users
   const fetchUserProfile = async () => {
+    // Skip if we already have user data from messages endpoint or if blocked
+    if (isBlocked) return;
+    
     try {
       const response = await axios.get(`${API}/users/${userId}/profile`);
-      setOtherUser(response.data);
+      // Don't overwrite if response indicates blocked/unavailable
+      if (!response.data.is_blocked && !response.data.is_unavailable) {
+        setOtherUser(response.data);
+      }
     } catch (error) {
       console.error("Failed to fetch user profile:", error);
     }
@@ -125,7 +140,10 @@ const Chat = () => {
         setIsRevealed(data.is_revealed || false);  // Mutual reveal state
         setIsBlocked(data.is_blocked || false);    // Blocked state
         setUnlockReason(data.unlock_reason);
-        setOtherUser(data.other_user);
+        // Always use other_user from messages endpoint - it has the real name even for blocked users
+        if (data.other_user) {
+          setOtherUser(data.other_user);
+        }
       } else {
         // Old format fallback
         setMessages(data);
@@ -244,11 +262,11 @@ const Chat = () => {
               <ArrowLeft className="w-5 h-5" />
             </Button>
             
-            {/* User identity section - clickable to view profile */}
+            {/* User identity section - clickable to view profile (disabled when blocked) */}
             {otherUser ? (
               <div 
-                className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer hover:opacity-80 transition-opacity"
-                onClick={() => navigate(`/profile/${userId}`)}
+                className={`flex items-center gap-3 flex-1 min-w-0 ${!isBlocked ? 'cursor-pointer hover:opacity-80' : ''} transition-opacity`}
+                onClick={() => !isBlocked && navigate(`/profile/${userId}`)}
                 data-testid="chat-user-header"
               >
                 {/* Profile photo - use SilhouetteAvatar as fallback */}
@@ -271,7 +289,12 @@ const Chat = () => {
                   <h1 className="text-base font-semibold text-white truncate">
                     {otherUser.display_name}
                   </h1>
-                  {isUnlocked ? (
+                  {isBlocked ? (
+                    <span className="text-xs text-slate-400 flex items-center gap-1">
+                      <Shield className="w-3 h-3" />
+                      Not available
+                    </span>
+                  ) : isUnlocked ? (
                     <span className="text-xs text-emerald-400 flex items-center gap-1">
                       <Unlock className="w-3 h-3" />
                       Connected

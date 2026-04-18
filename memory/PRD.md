@@ -80,6 +80,8 @@ The preview simulates exactly what others see:
   - Inline banner: "This user is not available."
   - No redirect, no renaming to "Unavailable", no raw errors
   - Blocked users removed from Mutual Matches immediately via WebSocket
+  - Backend /connections endpoint filters blocked users from all match sources
+  - Chat.js no longer calls profile endpoint for blocked users (avoids "Unavailable" overwrite)
 
 ## Pending Tasks
 - **P1**: Consolidate `server.py` route duplication into `/routes/` modules

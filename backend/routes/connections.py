@@ -658,6 +658,7 @@ async def get_connections(current_user: dict = Depends(get_current_user)):
     - Mutual messagers (users who've exchanged messages)
     
     Excludes users hidden from matches via /connections/{user_id}/hide-from-matches
+    Excludes blocked users
     """
     all_connections = []
     seen_users = set()
@@ -667,6 +668,12 @@ async def get_connections(current_user: dict = Depends(get_current_user)):
         "user_id": current_user["id"]
     }, {"_id": 0}).to_list(100)
     hidden_user_ids = {h["hidden_user_id"] for h in hidden_list}
+    
+    # Get blocked users to filter them out
+    blocked_users = set(current_user.get("blocked_users", []))
+    blocked_by_users = set(current_user.get("blocked_by_users", []))
+    all_blocked = blocked_users | blocked_by_users
+    excluded_users = hidden_user_ids | all_blocked
     
     # 1. Get explicit connections from the connections collection
     explicit_connections = await db.connections.find({
@@ -678,7 +685,7 @@ async def get_connections(current_user: dict = Depends(get_current_user)):
     
     for conn in explicit_connections:
         other_id = conn["user2_id"] if conn["user1_id"] == current_user["id"] else conn["user1_id"]
-        if other_id in seen_users or other_id in hidden_user_ids:
+        if other_id in seen_users or other_id in excluded_users:
             continue
         seen_users.add(other_id)
         
@@ -710,7 +717,7 @@ async def get_connections(current_user: dict = Depends(get_current_user)):
     
     for glance in mutual_glances:
         from_user_id = glance["from_user_id"]
-        if from_user_id in seen_users or from_user_id in hidden_user_ids:
+        if from_user_id in seen_users or from_user_id in excluded_users:
             continue
         seen_users.add(from_user_id)
         
@@ -739,7 +746,7 @@ async def get_connections(current_user: dict = Depends(get_current_user)):
     
     for ib in accepted_icebreakers:
         other_user_id = ib["to_user_id"] if ib["from_user_id"] == current_user["id"] else ib["from_user_id"]
-        if other_user_id in seen_users or other_user_id in hidden_user_ids:
+        if other_user_id in seen_users or other_user_id in excluded_users:
             continue
         seen_users.add(other_user_id)
         
@@ -768,7 +775,7 @@ async def get_connections(current_user: dict = Depends(get_current_user)):
     
     for req in accepted_chat_requests:
         other_user_id = req["to_user_id"] if req["from_user_id"] == current_user["id"] else req["from_user_id"]
-        if other_user_id in seen_users or other_user_id in hidden_user_ids:
+        if other_user_id in seen_users or other_user_id in excluded_users:
             continue
         seen_users.add(other_user_id)
         
@@ -793,7 +800,7 @@ async def get_connections(current_user: dict = Depends(get_current_user)):
     mutual_messagers = set(my_sent_messages) & set(my_received_messages)
     
     for other_id in mutual_messagers:
-        if other_id in seen_users or other_id in hidden_user_ids:
+        if other_id in seen_users or other_id in excluded_users:
             continue
         seen_users.add(other_id)
         
