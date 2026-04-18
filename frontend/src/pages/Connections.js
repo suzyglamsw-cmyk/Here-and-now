@@ -60,6 +60,7 @@ const Connections = () => {
   const [hideConfirmUser, setHideConfirmUser] = useState(null); // For hide from mutual matches confirmation
   const [hideFriendConfirm, setHideFriendConfirm] = useState(null); // For hide friend confirmation
   const [removeFriendConfirm, setRemoveFriendConfirm] = useState(null); // For remove friend confirmation
+  const [deleteGlanceConfirm, setDeleteGlanceConfirm] = useState(null); // For glance deletion confirmation
   const [tab, setTab] = useState(searchParams.get("tab") || "messages"); // "messages" | "glances" | "icebreakers" | "chats" | "requests" | "friends" | "connections"
   
   // Selection state for bulk delete
@@ -873,7 +874,7 @@ const Connections = () => {
                         {/* Delete button */}
                         <Button
                           data-testid={`delete-glance-${glance.id}`}
-                          onClick={(e) => { e.stopPropagation(); handleDeleteGlance(glance.id); }}
+                          onClick={(e) => { e.stopPropagation(); setDeleteGlanceConfirm({ id: glance.id, display_name: glance.display_name }); }}
                           size="sm"
                           variant="ghost"
                           className="h-8 w-8 p-0 text-slate-400 hover:text-red-400 hover:bg-red-500/10 flex-shrink-0"
@@ -940,7 +941,7 @@ const Connections = () => {
                         {/* Delete button */}
                         <Button
                           data-testid={`delete-sent-glance-${glance.id}`}
-                          onClick={(e) => { e.stopPropagation(); handleDeleteGlance(glance.id); }}
+                          onClick={(e) => { e.stopPropagation(); setDeleteGlanceConfirm({ id: glance.id, display_name: glance.display_name }); }}
                           size="sm"
                           variant="ghost"
                           className="h-8 w-8 p-0 text-slate-400 hover:text-red-400 hover:bg-red-500/10 flex-shrink-0"
@@ -2146,6 +2147,54 @@ const Connections = () => {
               <Button
                 data-testid="cancel-bin-btn"
                 onClick={() => setBinConfirmUser(null)}
+                variant="ghost"
+                className="w-full h-12 rounded-xl text-slate-300 hover:bg-white/5"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Glance Confirmation Modal */}
+      {deleteGlanceConfirm && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-in fade-in duration-200" 
+          onClick={() => setDeleteGlanceConfirm(null)}
+          data-testid="delete-glance-confirm-modal"
+        >
+          <div 
+            className="w-full max-w-sm bg-slate-900 rounded-2xl p-6 mx-4 border border-white/10 animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 rounded-full bg-slate-700/50 flex items-center justify-center mx-auto mb-4">
+                <Eye className="w-8 h-8 text-slate-400" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Remove this glance?</h3>
+              <p className="text-slate-400 text-sm">
+                This just clears it from your list. They won't be notified.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {/* Remove button */}
+              <Button
+                data-testid="confirm-delete-glance-btn"
+                onClick={() => {
+                  handleDeleteGlance(deleteGlanceConfirm.id);
+                  setDeleteGlanceConfirm(null);
+                }}
+                className="w-full h-12 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white font-semibold"
+              >
+                Remove
+              </Button>
+              
+              {/* Cancel */}
+              <Button
+                data-testid="cancel-delete-glance-btn"
+                onClick={() => setDeleteGlanceConfirm(null)}
                 variant="ghost"
                 className="w-full h-12 rounded-xl text-slate-300 hover:bg-white/5"
               >
