@@ -327,6 +327,11 @@ async def validate_photo(image_data: bytes, is_main_photo: bool) -> dict:
         {"valid": bool, "error": str or None}
         
     FAIL CLOSED: Any unexpected error results in rejection with appropriate error message.
+    
+    TEMPORARY WORKAROUND: AI validation disabled due to Universal Key balance issue.
+    Only EXIF recency and screenshot checks are active for main photos.
+    Secondary photos pass through without AI safety checks.
+    TODO: Re-enable AI validation when Universal Key balance is restored.
     """
     try:
         # For main photo, check recency and screenshot first (faster checks)
@@ -350,10 +355,12 @@ async def validate_photo(image_data: bytes, is_main_photo: bool) -> dict:
                 logger.warning(f"Screenshot check failed: {e}")
                 return {"valid": False, "error": MAIN_PHOTO_ERROR}
         
-        # AI-based analysis (safety for all, face/content for main)
-        ai_result = await analyze_photo_with_ai(image_data, is_main_photo)
-        if not ai_result["valid"]:
-            return {"valid": False, "error": ai_result["error"]}
+        # TEMPORARY WORKAROUND: AI validation disabled
+        # AI-based analysis (safety for all, face/content for main) - DISABLED
+        # ai_result = await analyze_photo_with_ai(image_data, is_main_photo)
+        # if not ai_result["valid"]:
+        #     return {"valid": False, "error": ai_result["error"]}
+        logger.info("TEMPORARY: AI validation skipped - Universal Key balance issue")
         
         return {"valid": True, "error": None}
         

@@ -255,6 +255,9 @@ async def upload_photo(
     
     photo_id = str(uuid.uuid4())
     
+    # Check for photo age warning (optional, non-blocking)
+    photo_age_warning = check_photo_age_warning(content)
+    
     try:
         # Upload to cloud storage (creates both clear and blurred versions)
         storage_result = upload_photo_with_blur(
