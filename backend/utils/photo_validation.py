@@ -27,6 +27,7 @@ MAX_PHOTO_AGE_DAYS = 548  # ~18 months
 
 def extract_exif_data(image_data: bytes) -> dict:
     """Extract EXIF metadata from image bytes."""
+    print("TRACE: entering extract_exif_data()", flush=True)
     try:
         img = Image.open(BytesIO(image_data))
         exif_data = img._getexif()
@@ -48,6 +49,7 @@ def check_photo_recency(image_data: bytes) -> dict:
     Check if photo meets recency requirements based on EXIF metadata.
     Returns: {"valid": bool, "reason": str or None}
     """
+    logger.error("TRACE: entering check_photo_recency()")
     exif = extract_exif_data(image_data)
     
     # Check if EXIF exists
@@ -83,6 +85,7 @@ def check_is_screenshot(image_data: bytes) -> bool:
     Check if image appears to be a screenshot based on EXIF and image properties.
     Returns True if it's likely a screenshot.
     """
+    print("TRACE: entering check_is_screenshot()", flush=True)
     exif = extract_exif_data(image_data)
     
     # Check software field for screenshot indicators
@@ -122,6 +125,7 @@ async def analyze_photo_with_ai(image_data: bytes, is_main_photo: bool) -> dict:
     
     FAIL CLOSED: If AI analysis fails, reject the photo rather than allowing potentially unsafe content.
     """
+    logger.error(f"TRACE: entering analyze_photo_with_ai(is_main_photo={is_main_photo})")
     try:
         from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
         
@@ -317,6 +321,7 @@ async def validate_photo(image_data: bytes, is_main_photo: bool) -> dict:
         
     FAIL CLOSED: Any unexpected error results in rejection with appropriate error message.
     """
+    logger.error(f"TRACE: entering validate_photo(is_main_photo={is_main_photo})")
     try:
         # For main photo, check recency and screenshot first (faster checks)
         if is_main_photo:
