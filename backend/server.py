@@ -93,17 +93,15 @@ ACCEPT_MESSAGES = [
 
 # Fake test users
 FAKE_TEST_USERS = [
-    {"id": "fake-sophie", "display_name": "Sophie", "age": 28, "distance": 5, "avatar_url": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200"},
-    {"id": "fake-liam", "display_name": "Liam", "age": 31, "distance": 12, "avatar_url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200"},
-    {"id": "fake-mia", "display_name": "Mia", "age": 26, "distance": 8, "avatar_url": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200"},
-    {"id": "fake-alex", "display_name": "Alex", "age": 34, "distance": 15, "avatar_url": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200"},
+    {"id": "f18a7ffe-984a-4de3-a38c-6a8afb28dff2", "display_name": "Alex", "age": 28, "distance": 5, "avatar_url": "https://via.placeholder.com/400x400/6366f1/ffffff?text=Alex", "gender": "male", "seeking": ["female"]},
+    {"id": "0ff17e76-3830-4b30-8435-f67c8ca26151", "display_name": "Jamie", "age": 26, "distance": 8, "avatar_url": "https://via.placeholder.com/400x400/ec4899/ffffff?text=Jamie", "gender": "female", "seeking": ["male", "female"]},
+    {"id": "16e3b074-7a17-4fbd-9c7a-83c76610a267", "display_name": "Sam", "age": 30, "distance": 12, "avatar_url": "https://via.placeholder.com/400x400/22c55e/ffffff?text=Sam", "gender": "male", "seeking": ["male"]},
 ]
 
 FAKE_USER_MESSAGES = {
-    "fake-sophie": ["Hey, how's your night going", "Nice to see someone else here", "What are you drinking tonight"],
-    "fake-liam": ["You look familiar, have we met here before", "Busy night in here", "What brings you out tonight"],
-    "fake-mia": ["Love your vibe tonight", "This place has great music", "Are you here with friends"],
-    "fake-alex": ["Evening, how's your night", "Trying this place for the first time", "What's your favourite drink"],
+    "f18a7ffe-984a-4de3-a38c-6a8afb28dff2": ["Hey, how's your night going?", "Nice to see someone else here!", "What are you drinking tonight?"],
+    "0ff17e76-3830-4b30-8435-f67c8ca26151": ["Love your vibe tonight!", "This place has great music", "Are you here with friends?"],
+    "16e3b074-7a17-4fbd-9c7a-83c76610a267": ["Evening! How's your night?", "Trying this place for the first time", "What's your favourite drink?"],
 }
 
 # Premium packages (defined on backend only for security)
