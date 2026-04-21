@@ -930,7 +930,27 @@ const Connections = () => {
         {/* Header */}
         <div className="mb-6 flex items-start justify-between">
           <div>
-            <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-[#A66CFF] via-[#C77DFF] to-[#FF70A6] bg-clip-text text-transparent">HereHub</h1>
+            <h1 className="text-3xl font-bold mb-2 relative overflow-hidden">
+              <span 
+                className="bg-gradient-to-r from-[#A66CFF] via-[#C77DFF] to-[#FF70A6] bg-clip-text text-transparent"
+              >
+                HereHub
+              </span>
+              <span 
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background: 'linear-gradient(90deg, transparent 0%, transparent 40%, rgba(255,255,255,0.15) 50%, transparent 60%, transparent 100%)',
+                  backgroundSize: '200% 100%',
+                  animation: 'shimmer 4s ease-in-out infinite',
+                }}
+              />
+              <style>{`
+                @keyframes shimmer {
+                  0% { background-position: 200% center; }
+                  100% { background-position: -200% center; }
+                }
+              `}</style>
+            </h1>
             <p className="text-white">What's happening now.</p>
           </div>
           <Button
