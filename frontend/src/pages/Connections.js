@@ -40,133 +40,181 @@ const getPhotoState = (item) => {
  * Handles photo reveal logic: shows clear photo only when reveal_state === "both_revealed"
  */
 const MessageThreadRow = ({ thread, navigate, formatDate, onMoveToQuiet, onMoveToMessages, onDelete, isQuiet }) => {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const isBothRevealed = thread.reveal_state === "both_revealed";
   
   return (
-    <div
-      data-testid={`thread-${thread.user_id}`}
-      className="bg-slate-800/40 backdrop-blur-sm rounded-xl p-3 flex items-center gap-3 border border-white/10 shadow-md transition-all hover:bg-slate-800/60 cursor-pointer"
-      onClick={() => navigate(`/chat/${thread.user_id}`)}
-    >
-      {/* Avatar */}
-      <div className="relative flex-shrink-0">
-        <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-800">
-          {thread.photos && thread.photos[0] ? (
-            isBothRevealed ? (
-              /* Both revealed - show clear photo */
-              <img
-                src={thread.photos[0]}
-                alt={thread.display_name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              /* Not both revealed - show blurred photo with gradient initial */
-              <>
+    <>
+      <div
+        data-testid={`thread-${thread.user_id}`}
+        className="bg-slate-800/40 backdrop-blur-sm rounded-xl p-3 flex items-center gap-3 border border-white/10 shadow-md transition-all hover:bg-slate-800/60 cursor-pointer"
+        onClick={() => navigate(`/chat/${thread.user_id}`)}
+      >
+        {/* Avatar */}
+        <div className="relative flex-shrink-0">
+          <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-800">
+            {thread.photos && thread.photos[0] ? (
+              isBothRevealed ? (
+                /* Both revealed - show clear photo */
                 <img
                   src={thread.photos[0]}
-                  alt=""
+                  alt={thread.display_name}
                   className="w-full h-full object-cover"
-                  style={{ filter: 'blur(5px)', transform: 'scale(1.1)' }}
                 />
-                <div 
-                  className="absolute inset-0"
-                  style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
-                />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span 
-                    className="text-xl font-bold"
-                    style={{
-                      background: 'linear-gradient(90deg, #FF4F9A 0%, #A259FF 100%)',
-                      WebkitBackgroundClip: 'text',
-                      backgroundClip: 'text',
-                      color: 'transparent'
-                    }}
-                  >
-                    {thread.display_name?.charAt(0)?.toUpperCase() || "?"}
-                  </span>
-                </div>
-              </>
-            )
-          ) : (
-            /* No photo - gradient initial on dark background */
-            <div className="w-full h-full flex items-center justify-center bg-slate-700">
-              <span 
-                className="text-xl font-bold"
-                style={{
-                  background: 'linear-gradient(90deg, #FF4F9A 0%, #A259FF 100%)',
-                  WebkitBackgroundClip: 'text',
-                  backgroundClip: 'text',
-                  color: 'transparent'
-                }}
-              >
-                {thread.display_name?.charAt(0)?.toUpperCase() || "?"}
-              </span>
-            </div>
+              ) : (
+                /* Not both revealed - show blurred photo with gradient initial */
+                <>
+                  <img
+                    src={thread.photos[0]}
+                    alt=""
+                    className="w-full h-full object-cover"
+                    style={{ filter: 'blur(5px)', transform: 'scale(1.1)' }}
+                  />
+                  <div 
+                    className="absolute inset-0"
+                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span 
+                      className="text-xl font-bold"
+                      style={{
+                        background: 'linear-gradient(90deg, #FF4F9A 0%, #A259FF 100%)',
+                        WebkitBackgroundClip: 'text',
+                        backgroundClip: 'text',
+                        color: 'transparent'
+                      }}
+                    >
+                      {thread.display_name?.charAt(0)?.toUpperCase() || "?"}
+                    </span>
+                  </div>
+                </>
+              )
+            ) : (
+              /* No photo - gradient initial on dark background */
+              <div className="w-full h-full flex items-center justify-center bg-slate-700">
+                <span 
+                  className="text-xl font-bold"
+                  style={{
+                    background: 'linear-gradient(90deg, #FF4F9A 0%, #A259FF 100%)',
+                    WebkitBackgroundClip: 'text',
+                    backgroundClip: 'text',
+                    color: 'transparent'
+                  }}
+                >
+                  {thread.display_name?.charAt(0)?.toUpperCase() || "?"}
+                </span>
+              </div>
+            )}
+          </div>
+          {/* Unread indicator dot */}
+          {thread.unread_count > 0 && (
+            <div className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-pink-500 border-2 border-slate-900" />
           )}
         </div>
-        {/* Unread indicator dot */}
-        {thread.unread_count > 0 && (
-          <div className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-pink-500 border-2 border-slate-900" />
-        )}
-      </div>
 
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className={`text-sm truncate ${thread.unread_count > 0 ? "font-bold text-white" : "font-medium text-white"}`}>
-            {thread.display_name}
-          </h3>
-          <span className="text-xs text-slate-500 flex-shrink-0">
-            {formatDate(thread.last_message_at)}
-          </span>
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className={`text-sm truncate ${thread.unread_count > 0 ? "font-bold text-white" : "font-medium text-white"}`}>
+              {thread.display_name}
+            </h3>
+            <span className="text-xs text-slate-500 flex-shrink-0">
+              {formatDate(thread.last_message_at)}
+            </span>
+          </div>
+          <p className={`text-xs truncate mt-0.5 ${thread.unread_count > 0 ? "text-slate-300 font-medium" : "text-slate-500"}`}>
+            {thread.is_from_me && <span className="text-slate-600">You: </span>}
+            {thread.last_message || "No messages yet"}
+          </p>
         </div>
-        <p className={`text-xs truncate mt-0.5 ${thread.unread_count > 0 ? "text-slate-300 font-medium" : "text-slate-500"}`}>
-          {thread.is_from_me && <span className="text-slate-600">You: </span>}
-          {thread.last_message || "No messages yet"}
-        </p>
-      </div>
 
-      {/* Actions Menu */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 text-slate-400 hover:text-white hover:bg-white/10 flex-shrink-0"
-          >
-            <MoreVertical className="w-4 h-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
-          {isQuiet ? (
-            <>
+        {/* Actions Menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 text-slate-400 hover:text-white hover:bg-white/10 flex-shrink-0"
+            >
+              <MoreVertical className="w-4 h-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
+            {isQuiet ? (
+              <>
+                <DropdownMenuItem 
+                  onClick={(e) => { e.stopPropagation(); onMoveToMessages?.(); }}
+                  className="text-slate-300 hover:text-white hover:bg-slate-700 cursor-pointer"
+                >
+                  <Volume2 className="w-4 h-4 mr-2" />
+                  Move back to Messages
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(true); }}
+                  className="text-red-400 hover:text-red-300 hover:bg-red-500/10 cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete conversation permanently
+                </DropdownMenuItem>
+              </>
+            ) : (
               <DropdownMenuItem 
-                onClick={(e) => { e.stopPropagation(); onMoveToMessages?.(); }}
+                onClick={(e) => { e.stopPropagation(); onMoveToQuiet?.(); }}
                 className="text-slate-300 hover:text-white hover:bg-slate-700 cursor-pointer"
               >
-                <Volume2 className="w-4 h-4 mr-2" />
-                Move back to Messages
+                <VolumeX className="w-4 h-4 mr-2" />
+                Move to Quiet for now
               </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={(e) => { e.stopPropagation(); onDelete?.(); }}
-                className="text-red-400 hover:text-red-300 hover:bg-red-500/10 cursor-pointer"
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirm && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+          onClick={() => setShowDeleteConfirm(false)}
+          data-testid="delete-thread-confirm-overlay"
+        >
+          <div 
+            className="bg-slate-900 rounded-2xl p-6 mx-4 max-w-sm w-full border border-white/10 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+            data-testid="delete-thread-confirm-dialog"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
+                <Trash2 className="w-5 h-5 text-red-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-white">Delete Conversation?</h3>
+            </div>
+            <p className="text-slate-400 text-sm mb-6">
+              This will permanently delete your conversation with <span className="text-white font-medium">{thread.display_name}</span>. This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                variant="ghost"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 rounded-xl bg-white/5 hover:bg-white/10 text-white"
+                data-testid="delete-thread-cancel-btn"
               >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete conversation permanently
-              </DropdownMenuItem>
-            </>
-          ) : (
-            <DropdownMenuItem 
-              onClick={(e) => { e.stopPropagation(); onMoveToQuiet?.(); }}
-              className="text-slate-300 hover:text-white hover:bg-slate-700 cursor-pointer"
-            >
-              <VolumeX className="w-4 h-4 mr-2" />
-              Move to Quiet for now
-            </DropdownMenuItem>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  onDelete?.();
+                }}
+                className="flex-1 rounded-xl bg-red-500 hover:bg-red-600 text-white"
+                data-testid="delete-thread-confirm-btn"
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
