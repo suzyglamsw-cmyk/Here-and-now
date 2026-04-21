@@ -928,6 +928,49 @@ const Connections = () => {
           </Button>
         </div>
 
+        {/* They've revealed to you Section - Standalone before tabs */}
+        {revealedToMe.length > 0 && (
+          <div className="bg-gradient-to-r from-pink-500/10 to-indigo-500/10 backdrop-blur-sm rounded-2xl p-4 border border-pink-500/20 shadow-lg mb-6" data-testid="revealed-to-me-section">
+            <h3 className="text-sm font-medium text-pink-300 mb-3 flex items-center gap-2">
+              <Eye className="w-4 h-4" />
+              They've revealed to you ({revealedToMe.length})
+            </h3>
+            <div className="space-y-2">
+              {revealedToMe.map((item) => (
+                <div
+                  key={item.user_id}
+                  className="bg-slate-800/60 rounded-xl p-3 flex items-center gap-3 cursor-pointer hover:bg-slate-800/80 transition-all"
+                  onClick={() => navigate(`/profile/${item.user_id}`)}
+                  data-testid={`revealed-${item.user_id}`}
+                >
+                  <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0">
+                    {item.photos && item.photos[0] ? (
+                      <BlurredImage
+                        src={item.photos[0]}
+                        alt={item.display_name}
+                        blurState="connection_accepted"
+                        isThumbnail={true}
+                        fallbackInitial={item.display_name?.charAt(0) || "?"}
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-slate-700 flex items-center justify-center">
+                        <span className="text-lg font-bold text-slate-400">
+                          {item.display_name?.charAt(0)?.toUpperCase() || "?"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-white text-sm truncate">{item.display_name}</p>
+                    <p className="text-xs text-pink-300/80">They've revealed. You can reveal anytime.</p>
+                  </div>
+                  <Eye className="w-4 h-4 text-pink-400 flex-shrink-0" />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Tabs */}
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
           <Button
@@ -1125,7 +1168,7 @@ const Connections = () => {
             </div>
         ) : tab === "glances" ? (
           /* Glances Tab */
-          totalGlances === 0 && revealedToMe.length === 0 ? (
+          totalGlances === 0 ? (
             <div className="text-center py-20">
               <div className="w-20 h-20 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-4">
                 <Eye className="w-10 h-10 text-slate-600" />
@@ -1144,49 +1187,6 @@ const Connections = () => {
             </div>
           ) : (
             <div className="space-y-6" data-testid="glances-list">
-              {/* They've revealed to you Section */}
-              {revealedToMe.length > 0 && (
-                <div className="bg-gradient-to-r from-pink-500/10 to-indigo-500/10 backdrop-blur-sm rounded-2xl p-4 border border-pink-500/20 shadow-lg">
-                  <h3 className="text-sm font-medium text-pink-300 mb-3 flex items-center gap-2">
-                    <Eye className="w-4 h-4" />
-                    They've revealed to you ({revealedToMe.length})
-                  </h3>
-                  <div className="space-y-2">
-                    {revealedToMe.map((item) => (
-                      <div
-                        key={item.user_id}
-                        className="bg-slate-800/60 rounded-xl p-3 flex items-center gap-3 cursor-pointer hover:bg-slate-800/80 transition-all"
-                        onClick={() => navigate(`/profile/${item.user_id}`)}
-                        data-testid={`revealed-${item.user_id}`}
-                      >
-                        <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0">
-                          {item.photos && item.photos[0] ? (
-                            <BlurredImage
-                              src={item.photos[0]}
-                              alt={item.display_name}
-                              blurState="connection_accepted"
-                              isThumbnail={true}
-                              fallbackInitial={item.display_name?.charAt(0) || "?"}
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-slate-700 flex items-center justify-center">
-                              <span className="text-lg font-bold text-slate-400">
-                                {item.display_name?.charAt(0)?.toUpperCase() || "?"}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-white text-sm truncate">{item.display_name}</p>
-                          <p className="text-xs text-pink-300/80">They've revealed. You can reveal anytime.</p>
-                        </div>
-                        <Eye className="w-4 h-4 text-pink-400 flex-shrink-0" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* Bulk Actions Header */}
               {totalGlances > 0 && (
               <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 flex items-center justify-between border border-white/10 shadow-lg" data-testid="glances-bulk-header">
