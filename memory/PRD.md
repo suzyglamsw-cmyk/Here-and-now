@@ -13,6 +13,28 @@ Building a real-time, location-based social connection app called "Here & Now" w
 - **Frontend:** React, TailwindCSS, Shadcn UI
 - **3rd Party:** Stripe, Google Maps Platform, OpenAI Whisper & Vision (Emergent LLM Key)
 
+## Messaging System (Updated Apr 2025)
+
+### Messages Layout
+- Standard messaging list with: profile photo, name, last message preview, timestamp, unread indicator
+- Tapping a row opens the full message thread
+
+### Quiet for Now Section
+- Below Messages list, titled "Quiet for now"
+- Uses same row layout as Messages
+- Badge shows unread count: "Quiet for now (1)"
+- New messages show unread indicator but thread does NOT auto-move
+
+### Thread Movement Options
+- In Messages: "Move to Quiet for now" option in thread menu
+- In Quiet for now: "Move back to Messages" option in thread menu
+- Uses `quiet_threads` array in user document to track
+
+### Photo Behaviour Rule
+- If `reveal_state === "both_revealed"`: show clear photo everywhere
+- Otherwise: keep current blur/overlay behaviour unchanged
+- Applies to: Messages list, Quiet for now, Chat thread header
+
 ## Core Visibility Model
 
 ### 3-Stage Blur System

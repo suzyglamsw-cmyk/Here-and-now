@@ -5,9 +5,15 @@ import { Input } from "@/components/ui/input";
 import { useAuth, API } from "@/App";
 import { toast } from "sonner";
 import axios from "axios";
-import { ArrowLeft, Send, Loader2, Check, CheckCheck, Lock, Unlock, Shield } from "lucide-react";
+import { ArrowLeft, Send, Loader2, Check, CheckCheck, Lock, Unlock, Shield, MoreVertical, VolumeX, Volume2 } from "lucide-react";
 import BlurredImage, { BLUR_STATES } from "../components/BlurredImage";
 import SilhouetteAvatar from "../components/SilhouetteAvatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Chat = () => {
   const { userId } = useParams();
@@ -20,7 +26,9 @@ const Chat = () => {
   const [otherUser, setOtherUser] = useState(null);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [isRevealed, setIsRevealed] = useState(false);  // Mutual reveal state
+  const [isBothRevealed, setIsBothRevealed] = useState(false);  // Both users revealed
   const [isBlocked, setIsBlocked] = useState(false);    // Blocked state
+  const [isQuiet, setIsQuiet] = useState(false);        // Quiet for now state
   const [unlockReason, setUnlockReason] = useState(null);
   const [accepting, setAccepting] = useState(false);
   const messagesEndRef = useRef(null);
@@ -148,7 +156,9 @@ const Chat = () => {
         setMessages(data.messages);
         setIsUnlocked(data.is_unlocked);
         setIsRevealed(data.is_revealed || false);  // Mutual reveal state
+        setIsBothRevealed(data.reveal_state === "both_revealed");  // Both users revealed
         setIsBlocked(data.is_blocked || false);    // Blocked state
+        setIsQuiet(data.is_quiet || false);        // Quiet for now state
         setUnlockReason(data.unlock_reason);
         // Always use other_user from messages endpoint - it has the real name even for blocked users
         if (data.other_user) {
@@ -159,7 +169,9 @@ const Chat = () => {
         setMessages(data);
         setIsUnlocked(true);
         setIsRevealed(false);
+        setIsBothRevealed(false);
         setIsBlocked(false);
+        setIsQuiet(false);
       }
     } catch (error) {
       if (error.response?.status === 403) {
@@ -168,6 +180,17 @@ const Chat = () => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+  
+  // Move thread to/from Quiet for now
+  const handleMoveThread = async (to) => {
+    try {
+      await axios.post(`${API}/messages/threads/${userId}/move?to=${to}`);
+      setIsQuiet(to === "quiet");
+      toast.success(to === "quiet" ? "Moved to Quiet for now" : "Moved back to Messages");
+    } catch (error) {
+      toast.error("Failed to move thread");
     }
   };
 
@@ -279,37 +302,44 @@ const Chat = () => {
                 onClick={() => !isBlocked && navigate(`/profile/${userId}`)}
                 data-testid="chat-user-header"
               >
-                {/* Profile photo - blurred with dark overlay and gradient initial */}
+                {/* Profile photo - show clear if both_revealed, else blurred with initial */}
                 <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-800 shrink-0 ring-2 ring-white/10 relative">
                   {otherUser.photos && otherUser.photos[0] ? (
-                    <>
-                      {/* Base photo with blur */}
+                    isBothRevealed ? (
+                      /* Both revealed - show clear photo */
                       <img
                         src={otherUser.photos[0]}
-                        alt=""
+                        alt={otherUser.display_name}
                         className="w-full h-full object-cover"
-                        style={{ filter: 'blur(5px)', transform: 'scale(1.1)' }}
                       />
-                      {/* Dark overlay */}
-                      <div 
-                        className="absolute inset-0"
-                        style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
-                      />
-                      {/* Gradient initial */}
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span 
-                          className="text-xl font-bold"
-                          style={{
-                            background: 'linear-gradient(90deg, #FF4F9A 0%, #A259FF 100%)',
-                            WebkitBackgroundClip: 'text',
-                            backgroundClip: 'text',
-                            color: 'transparent'
-                          }}
-                        >
-                          {otherUser.display_name?.charAt(0)?.toUpperCase() || "?"}
-                        </span>
-                      </div>
-                    </>
+                    ) : (
+                      /* Not both revealed - blurred with gradient initial */
+                      <>
+                        <img
+                          src={otherUser.photos[0]}
+                          alt=""
+                          className="w-full h-full object-cover"
+                          style={{ filter: 'blur(5px)', transform: 'scale(1.1)' }}
+                        />
+                        <div 
+                          className="absolute inset-0"
+                          style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span 
+                            className="text-xl font-bold"
+                            style={{
+                              background: 'linear-gradient(90deg, #FF4F9A 0%, #A259FF 100%)',
+                              WebkitBackgroundClip: 'text',
+                              backgroundClip: 'text',
+                              color: 'transparent'
+                            }}
+                          >
+                            {otherUser.display_name?.charAt(0)?.toUpperCase() || "?"}
+                          </span>
+                        </div>
+                      </>
+                    )
                   ) : (
                     <SilhouetteAvatar />
                   )}
@@ -349,6 +379,40 @@ const Chat = () => {
                   <div className="h-3 w-16 bg-slate-800 rounded animate-pulse" />
                 </div>
               </div>
+            )}
+            
+            {/* Thread Actions Menu */}
+            {otherUser && !isBlocked && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-slate-400 hover:text-white hover:bg-white/10 shrink-0"
+                  >
+                    <MoreVertical className="w-5 h-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
+                  {isQuiet ? (
+                    <DropdownMenuItem 
+                      onClick={() => handleMoveThread("messages")}
+                      className="text-slate-300 hover:text-white hover:bg-slate-700 cursor-pointer"
+                    >
+                      <Volume2 className="w-4 h-4 mr-2" />
+                      Move back to Messages
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem 
+                      onClick={() => handleMoveThread("quiet")}
+                      className="text-slate-300 hover:text-white hover:bg-slate-700 cursor-pointer"
+                    >
+                      <VolumeX className="w-4 h-4 mr-2" />
+                      Move to Quiet for now
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
         </div>

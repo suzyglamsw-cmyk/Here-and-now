@@ -8,7 +8,7 @@ import axios from "axios";
 import Layout from "../components/Layout";
 import { UserCard } from "../components/UserCard";
 import { NotForNowSheet } from "../components/NotForNowSheet";
-import { MessageCircle, MapPin, Loader2, Users, Sparkles, Eye, Heart, Snowflake, UserPlus, Check, X, Clock, UserCheck, ArrowUpRight, ArrowDownLeft, MessageSquare, Trash2, Ban, UserMinus, MoreVertical, Wine, Archive, CheckSquare, Square, Crown, User } from "lucide-react";
+import { MessageCircle, MapPin, Loader2, Users, Sparkles, Eye, Heart, Snowflake, UserPlus, Check, X, Clock, UserCheck, ArrowUpRight, ArrowDownLeft, MessageSquare, Trash2, Ban, UserMinus, MoreVertical, Wine, Archive, CheckSquare, Square, Crown, User, VolumeX, Volume2 } from "lucide-react";
 import { getErrorMessage } from "../utils/errorUtils";
 import { obscureBioText } from "../utils/bioObscure";
 import BlurredImage from "../components/BlurredImage";
@@ -16,6 +16,12 @@ import SilhouetteAvatar from "../components/SilhouetteAvatar";
 import { ConfirmHint, useConfirmHintGlobal } from "../components/ConfirmHint";
 import { dispatchBlockEvent, onUserBlocked } from "../utils/blockEvents";
 import { dispatchMatchEvent, onMutualMatch } from "../utils/matchEvents";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 /**
  * Helper: Determine photo blur state using 3-stage system
@@ -27,6 +33,132 @@ const getPhotoState = (item) => {
   if (item.reveal_state?.is_revealed) return 'revealed';
   if (item.is_connection_accepted) return 'connection_accepted';
   return 'unmatched';
+};
+
+/**
+ * MessageThreadRow - A single message thread row for the Messages list
+ * Handles photo reveal logic: shows clear photo only when reveal_state === "both_revealed"
+ */
+const MessageThreadRow = ({ thread, navigate, formatDate, onMoveToQuiet, onMoveToMessages, isQuiet }) => {
+  const isBothRevealed = thread.reveal_state === "both_revealed";
+  
+  return (
+    <div
+      data-testid={`thread-${thread.user_id}`}
+      className="bg-slate-800/40 backdrop-blur-sm rounded-xl p-3 flex items-center gap-3 border border-white/10 shadow-md transition-all hover:bg-slate-800/60 cursor-pointer"
+      onClick={() => navigate(`/chat/${thread.user_id}`)}
+    >
+      {/* Avatar */}
+      <div className="relative flex-shrink-0">
+        <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-800">
+          {thread.photos && thread.photos[0] ? (
+            isBothRevealed ? (
+              /* Both revealed - show clear photo */
+              <img
+                src={thread.photos[0]}
+                alt={thread.display_name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              /* Not both revealed - show blurred photo with gradient initial */
+              <>
+                <img
+                  src={thread.photos[0]}
+                  alt=""
+                  className="w-full h-full object-cover"
+                  style={{ filter: 'blur(5px)', transform: 'scale(1.1)' }}
+                />
+                <div 
+                  className="absolute inset-0"
+                  style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+                />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span 
+                    className="text-xl font-bold"
+                    style={{
+                      background: 'linear-gradient(90deg, #FF4F9A 0%, #A259FF 100%)',
+                      WebkitBackgroundClip: 'text',
+                      backgroundClip: 'text',
+                      color: 'transparent'
+                    }}
+                  >
+                    {thread.display_name?.charAt(0)?.toUpperCase() || "?"}
+                  </span>
+                </div>
+              </>
+            )
+          ) : (
+            /* No photo - gradient initial on dark background */
+            <div className="w-full h-full flex items-center justify-center bg-slate-700">
+              <span 
+                className="text-xl font-bold"
+                style={{
+                  background: 'linear-gradient(90deg, #FF4F9A 0%, #A259FF 100%)',
+                  WebkitBackgroundClip: 'text',
+                  backgroundClip: 'text',
+                  color: 'transparent'
+                }}
+              >
+                {thread.display_name?.charAt(0)?.toUpperCase() || "?"}
+              </span>
+            </div>
+          )}
+        </div>
+        {/* Unread indicator dot */}
+        {thread.unread_count > 0 && (
+          <div className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-pink-500 border-2 border-slate-900" />
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className={`text-sm truncate ${thread.unread_count > 0 ? "font-bold text-white" : "font-medium text-white"}`}>
+            {thread.display_name}
+          </h3>
+          <span className="text-xs text-slate-500 flex-shrink-0">
+            {formatDate(thread.last_message_at)}
+          </span>
+        </div>
+        <p className={`text-xs truncate mt-0.5 ${thread.unread_count > 0 ? "text-slate-300 font-medium" : "text-slate-500"}`}>
+          {thread.is_from_me && <span className="text-slate-600">You: </span>}
+          {thread.last_message || "No messages yet"}
+        </p>
+      </div>
+
+      {/* Actions Menu */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0 text-slate-400 hover:text-white hover:bg-white/10 flex-shrink-0"
+          >
+            <MoreVertical className="w-4 h-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
+          {isQuiet ? (
+            <DropdownMenuItem 
+              onClick={(e) => { e.stopPropagation(); onMoveToMessages?.(); }}
+              className="text-slate-300 hover:text-white hover:bg-slate-700 cursor-pointer"
+            >
+              <Volume2 className="w-4 h-4 mr-2" />
+              Move back to Messages
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem 
+              onClick={(e) => { e.stopPropagation(); onMoveToQuiet?.(); }}
+              className="text-slate-300 hover:text-white hover:bg-slate-700 cursor-pointer"
+            >
+              <VolumeX className="w-4 h-4 mr-2" />
+              Move to Quiet for now
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
 };
 
 const ICEBREAKER_MESSAGES = [
@@ -822,101 +954,80 @@ const Connections = () => {
               </p>
             </div>
           ) : (
-            <div className="space-y-3" data-testid="messages-list">
-              {sortByDate(messageThreads, "last_message_at").map((thread) => (
-                <div
-                  key={thread.user_id}
-                  data-testid={`thread-${thread.user_id}`}
-                  className="bg-slate-800/40 backdrop-blur-sm rounded-2xl p-4 flex items-center gap-4 border border-white/10 shadow-md transition-all hover:bg-slate-800/60"
-                >
-                  {/* Avatar - tappable to profile */}
-                  <div 
-                    className="relative cursor-pointer"
-                    onClick={() => navigate(`/profile/${thread.user_id}`)}
-                  >
-                    <div className="w-14 h-14 rounded-2xl overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all relative bg-slate-800">
-                      {thread.photos && thread.photos[0] ? (
-                        <>
-                          {/* Base photo with blur */}
-                          <img
-                            src={thread.photos[0]}
-                            alt=""
-                            className="w-full h-full object-cover"
-                            style={{ filter: 'blur(5px)', transform: 'scale(1.1)' }}
-                          />
-                          {/* Dark overlay */}
-                          <div 
-                            className="absolute inset-0"
-                            style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
-                          />
-                          {/* Gradient initial */}
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <span 
-                              className="text-2xl font-bold"
-                              style={{
-                                background: 'linear-gradient(90deg, #FF4F9A 0%, #A259FF 100%)',
-                                WebkitBackgroundClip: 'text',
-                                backgroundClip: 'text',
-                                color: 'transparent'
-                              }}
-                            >
-                              {thread.display_name?.charAt(0)?.toUpperCase() || "?"}
-                            </span>
-                          </div>
-                        </>
-                      ) : (
-                        /* Fallback: gradient initial on dark background */
-                        <div className="w-full h-full flex items-center justify-center bg-slate-700">
-                          <span 
-                            className="text-2xl font-bold"
-                            style={{
-                              background: 'linear-gradient(90deg, #FF4F9A 0%, #A259FF 100%)',
-                              WebkitBackgroundClip: 'text',
-                              backgroundClip: 'text',
-                              color: 'transparent'
+            <div className="space-y-4" data-testid="messages-list">
+              {/* Active Messages Section */}
+              {(() => {
+                const activeThreads = sortByDate(messageThreads.filter(t => !t.is_quiet), "last_message_at");
+                const quietThreads = sortByDate(messageThreads.filter(t => t.is_quiet), "last_message_at");
+                const quietUnreadCount = quietThreads.filter(t => t.unread_count > 0).length;
+                
+                return (
+                  <>
+                    {/* Active Messages */}
+                    {activeThreads.length > 0 ? (
+                      <div className="space-y-2">
+                        {activeThreads.map((thread) => (
+                          <MessageThreadRow 
+                            key={thread.user_id}
+                            thread={thread}
+                            navigate={navigate}
+                            formatDate={formatDate}
+                            onMoveToQuiet={async () => {
+                              try {
+                                await axios.post(`${API}/messages/threads/${thread.user_id}/move?to=quiet`);
+                                fetchAllData();
+                              } catch (error) {
+                                toast.error("Failed to move thread");
+                              }
                             }}
-                          >
-                            {thread.display_name?.charAt(0)?.toUpperCase() || "?"}
-                          </span>
+                            isQuiet={false}
+                          />
+                        ))}
+                      </div>
+                    ) : quietThreads.length > 0 ? (
+                      <div className="text-center py-8">
+                        <p className="text-slate-400 text-sm">No active messages</p>
+                      </div>
+                    ) : null}
+                    
+                    {/* Quiet for now Section */}
+                    {quietThreads.length > 0 && (
+                      <div className="mt-6">
+                        <div className="flex items-center gap-2 mb-3 px-1">
+                          <Archive className="w-4 h-4 text-slate-500" />
+                          <h3 className="text-sm font-medium text-slate-400">
+                            Quiet for now
+                            {quietUnreadCount > 0 && (
+                              <span className="ml-2 text-xs bg-pink-500 px-2 py-0.5 rounded-full text-white">
+                                {quietUnreadCount}
+                              </span>
+                            )}
+                          </h3>
                         </div>
-                      )}
-                    </div>
-                    {thread.unread_count > 0 && (
-                      <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-pink-500 flex items-center justify-center text-white text-xs font-bold">
-                        {thread.unread_count}
+                        <div className="space-y-2">
+                          {quietThreads.map((thread) => (
+                            <MessageThreadRow 
+                              key={thread.user_id}
+                              thread={thread}
+                              navigate={navigate}
+                              formatDate={formatDate}
+                              onMoveToMessages={async () => {
+                                try {
+                                  await axios.post(`${API}/messages/threads/${thread.user_id}/move?to=messages`);
+                                  fetchAllData();
+                                } catch (error) {
+                                  toast.error("Failed to move thread");
+                                }
+                              }}
+                              isQuiet={true}
+                            />
+                          ))}
+                        </div>
                       </div>
                     )}
-                  </div>
-
-                  {/* Info - tappable to chat */}
-                  <div 
-                    className="flex-1 min-w-0 cursor-pointer"
-                    onClick={() => navigate(`/chat/${thread.user_id}`)}
-                  >
-                    <h3 className="font-semibold text-white truncate">{thread.display_name}</h3>
-                    <p className={`text-sm truncate ${thread.unread_count > 0 ? "text-white font-medium" : "text-slate-400"}`}>
-                      {thread.is_from_me && <span className="text-slate-500">You: </span>}
-                      {thread.last_message}
-                    </p>
-                  </div>
-
-                  {/* Time */}
-                  <div className="text-slate-500/70 text-xs mr-2">
-                    {formatDate(thread.last_message_at)}
-                  </div>
-
-                  {/* Delete button */}
-                  <Button
-                    data-testid={`delete-thread-${thread.user_id}`}
-                    onClick={(e) => { e.stopPropagation(); handleDeleteConversation(thread.user_id); }}
-                    size="sm"
-                    variant="ghost"
-                    className="rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              ))}
+                  </>
+                );
+              })()}
             </div>
           )
         ) : tab === "glances" ? (

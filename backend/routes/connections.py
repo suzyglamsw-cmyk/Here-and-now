@@ -2,7 +2,7 @@
 Connections Routes
 Handles glances, icebreakers, connections, messages, and chat requests.
 """
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import List, Optional
 from datetime import datetime, timezone, timedelta
 import uuid
@@ -1424,12 +1424,15 @@ async def bulk_delete_chat_requests(data: dict, current_user: dict = Depends(get
 
 @router.get("/messages/threads")
 async def get_message_threads(current_user: dict = Depends(get_current_user)):
-    """Get all message threads"""
+    """Get all message threads with quiet_for_now support"""
     # Get unique users we have messages with
     sent_to = await db.messages.distinct("to_user_id", {"from_user_id": current_user["id"]})
     received_from = await db.messages.distinct("from_user_id", {"to_user_id": current_user["id"]})
     
     all_users = list(set(sent_to + received_from))
+    
+    # Get user's quiet_threads list
+    quiet_threads = current_user.get("quiet_threads", [])
     
     threads = []
     for user_id in all_users:
@@ -1456,6 +1459,29 @@ async def get_message_threads(current_user: dict = Depends(get_current_user)):
         photos = user.get("photos", [])
         photo_urls = [f"/api/photos/serve/{p}" for p in photos if p] if photos else []
         
+        # Check reveal state for both users
+        reveal_state = "none"
+        my_reveal = await db.reveals.find_one({
+            "from_user_id": current_user["id"],
+            "to_user_id": user_id
+        })
+        their_reveal = await db.reveals.find_one({
+            "from_user_id": user_id,
+            "to_user_id": current_user["id"]
+        })
+        if my_reveal and their_reveal:
+            reveal_state = "both_revealed"
+        elif my_reveal:
+            reveal_state = "i_revealed"
+        elif their_reveal:
+            reveal_state = "they_revealed"
+        
+        # Determine if this thread is in "Quiet for now"
+        is_quiet = user_id in quiet_threads
+        
+        # Determine if last message is from me
+        is_from_me = last_msg.get("from_user_id") == current_user["id"] if last_msg else False
+        
         threads.append({
             "user_id": user_id,
             "display_name": user.get("display_name", "Unknown"),
@@ -1463,11 +1489,36 @@ async def get_message_threads(current_user: dict = Depends(get_current_user)):
             "photos": photo_urls,  # Full photos array for new avatar design
             "last_message": last_msg.get("content", "") if last_msg else "",
             "last_message_at": last_msg.get("created_at") if last_msg else "",
-            "unread_count": unread
+            "unread_count": unread,
+            "is_quiet": is_quiet,
+            "reveal_state": reveal_state,
+            "is_from_me": is_from_me
         })
     
     threads.sort(key=lambda x: x.get("last_message_at", ""), reverse=True)
     return threads
+
+
+@router.post("/messages/threads/{user_id}/move")
+async def move_thread(user_id: str, to: str = Query(..., regex="^(quiet|messages)$"), current_user: dict = Depends(get_current_user)):
+    """Move a thread to/from Quiet for now"""
+    quiet_threads = current_user.get("quiet_threads", [])
+    
+    if to == "quiet":
+        # Move to Quiet for now
+        if user_id not in quiet_threads:
+            quiet_threads.append(user_id)
+    else:
+        # Move back to Messages
+        if user_id in quiet_threads:
+            quiet_threads.remove(user_id)
+    
+    await db.users.update_one(
+        {"id": current_user["id"]},
+        {"$set": {"quiet_threads": quiet_threads}}
+    )
+    
+    return {"success": True, "is_quiet": user_id in quiet_threads}
 
 
 @router.post("/messages")
@@ -1549,6 +1600,19 @@ async def get_messages(user_id: str, current_user: dict = Depends(get_current_us
     })
     is_revealed = bool(i_revealed and they_revealed)
     
+    # Determine reveal_state for photo display
+    reveal_state = "none"
+    if i_revealed and they_revealed:
+        reveal_state = "both_revealed"
+    elif i_revealed:
+        reveal_state = "i_revealed"
+    elif they_revealed:
+        reveal_state = "they_revealed"
+    
+    # Check if thread is in "Quiet for now"
+    quiet_threads = current_user.get("quiet_threads", [])
+    is_quiet = user_id in quiet_threads
+    
     result = []
     for msg in messages:
         if msg["from_user_id"] == current_user["id"]:
@@ -1576,7 +1640,9 @@ async def get_messages(user_id: str, current_user: dict = Depends(get_current_us
         "messages": result,
         "is_unlocked": True,
         "is_revealed": is_revealed,
+        "reveal_state": reveal_state,
         "is_blocked": is_blocked,
+        "is_quiet": is_quiet,
         "unlock_reason": "connection",
         "other_user": {
             "id": user_id,
