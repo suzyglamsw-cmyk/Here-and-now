@@ -425,7 +425,8 @@ const Discovery = () => {
     try {
       await axios.post(`${API}/chat-request`, { 
         to_user_id: userId, 
-        venue_id: venueId || "not-here" 
+        venue_id: venueId || "not-here",
+        request_type: "chat"
       });
       toast.success("Chat request sent!");
       fetchPeople();
