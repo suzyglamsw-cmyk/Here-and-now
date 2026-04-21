@@ -930,8 +930,8 @@ const Connections = () => {
         {/* Header */}
         <div className="mb-6 flex items-start justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Match List</h1>
-            <p className="text-slate-400">People you've connected with</p>
+            <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-[#A66CFF] via-[#C77DFF] to-[#FF70A6] bg-clip-text text-transparent">HereHub</h1>
+            <p className="text-white">What's happening now.</p>
           </div>
           <Button
             variant="ghost"
