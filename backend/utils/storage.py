@@ -10,7 +10,7 @@ import uuid
 import logging
 import requests
 from io import BytesIO
-from PIL import Image, ImageFilter
+from PIL import Image, ImageFilter, ImageOps
 from typing import Optional, Tuple
 
 logger = logging.getLogger(__name__)
@@ -108,6 +108,10 @@ def create_blurred_image(image_data: bytes, blur_radius: int = 30) -> bytes:
         # Open image
         img = Image.open(BytesIO(image_data))
         
+        # Apply EXIF orientation correction FIRST (before any other processing)
+        # This ensures portrait photos taken with phones display correctly
+        img = ImageOps.exif_transpose(img)
+        
         # Convert to RGB if necessary (for JPEG output)
         if img.mode in ('RGBA', 'P'):
             img = img.convert('RGB')
@@ -146,6 +150,10 @@ def create_thumbnail(image_data: bytes, size: int = 150) -> bytes:
     """
     try:
         img = Image.open(BytesIO(image_data))
+        
+        # Apply EXIF orientation correction FIRST (before any other processing)
+        # This ensures portrait photos taken with phones display correctly
+        img = ImageOps.exif_transpose(img)
         
         # Convert to RGB if necessary
         if img.mode in ('RGBA', 'P'):
