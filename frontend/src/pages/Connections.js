@@ -258,6 +258,8 @@ const Connections = () => {
     const stored = localStorage.getItem('dismissedReveals');
     return stored ? new Set(JSON.parse(stored)) : new Set();
   });
+  const [removeRevealConfirm, setRemoveRevealConfirm] = useState(null); // For reveal removal confirmation { userId, displayName }
+  const [revealMenuOpen, setRevealMenuOpen] = useState(null); // Track which reveal card menu is open
   const [tab, setTab] = useState(searchParams.get("tab") || "messages"); // "messages" | "glances" | "icebreakers" | "chats" | "requests" | "friends" | "connections"
   
   // Selection state for bulk delete
@@ -957,17 +959,30 @@ const Connections = () => {
                   className="relative flex-shrink-0 bg-gradient-to-br from-pink-500/20 to-indigo-500/20 rounded-xl p-2 border border-pink-500/30 min-w-[120px] max-w-[140px]"
                   data-testid={`revealed-${item.user_id}`}
                 >
-                  {/* Dismiss button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      dismissReveal(item.user_id);
-                    }}
-                    className="absolute -top-1 -right-1 w-5 h-5 bg-slate-800 hover:bg-slate-700 rounded-full flex items-center justify-center border border-slate-600 z-10 transition-colors"
-                    data-testid={`dismiss-reveal-${item.user_id}`}
-                  >
-                    <X className="w-3 h-3 text-slate-400" />
-                  </button>
+                  {/* Three-dot menu */}
+                  <DropdownMenu open={revealMenuOpen === item.user_id} onOpenChange={(open) => setRevealMenuOpen(open ? item.user_id : null)}>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute top-1 right-1 w-5 h-5 bg-slate-800/80 hover:bg-slate-700 rounded-full flex items-center justify-center z-10 transition-colors"
+                        data-testid={`reveal-menu-${item.user_id}`}
+                      >
+                        <MoreVertical className="w-3 h-3 text-slate-400" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700 min-w-[140px]">
+                      <DropdownMenuItem 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRevealMenuOpen(null);
+                          setRemoveRevealConfirm({ userId: item.user_id, displayName: item.display_name });
+                        }}
+                        className="text-slate-300 hover:text-white hover:bg-slate-700 cursor-pointer text-xs"
+                      >
+                        Remove from view
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   
                   {/* Clickable card content */}
                   <div 
@@ -992,10 +1007,50 @@ const Connections = () => {
                       )}
                     </div>
                     <p className="font-medium text-white text-xs text-center truncate">{item.display_name}</p>
-                    <p className="text-[10px] text-pink-300/80 text-center">Tap to reveal back</p>
+                    <p className="text-[10px] text-pink-300/80 text-center">Tap to see profile & options</p>
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Remove Reveal Confirmation Modal */}
+        {removeRevealConfirm && (
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+            onClick={() => setRemoveRevealConfirm(null)}
+            data-testid="remove-reveal-confirm-overlay"
+          >
+            <div 
+              className="bg-slate-900 rounded-2xl p-6 mx-4 max-w-sm w-full border border-white/10 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+              data-testid="remove-reveal-confirm-dialog"
+            >
+              <h3 className="text-lg font-semibold text-white mb-3">Remove this reveal?</h3>
+              <p className="text-slate-400 text-sm mb-6">
+                This won't remove your match. It just tidies your HereHub.
+              </p>
+              <div className="flex gap-3">
+                <Button
+                  variant="ghost"
+                  onClick={() => setRemoveRevealConfirm(null)}
+                  className="flex-1 rounded-xl bg-white/5 hover:bg-white/10 text-white"
+                  data-testid="remove-reveal-cancel-btn"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    dismissReveal(removeRevealConfirm.userId);
+                    setRemoveRevealConfirm(null);
+                  }}
+                  className="flex-1 rounded-xl bg-pink-500 hover:bg-pink-600 text-white"
+                  data-testid="remove-reveal-confirm-btn"
+                >
+                  Remove from view
+                </Button>
+              </div>
             </div>
           </div>
         )}
