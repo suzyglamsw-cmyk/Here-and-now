@@ -22,6 +22,19 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
+# Helper to get WebSocket manager from server module
+def get_websocket_manager():
+    """Get the WebSocket connection manager from server.py"""
+    try:
+        import sys
+        if 'server' in sys.modules:
+            return sys.modules['server'].manager
+        return None
+    except Exception as e:
+        logger.error(f"Failed to get WebSocket manager: {e}")
+        return None
+
+
 # Push notification helper for routes
 async def send_push_notification_from_route(user_id: str, title: str, body: str, data: dict = None):
     """
@@ -177,21 +190,96 @@ async def send_glance(data: GlanceCreate, current_user: dict = Depends(get_curre
         "venue_id": data.venue_id
     })
     
+    # Get WebSocket manager for real-time notifications
+    manager = get_websocket_manager()
+    
     if mutual:
         # Create connection
         connection_id = str(uuid.uuid4())
+        matched_at = datetime.now(timezone.utc).isoformat()
         connection = {
             "id": connection_id,
             "user1_id": current_user["id"],
             "user2_id": data.to_user_id,
             "venue_id": data.venue_id,
-            "connected_at": datetime.now(timezone.utc).isoformat()
+            "connection_type": "mutual_glance",
+            "connected_at": matched_at
         }
         await db.connections.insert_one(connection)
         
-        return {"message": "It's a match! You can now connect.", "is_mutual": True}
+        # Update both glance records with matched status
+        await db.glances.update_one(
+            {"from_user_id": current_user["id"], "to_user_id": data.to_user_id, "venue_id": data.venue_id},
+            {"$set": {"status": "matched", "matched_at": matched_at}}
+        )
+        await db.glances.update_one(
+            {"from_user_id": data.to_user_id, "to_user_id": current_user["id"], "venue_id": data.venue_id},
+            {"$set": {"status": "matched", "matched_at": matched_at}}
+        )
+        
+        # Notify target user via WebSocket - mutual match
+        if manager:
+            try:
+                await manager.send_to_user(data.to_user_id, {
+                    "type": "mutual_match_created",
+                    "source": "glance",
+                    "from_user": {
+                        "id": current_user["id"],
+                        "display_name": current_user.get("display_name", "Someone"),
+                        "avatar_url": current_user.get("avatar_url", "")
+                    }
+                })
+                logger.info(f"Sent mutual_match_created WebSocket to {data.to_user_id}")
+            except Exception as e:
+                logger.error(f"Failed to send mutual match WebSocket: {e}")
+        
+        # Send push notification for mutual match (if settings allow)
+        settings = await db.push_settings.find_one({"user_id": data.to_user_id})
+        if not settings or settings.get("matches", True):
+            await send_push_notification_from_route(
+                data.to_user_id,
+                "You made a mutual connection 🎉",
+                f"You and {current_user.get('display_name', 'Someone')} are now connected!",
+                {
+                    "type": "mutual_match_created",
+                    "source": "glance",
+                    "user_id": current_user["id"],
+                    "from_user_id": current_user["id"],
+                    "from_user_name": current_user.get("display_name", "Someone"),
+                    "from_user_photo": current_user.get("avatar_url", "")
+                }
+            )
+        
+        return {"message": "It's a match! You can now connect.", "is_mutual": True, "used_token": use_token}
     
-    return {"message": "Glance sent!", "is_mutual": False}
+    # Not mutual - notify target user of new glance
+    if manager:
+        try:
+            await manager.send_to_user(data.to_user_id, {
+                "type": "new_glance",
+                "message": "Someone glanced at you!",
+                "from_user_id": current_user["id"]
+            })
+            logger.info(f"Sent new_glance WebSocket to {data.to_user_id}")
+        except Exception as e:
+            logger.error(f"Failed to send glance WebSocket: {e}")
+    
+    # Send push notification for glance (if settings allow)
+    settings = await db.push_settings.find_one({"user_id": data.to_user_id})
+    if not settings or settings.get("glances", True):
+        await send_push_notification_from_route(
+            data.to_user_id,
+            "Someone noticed you 👀",
+            "Someone at your venue glanced at you!",
+            {
+                "type": "glance",
+                "from_user_id": current_user["id"],
+                "from_user_name": current_user.get("display_name", "Someone"),
+                "from_user_photo": current_user.get("avatar_url", "")
+            }
+        )
+    
+    return {"message": "Glance sent!", "is_mutual": False, "used_token": use_token}
 
 
 @router.post("/glance/{glance_id}/viewed")
