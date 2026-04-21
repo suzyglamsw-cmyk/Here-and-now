@@ -158,7 +158,7 @@ const UserProfile = () => {
   const handleRevealPhoto = async () => {
     setRevealing(true);
     try {
-      const response = await axios.post(`${API}/connections/reveal/${userId}`);
+      const response = await axios.post(`${API}/reveal/${userId}`);
       
       // Show appropriate toast based on whether it's mutual
       if (response.data.is_mutual) {

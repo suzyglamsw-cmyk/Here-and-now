@@ -1881,6 +1881,9 @@ async def reveal_photo(other_user_id: str, current_user: dict = Depends(get_curr
     
     first_name = get_first_name(current_user.get("display_name", "Someone"))
     
+    # Get WebSocket manager for real-time notifications
+    manager = get_websocket_manager()
+    
     if mutual:
         # Mutual reveal! Notify both users
         # Notify the other user
@@ -1894,6 +1897,21 @@ async def reveal_photo(other_user_id: str, current_user: dict = Depends(get_curr
             "is_read": False,
             "created_at": now.isoformat()
         })
+        
+        # Send WebSocket notification for mutual reveal
+        if manager:
+            try:
+                await manager.send_to_user(other_user_id, {
+                    "type": "mutual_reveal",
+                    "from_user": {
+                        "id": current_user["id"],
+                        "display_name": current_user.get("display_name", "Someone"),
+                        "avatar_url": current_user.get("avatar_url", "")
+                    }
+                })
+                logger.info(f"Sent mutual_reveal WebSocket to {other_user_id}")
+            except Exception as e:
+                logger.error(f"Failed to send mutual reveal WebSocket: {e}")
         
         # Send push notification for mutual reveal
         settings = await db.push_settings.find_one({"user_id": other_user_id})
@@ -1916,6 +1934,21 @@ async def reveal_photo(other_user_id: str, current_user: dict = Depends(get_curr
             "is_read": False,
             "created_at": now.isoformat()
         })
+        
+        # Send WebSocket notification for reveal received
+        if manager:
+            try:
+                await manager.send_to_user(other_user_id, {
+                    "type": "reveal_received",
+                    "from_user": {
+                        "id": current_user["id"],
+                        "display_name": current_user.get("display_name", "Someone"),
+                        "avatar_url": current_user.get("avatar_url", "")
+                    }
+                })
+                logger.info(f"Sent reveal_received WebSocket to {other_user_id}")
+            except Exception as e:
+                logger.error(f"Failed to send reveal received WebSocket: {e}")
         
         # Send push notification
         settings = await db.push_settings.find_one({"user_id": other_user_id})
