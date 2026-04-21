@@ -464,12 +464,22 @@ const Discovery = () => {
       <Layout>
         <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 flex flex-col pt-16 px-6">
           <div className="text-center mb-8">
-            {/* Header - purple to pink gradient matching Save button */}
+            {/* Header - purple to pink gradient matching Save button with shimmer */}
             <h1 
               className="text-4xl font-bold bg-clip-text text-transparent"
-              style={{ backgroundImage: 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)' }}
+              style={{ 
+                backgroundImage: 'linear-gradient(90deg, #a855f7, #c084fc, #ec4899, #c084fc, #a855f7)',
+                backgroundSize: '200% 100%',
+                animation: 'shimmerText 4s ease-in-out infinite',
+              }}
             >
               Discover
+              <style>{`
+                @keyframes shimmerText {
+                  0%, 100% { background-position: 0% center; }
+                  50% { background-position: 100% center; }
+                }
+              `}</style>
             </h1>
             <p className="text-slate-300/70 text-sm mt-2">Choose how you want to explore people around you.</p>
           </div>
