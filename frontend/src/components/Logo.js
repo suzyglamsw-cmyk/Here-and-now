@@ -56,16 +56,34 @@ export const Logo = ({ size = "default", showText = true }) => {
     hero: "w-8 h-8 md:w-10 md:h-10",
   };
 
+  const shimmerStyle = {
+    backgroundImage: 'linear-gradient(90deg, #a855f7, #c084fc, #ec4899, #c084fc, #a855f7)',
+    backgroundSize: '200% 100%',
+    animation: 'shimmerText 4s ease-in-out infinite',
+  };
+
   return (
     <div className="flex items-center gap-1">
+      <style>{`
+        @keyframes shimmerText {
+          0%, 100% { background-position: 0% center; }
+          50% { background-position: 100% center; }
+        }
+      `}</style>
       {showText && (
-        <span className={`font-bold text-white tracking-tight ${sizeClasses[size]}`}>
+        <span 
+          className={`font-bold tracking-tight bg-clip-text text-transparent ${sizeClasses[size]}`}
+          style={shimmerStyle}
+        >
           Here & N
         </span>
       )}
-      <ClockO className={`${clockSizes[size]} text-white`} />
+      <ClockO className={`${clockSizes[size]} text-purple-400`} />
       {showText && (
-        <span className={`font-bold text-white tracking-tight ${sizeClasses[size]}`}>
+        <span 
+          className={`font-bold tracking-tight bg-clip-text text-transparent ${sizeClasses[size]}`}
+          style={shimmerStyle}
+        >
           w
         </span>
       )}
