@@ -8,7 +8,6 @@ import { ensureValidPushSubscription, isPushSupported, getPermissionStatus } fro
 
 // Pages
 import Landing from "./pages/Landing";
-import OnboardingDiscover from "./pages/OnboardingDiscover";
 import OnboardingGender from "./pages/OnboardingGender";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -162,7 +161,8 @@ function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Landing />} />
-            <Route path="/onboarding/discover" element={<OnboardingDiscover />} />
+            {/* Redirect old onboarding/discover to register */}
+            <Route path="/onboarding/discover" element={<Navigate to="/register" replace />} />
             <Route path="/onboarding-gender" element={
               <ProtectedRoute>
                 <OnboardingGender />
