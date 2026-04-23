@@ -255,6 +255,23 @@ async def send_glance(data: GlanceCreate, current_user: dict = Depends(get_curre
                 }
             )
         
+        # Create in-app notification for mutual match
+        await db.notifications.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": data.to_user_id,
+            "type": "mutual_match",
+            "title": "It's a match! 🎉",
+            "body": f"You and {current_user.get('display_name', 'Someone')} matched!",
+            "data": {
+                "from_user_id": current_user["id"],
+                "from_user_name": current_user.get("display_name", "Someone"),
+                "from_user_photo": current_user.get("avatar_url", ""),
+                "source": "glance"
+            },
+            "is_read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        
         return {"message": "It's a match! You can now connect.", "is_mutual": True, "used_token": use_token}
     
     # Not mutual - notify target user of new glance
@@ -268,6 +285,23 @@ async def send_glance(data: GlanceCreate, current_user: dict = Depends(get_curre
             logger.info(f"Sent new_glance WebSocket to {data.to_user_id}")
         except Exception as e:
             logger.error(f"Failed to send glance WebSocket: {e}")
+    
+    # Create in-app notification for new glance
+    await db.notifications.insert_one({
+        "id": str(uuid.uuid4()),
+        "user_id": data.to_user_id,
+        "type": "new_glance",
+        "title": "Someone noticed you 👀",
+        "body": f"{current_user.get('display_name', 'Someone')} glanced at you",
+        "data": {
+            "from_user_id": current_user["id"],
+            "from_user_name": current_user.get("display_name", "Someone"),
+            "from_user_photo": current_user.get("avatar_url", ""),
+            "glance_id": glance_id
+        },
+        "is_read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
     
     # Send push notification for glance (if settings allow)
     settings = await db.push_settings.find_one({"user_id": data.to_user_id})
@@ -525,6 +559,56 @@ async def send_icebreaker(data: IcebreakerCreate, current_user: dict = Depends(g
         "used_token": use_token  # Track if token was used
     }
     await db.icebreakers.insert_one(icebreaker)
+    
+    # Get WebSocket manager for real-time notifications
+    manager = get_websocket_manager()
+    
+    # Send WebSocket notification
+    if manager:
+        try:
+            await manager.send_to_user(data.to_user_id, {
+                "type": "new_icebreaker",
+                "message": "Someone sent you an icebreaker!",
+                "from_user_id": current_user["id"],
+                "icebreaker_id": icebreaker_id
+            })
+            logger.info(f"Sent new_icebreaker WebSocket to {data.to_user_id}")
+        except Exception as e:
+            logger.error(f"Failed to send icebreaker WebSocket: {e}")
+    
+    # Create in-app notification for new icebreaker
+    await db.notifications.insert_one({
+        "id": str(uuid.uuid4()),
+        "user_id": data.to_user_id,
+        "type": "new_icebreaker",
+        "title": "New icebreaker! 💬",
+        "body": f"{current_user.get('display_name', 'Someone')} sent you an icebreaker",
+        "data": {
+            "from_user_id": current_user["id"],
+            "from_user_name": current_user.get("display_name", "Someone"),
+            "from_user_photo": current_user.get("avatar_url", ""),
+            "icebreaker_id": icebreaker_id,
+            "message": ICEBREAKER_MESSAGES[data.message_type]
+        },
+        "is_read": False,
+        "created_at": now.isoformat()
+    })
+    
+    # Send push notification for icebreaker (if settings allow)
+    settings = await db.push_settings.find_one({"user_id": data.to_user_id})
+    if not settings or settings.get("drinks", True):  # "drinks" is the icebreaker setting
+        await send_push_notification_from_route(
+            data.to_user_id,
+            "New icebreaker! 💬",
+            f"{current_user.get('display_name', 'Someone')} wants to break the ice!",
+            {
+                "type": "icebreaker",
+                "from_user_id": current_user["id"],
+                "from_user_name": current_user.get("display_name", "Someone"),
+                "from_user_photo": current_user.get("avatar_url", ""),
+                "icebreaker_id": icebreaker_id
+            }
+        )
     
     return {"message": "Icebreaker sent!", "icebreaker_id": icebreaker_id, "used_token": use_token}
 
@@ -1634,15 +1718,67 @@ async def send_message(data: MessageCreate, current_user: dict = Depends(get_cur
         raise HTTPException(status_code=403, detail="You have blocked this user")
     
     message_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
     message = {
         "id": message_id,
         "from_user_id": current_user["id"],
         "to_user_id": data.to_user_id,
         "content": data.content,
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": now.isoformat(),
         "is_read": False
     }
     await db.messages.insert_one(message)
+    
+    # Get WebSocket manager for real-time notifications
+    manager = get_websocket_manager()
+    
+    # Send WebSocket notification
+    if manager:
+        try:
+            await manager.send_to_user(data.to_user_id, {
+                "type": "new_message",
+                "message": data.content,
+                "from_user_id": current_user["id"],
+                "from_user_name": current_user.get("display_name", "Someone"),
+                "message_id": message_id
+            })
+            logger.info(f"Sent new_message WebSocket to {data.to_user_id}")
+        except Exception as e:
+            logger.error(f"Failed to send message WebSocket: {e}")
+    
+    # Create in-app notification for new message
+    await db.notifications.insert_one({
+        "id": str(uuid.uuid4()),
+        "user_id": data.to_user_id,
+        "type": "new_message",
+        "title": "New message 💬",
+        "body": f"{current_user.get('display_name', 'Someone')}: {data.content[:50]}{'...' if len(data.content) > 50 else ''}",
+        "data": {
+            "from_user_id": current_user["id"],
+            "from_user_name": current_user.get("display_name", "Someone"),
+            "from_user_photo": current_user.get("avatar_url", ""),
+            "message_id": message_id,
+            "preview": data.content[:100]
+        },
+        "is_read": False,
+        "created_at": now.isoformat()
+    })
+    
+    # Send push notification for message (if settings allow)
+    settings = await db.push_settings.find_one({"user_id": data.to_user_id})
+    if not settings or settings.get("messages", True):
+        await send_push_notification_from_route(
+            data.to_user_id,
+            f"Message from {current_user.get('display_name', 'Someone')}",
+            f"{data.content[:100]}{'...' if len(data.content) > 100 else ''}",
+            {
+                "type": "message",
+                "from_user_id": current_user["id"],
+                "from_user_name": current_user.get("display_name", "Someone"),
+                "from_user_photo": current_user.get("avatar_url", ""),
+                "message_id": message_id
+            }
+        )
     
     return {
         "id": message_id,
