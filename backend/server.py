@@ -6275,6 +6275,24 @@ async def get_user_profile(user_id: str, current_user: dict = Depends(get_curren
         "status": "pending"
     }) is not None
     
+    # Check if a chat thread exists (messages between these users AND not soft-deleted by current user)
+    has_messages = await db.messages.find_one({
+        "$or": [
+            {"from_user_id": current_user["id"], "to_user_id": user_id},
+            {"from_user_id": user_id, "to_user_id": current_user["id"]}
+        ]
+    }) is not None
+    
+    # Check if current user has soft-deleted this conversation
+    chat_state = await db.user_chat_states.find_one({
+        "user_id": current_user["id"],
+        "other_user_id": user_id
+    })
+    is_chat_deleted = chat_state.get("is_deleted", False) if chat_state else False
+    
+    # has_chat_thread = messages exist AND not deleted by current user
+    has_chat_thread = has_messages and not is_chat_deleted
+    
     # Check if we received an icebreaker from them (pending)
     icebreaker_received = await db.icebreakers.find_one({
         "from_user_id": user_id,
@@ -6360,8 +6378,10 @@ async def get_user_profile(user_id: str, current_user: dict = Depends(get_curren
         "i_revealed": i_revealed_to_them,
         "they_revealed": they_revealed_to_me,
         "can_glance_back": they_glanced_at_me and not i_glanced_at_them,
-        # Message requires connection_accepted AND chat unlocked
-        "can_message": is_connection_accepted and can_message,
+        # Message button: requires mutual match AND chat thread exists
+        "can_message": is_connection_accepted and can_message and has_chat_thread,
+        # Chat thread exists (for showing Message vs Chat Request button)
+        "has_chat_thread": has_chat_thread,
         "can_add_friend": can_add_friend and not friend_request_sent and is_connection_accepted,
         "is_friend": is_friend,
         "friend_request_sent": friend_request_sent,

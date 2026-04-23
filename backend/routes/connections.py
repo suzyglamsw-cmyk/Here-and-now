@@ -1729,6 +1729,9 @@ async def send_message(data: MessageCreate, current_user: dict = Depends(get_cur
     }
     await db.messages.insert_one(message)
     
+    # If recipient had soft-deleted this conversation, the new message will make it reappear
+    # (handled in get_messages endpoint - no need to reset here, the logic handles it on read)
+    
     # Get WebSocket manager for real-time notifications
     manager = get_websocket_manager()
     
@@ -1801,12 +1804,42 @@ async def get_messages(user_id: str, current_user: dict = Depends(get_current_us
         user_id in current_user.get("blocked_by_users", [])
     )
     
-    messages = await db.messages.find({
+    # Check if this user has soft-deleted this conversation
+    chat_state = await db.user_chat_states.find_one({
+        "user_id": current_user["id"],
+        "other_user_id": user_id
+    })
+    
+    is_deleted = chat_state.get("is_deleted", False) if chat_state else False
+    last_seen_message_id = chat_state.get("last_seen_message_id") if chat_state else None
+    
+    # Build message query
+    message_query = {
         "$or": [
             {"from_user_id": current_user["id"], "to_user_id": user_id},
             {"from_user_id": user_id, "to_user_id": current_user["id"]}
         ]
-    }, {"_id": 0}).sort("created_at", 1).to_list(500)
+    }
+    
+    # If deleted, only show messages AFTER the last_seen_message_id
+    if is_deleted and last_seen_message_id:
+        # Get the timestamp of the last seen message
+        last_seen_msg = await db.messages.find_one({"id": last_seen_message_id})
+        if last_seen_msg:
+            message_query["created_at"] = {"$gt": last_seen_msg.get("created_at")}
+    
+    messages = await db.messages.find(
+        message_query,
+        {"_id": 0}
+    ).sort("created_at", 1).to_list(500)
+    
+    # If there are new messages after deletion, reset the deleted state
+    if is_deleted and len(messages) > 0:
+        await db.user_chat_states.update_one(
+            {"user_id": current_user["id"], "other_user_id": user_id},
+            {"$set": {"is_deleted": False}}
+        )
+        is_deleted = False
     
     # Mark received messages as read (only if not blocked)
     if not is_blocked:
@@ -1872,6 +1905,7 @@ async def get_messages(user_id: str, current_user: dict = Depends(get_current_us
         "reveal_state": reveal_state,
         "is_blocked": is_blocked,
         "is_quiet": is_quiet,
+        "is_deleted": is_deleted,  # Include deleted state in response
         "unlock_reason": "connection",
         "other_user": {
             "id": user_id,
@@ -1901,14 +1935,44 @@ async def get_unread_count(current_user: dict = Depends(get_current_user)):
 
 @router.delete("/messages/conversation/{other_user_id}")
 async def delete_conversation(other_user_id: str, current_user: dict = Depends(get_current_user)):
-    """Delete all messages in a conversation"""
-    await db.messages.delete_many({
-        "$or": [
-            {"from_user_id": current_user["id"], "to_user_id": other_user_id},
-            {"from_user_id": other_user_id, "to_user_id": current_user["id"]}
-        ]
-    })
-    return {"message": "Conversation deleted"}
+    """
+    Soft delete a conversation - marks as deleted for THIS user only.
+    Does NOT delete actual messages from database.
+    Does NOT affect the other participant's view.
+    """
+    now = datetime.now(timezone.utc)
+    
+    # Get the latest message ID to use as cutoff point
+    latest_message = await db.messages.find_one(
+        {
+            "$or": [
+                {"from_user_id": current_user["id"], "to_user_id": other_user_id},
+                {"from_user_id": other_user_id, "to_user_id": current_user["id"]}
+            ]
+        },
+        sort=[("created_at", -1)]
+    )
+    
+    last_seen_message_id = latest_message.get("id") if latest_message else None
+    
+    # Upsert user_chat_state for this user
+    await db.user_chat_states.update_one(
+        {
+            "user_id": current_user["id"],
+            "other_user_id": other_user_id
+        },
+        {
+            "$set": {
+                "is_deleted": True,
+                "deleted_at": now.isoformat(),
+                "last_seen_message_id": last_seen_message_id
+            }
+        },
+        upsert=True
+    )
+    
+    logger.info(f"User {current_user['id']} soft-deleted conversation with {other_user_id}")
+    return {"message": "Conversation deleted from your view"}
 
 
 

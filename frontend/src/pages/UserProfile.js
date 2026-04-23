@@ -695,15 +695,37 @@ const UserProfile = () => {
                     </p>
                   </div>
                   
-                  {/* Primary: Message Button - ALWAYS AVAILABLE when mutual */}
-                  <Button
-                    data-testid="message-btn"
-                    onClick={() => navigate(`/chat/${userId}`)}
-                    className="w-full rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white h-12"
-                  >
-                    <MessageCircle className="w-4 h-4 mr-2" />
-                    Message
-                  </Button>
+                  {/* Message Button - ONLY show when mutual AND chat thread exists */}
+                  {profile.has_chat_thread ? (
+                    <Button
+                      data-testid="message-btn"
+                      onClick={() => navigate(`/chat/${userId}`)}
+                      className="w-full rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white h-12"
+                    >
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      Message
+                    </Button>
+                  ) : (
+                    /* Chat Request Button - Show when mutual but no chat thread */
+                    profile.chat_request_sent ? (
+                      <Button
+                        disabled
+                        className="w-full rounded-xl bg-emerald-500/20 text-emerald-300 h-12 cursor-default"
+                      >
+                        <MessageSquare className="w-4 h-4 mr-2" />
+                        Chat Requested
+                      </Button>
+                    ) : (
+                      <Button
+                        data-testid="chat-request-mutual-btn"
+                        onClick={() => setShowChatRequestModal(true)}
+                        className="w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-medium hover:opacity-90 h-12"
+                      >
+                        <MessageSquare className="w-4 h-4 mr-2" />
+                        Send Chat Request
+                      </Button>
+                    )
+                  )}
                   
                   {/* Reveal Button (optional - for photo clarity) */}
                   {/* Show if: user hasn't revealed yet OR reveal is in half-state (not both_revealed) */}
