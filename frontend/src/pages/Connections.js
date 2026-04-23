@@ -879,6 +879,9 @@ const Connections = () => {
   // Bin a hidden match (quiet unmatch - removes mutual connection silently)
   const [binConfirmUser, setBinConfirmUser] = useState(null);
   
+  // Chat request removal confirmation modal
+  const [chatRequestRemoveConfirm, setChatRequestRemoveConfirm] = useState(null);
+  
   const handleBinHiddenMatch = async (userId, displayName) => {
     try {
       await axios.delete(`${API}/connections/${userId}/bin`);
@@ -1845,7 +1848,7 @@ const Connections = () => {
                             size="sm"
                             className="rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white"
                           >
-                            Respond
+                            Options
                           </Button>
                         ) : request.status === "accepted" ? (
                           <Button
@@ -1860,7 +1863,7 @@ const Connections = () => {
                         ) : null}
                         <Button
                           data-testid={`delete-chat-${request.id}`}
-                          onClick={(e) => { e.stopPropagation(); handleDeleteChatRequest(request.id); }}
+                          onClick={(e) => { e.stopPropagation(); setChatRequestRemoveConfirm(request); }}
                           size="sm"
                           variant="ghost"
                           className="rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10"
@@ -2909,6 +2912,22 @@ const Connections = () => {
               </div>
             </div>
 
+            {/* Remove from view option */}
+            <div className="border-t border-white/10 pt-3 mt-3">
+              <Button
+                data-testid="remove-from-view-btn"
+                onClick={() => {
+                  setChatActionSheet(null);
+                  setChatRequestRemoveConfirm(chatActionSheet);
+                }}
+                variant="ghost"
+                className="w-full h-12 rounded-xl text-slate-400 hover:bg-white/5 justify-start"
+              >
+                <Trash2 className="w-4 h-4 mr-3" />
+                Remove from view
+              </Button>
+            </div>
+
             <Button
               onClick={() => setChatActionSheet(null)}
               variant="ghost"
@@ -2974,6 +2993,46 @@ const Connections = () => {
                 className="w-full h-12 rounded-xl text-slate-300 hover:bg-white/5"
               >
                 Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Chat Request Removal Confirmation Modal */}
+      {chatRequestRemoveConfirm && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-in fade-in duration-200" 
+          onClick={() => setChatRequestRemoveConfirm(null)}
+          data-testid="chat-request-remove-confirm-modal"
+        >
+          <div 
+            className="w-full max-w-sm mx-4 bg-slate-900 rounded-2xl p-6 border border-white/10 shadow-2xl animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-xl font-bold text-white mb-2">Remove chat request?</h3>
+            <p className="text-slate-400 text-sm mb-6">
+              This only removes it from your view. The sender isn't notified.
+            </p>
+            
+            <div className="flex gap-3">
+              <Button
+                data-testid="cancel-remove-chat-request-btn"
+                onClick={() => setChatRequestRemoveConfirm(null)}
+                variant="ghost"
+                className="flex-1 h-12 rounded-xl text-slate-300 hover:bg-white/5"
+              >
+                Cancel
+              </Button>
+              <Button
+                data-testid="confirm-remove-chat-request-btn"
+                onClick={() => {
+                  handleDeleteChatRequest(chatRequestRemoveConfirm.id);
+                  setChatRequestRemoveConfirm(null);
+                }}
+                className="flex-1 h-12 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold"
+              >
+                Remove
               </Button>
             </div>
           </div>
