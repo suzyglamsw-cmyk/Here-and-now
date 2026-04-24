@@ -1601,7 +1601,7 @@ async def bulk_delete_chat_requests(data: dict, current_user: dict = Depends(get
 
 @router.get("/messages/threads")
 async def get_message_threads(current_user: dict = Depends(get_current_user)):
-    """Get all message threads with quiet_for_now support"""
+    """Get all message threads with quiet_for_now support and soft-delete filtering"""
     # Get unique users we have messages with
     sent_to = await db.messages.distinct("to_user_id", {"from_user_id": current_user["id"]})
     received_from = await db.messages.distinct("from_user_id", {"to_user_id": current_user["id"]})
@@ -1611,8 +1611,55 @@ async def get_message_threads(current_user: dict = Depends(get_current_user)):
     # Get user's quiet_threads list
     quiet_threads = current_user.get("quiet_threads", [])
     
+    # Get all soft-delete states for this user
+    chat_states = await db.user_chat_states.find({
+        "user_id": current_user["id"],
+        "is_deleted": True
+    }).to_list(100)
+    deleted_user_ids = {state["other_user_id"] for state in chat_states}
+    
     threads = []
     for user_id in all_users:
+        # Check if this chat is soft-deleted for current user
+        is_deleted = user_id in deleted_user_ids
+        
+        # Get the soft-delete state to check for new messages
+        chat_state = await db.user_chat_states.find_one({
+            "user_id": current_user["id"],
+            "other_user_id": user_id
+        })
+        
+        if is_deleted:
+            # Check if there are new messages after the deletion point
+            last_seen_message_id = chat_state.get("last_seen_message_id") if chat_state else None
+            if last_seen_message_id:
+                last_seen_msg = await db.messages.find_one({"id": last_seen_message_id})
+                if last_seen_msg:
+                    # Check for new messages after the cutoff
+                    new_message_count = await db.messages.count_documents({
+                        "$or": [
+                            {"from_user_id": current_user["id"], "to_user_id": user_id},
+                            {"from_user_id": user_id, "to_user_id": current_user["id"]}
+                        ],
+                        "created_at": {"$gt": last_seen_msg.get("created_at")}
+                    })
+                    if new_message_count == 0:
+                        # No new messages, skip this thread (keep it hidden)
+                        continue
+                    else:
+                        # New messages exist, reset is_deleted and show thread
+                        await db.user_chat_states.update_one(
+                            {"user_id": current_user["id"], "other_user_id": user_id},
+                            {"$set": {"is_deleted": False}}
+                        )
+                        is_deleted = False
+                else:
+                    # Can't find the cutoff message, skip thread
+                    continue
+            else:
+                # No cutoff point recorded, skip thread
+                continue
+        
         user = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0})
         if not user:
             continue
