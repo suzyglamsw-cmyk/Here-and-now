@@ -287,25 +287,13 @@ export const UserCard = ({
           </button>
         )}
         
-        {/* Top-right badges (Premium, Intent) */}
+        {/* Top-right badges (Premium only) */}
         <div className="absolute top-2 right-2 flex flex-col gap-1.5 items-end z-10">
           {/* Premium badge */}
           {user.is_premium && (
             <div className="w-6 h-6 rounded-full bg-amber-500/90 flex items-center justify-center shadow-lg">
               <Crown className="w-3 h-3 text-white" />
             </div>
-          )}
-          {/* Intent badge - anchored to top-right */}
-          {user.intent && (
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
-              user.intent === "dating" ? "bg-pink-500/30 text-pink-300" :
-              user.intent === "friends" ? "bg-emerald-500/30 text-emerald-300" :
-              "bg-purple-500/30 text-purple-300"
-            }`}>
-              {user.intent === "dating" ? "Dating" : 
-               user.intent === "friends" ? "Friends" : 
-               user.intent === "open_to_both" ? "Open" : ""}
-            </span>
           )}
         </div>
         
@@ -316,29 +304,35 @@ export const UserCard = ({
           </div>
         )}
         
-        {/* Name overlay with icons right-aligned */}
+        {/* Name overlay */}
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-          {/* Name + Age row with gender badge only */}
-          <div className="flex justify-between items-center flex-nowrap">
-            {/* Left: Name + Age */}
-            <p className="text-white font-medium truncate min-w-0 flex-shrink">{displayName}</p>
-            {/* Right: Gender badge only (rainbow/open_to_all removed - shown in full profile) */}
-            <div className="flex items-center gap-1 flex-shrink-0 ml-2">
-              {user.show_as && (
-                <div 
-                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shadow-sm ${
-                    user.show_as === "male" 
-                      ? "bg-blue-400/90 text-white" 
-                      : "bg-pink-400/90 text-white"
-                  }`}
-                >
-                  {user.show_as === "male" ? "M" : "F"}
-                </div>
-              )}
-            </div>
-          </div>
+          {/* Name + Age - color-coded by gender (smaller text) */}
+          <p className={`text-sm font-medium truncate ${
+            user.show_as === "male" 
+              ? "text-blue-300" 
+              : user.show_as === "female"
+              ? "text-pink-300"
+              : "text-white"
+          }`}>
+            {displayName}
+          </p>
           
-          {/* Presence Note - 6px margin from Name/Age */}
+          {/* Intent badge - left-aligned, full text, below name */}
+          {user.intent && (
+            <div className="mt-1">
+              <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                user.intent === "dating" ? "bg-pink-500/30 text-pink-300" :
+                user.intent === "friends" ? "bg-emerald-500/30 text-emerald-300" :
+                "bg-purple-500/30 text-purple-300"
+              }`}>
+                {user.intent === "dating" ? "Dating" : 
+                 user.intent === "friends" ? "Friends" : 
+                 user.intent === "open_to_both" ? "Open to both" : ""}
+              </span>
+            </div>
+          )}
+          
+          {/* Presence Note - below intent badge */}
           {user.presence_note && (
             <p className="text-slate-400 text-xs mt-1.5 truncate">{user.presence_note}</p>
           )}
