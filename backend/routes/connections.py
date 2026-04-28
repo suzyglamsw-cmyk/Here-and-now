@@ -2423,8 +2423,9 @@ async def get_match_status(other_user_id: str, current_user: dict = Depends(get_
 # ============================================================================
 # PEEK FEATURE
 # ============================================================================
-# Peek is a brief visual glimpse of an unblurred photo.
-# - Only available on: Here Now cards, Not Here cards, Mutual Connections
+# Peek is a brief visual glimpse of an unblurred photo (or silhouette flip).
+# - Only available on: Here Now venue cards, Not Here discovery cards
+# - Controlled by user's allow_peek setting (default: true)
 # - Does NOT affect blur logic, reveal logic, or any other system
 # - One-time per viewer-target pair
 # ============================================================================
@@ -2446,7 +2447,6 @@ async def record_peek(target_id: str, current_user: dict = Depends(get_current_u
         raise HTTPException(status_code=404, detail="User not found")
     
     # Check if target allows peek (default is true)
-    # Note: Mutual peek bypasses this check (handled separately)
     if not target_user.get("allow_peek", True):
         raise HTTPException(status_code=403, detail="User has disabled peek")
     
@@ -2472,8 +2472,7 @@ async def record_peek(target_id: str, current_user: dict = Depends(get_current_u
             },
             "$setOnInsert": {
                 "id": str(uuid.uuid4()),
-                "created_at": now,
-                "has_mutual_peeked": False
+                "created_at": now
             }
         },
         upsert=True
@@ -2482,83 +2481,11 @@ async def record_peek(target_id: str, current_user: dict = Depends(get_current_u
     return {"success": True, "message": "Peek recorded"}
 
 
-@router.post("/peek/mutual/{target_id}")
-async def record_mutual_peek(target_id: str, current_user: dict = Depends(get_current_user)):
-    """
-    Record that the current user has used their mutual peek.
-    Mutual peek is available when both users have glanced at each other.
-    One-time only, longer duration for premium users.
-    Mutual peek bypasses the allow_peek setting (mutual consent).
-    """
-    viewer_id = current_user["id"]
-    
-    if viewer_id == target_id:
-        raise HTTPException(status_code=400, detail="Cannot peek at your own photo")
-    
-    # Check if target user exists
-    target_user = await db.users.find_one({"id": target_id}, {"_id": 0})
-    if not target_user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    # Verify mutual glance exists
-    my_glance = await db.glances.find_one({
-        "from_user_id": viewer_id,
-        "to_user_id": target_id
-    })
-    their_glance = await db.glances.find_one({
-        "from_user_id": target_id,
-        "to_user_id": viewer_id
-    })
-    
-    if not (my_glance and their_glance):
-        raise HTTPException(status_code=403, detail="Mutual glance required for mutual peek")
-    
-    # Check if already mutual peeked
-    existing_peek = await db.peeks.find_one({
-        "viewer_id": viewer_id,
-        "target_id": target_id
-    })
-    
-    if existing_peek and existing_peek.get("has_mutual_peeked"):
-        raise HTTPException(status_code=400, detail="Already used mutual peek")
-    
-    # Record the mutual peek
-    now = datetime.now(timezone.utc).isoformat()
-    await db.peeks.update_one(
-        {"viewer_id": viewer_id, "target_id": target_id},
-        {
-            "$set": {
-                "viewer_id": viewer_id,
-                "target_id": target_id,
-                "has_mutual_peeked": True,
-                "mutual_peeked_at": now
-            },
-            "$setOnInsert": {
-                "id": str(uuid.uuid4()),
-                "created_at": now,
-                "has_peeked": False
-            }
-        },
-        upsert=True
-    )
-    
-    # Return peek duration based on premium status
-    is_premium = current_user.get("is_premium", False)
-    peek_duration = 0.75 if is_premium else 0.25  # 0.5-1.0s for premium, 0.2-0.3s for free (using midpoints)
-    
-    return {
-        "success": True,
-        "message": "Mutual peek recorded",
-        "peek_duration": peek_duration,
-        "is_premium": is_premium
-    }
-
-
 @router.get("/peek/status/{target_id}")
 async def get_peek_status(target_id: str, current_user: dict = Depends(get_current_user)):
     """
     Get peek status for a specific user.
-    Returns whether viewer has peeked, can peek, and mutual peek status.
+    Returns whether viewer has peeked and can peek.
     """
     viewer_id = current_user["id"]
     
@@ -2576,40 +2503,17 @@ async def get_peek_status(target_id: str, current_user: dict = Depends(get_curre
     })
     
     has_peeked = peek_record.get("has_peeked", False) if peek_record else False
-    has_mutual_peeked = peek_record.get("has_mutual_peeked", False) if peek_record else False
     
-    # Check for mutual glance (enables mutual peek)
-    my_glance = await db.glances.find_one({
-        "from_user_id": viewer_id,
-        "to_user_id": target_id
-    })
-    their_glance = await db.glances.find_one({
-        "from_user_id": target_id,
-        "to_user_id": viewer_id
-    })
-    is_mutual_glance = bool(my_glance and their_glance)
-    
-    # Determine if peek is available
-    # Regular peek: allowed if target allows AND hasn't been peeked
-    # Mutual peek: allowed if mutual glance AND hasn't been mutual peeked
+    # Determine if peek is available: allowed if target allows AND hasn't been peeked
     can_peek = allow_peek and not has_peeked
-    can_mutual_peek = is_mutual_glance and not has_mutual_peeked
-    
-    # Get peek duration for mutual (based on viewer's premium status)
-    is_premium = current_user.get("is_premium", False)
-    mutual_peek_duration = 0.75 if is_premium else 0.25
     
     return {
         "target_id": target_id,
         "allow_peek": allow_peek,
         "has_peeked": has_peeked,
-        "has_mutual_peeked": has_mutual_peeked,
         "can_peek": can_peek,
-        "can_mutual_peek": can_mutual_peek,
-        "is_mutual_glance": is_mutual_glance,
-        "peek_duration": 0.2,  # 0.15-0.25s for regular peek
-        "mutual_peek_duration": mutual_peek_duration,
-        "show_border": can_peek and allow_peek  # Show gender border if peekable
+        "show_border": can_peek,  # Show gender border if peekable
+        "peek_duration": 0.2  # 0.15-0.25s
     }
 
 
@@ -2645,22 +2549,6 @@ async def get_peek_status_batch(
     }).to_list(50)
     peek_map = {p["target_id"]: p for p in peek_records}
     
-    # Get all glances involving viewer and targets
-    my_glances = await db.glances.find({
-        "from_user_id": viewer_id,
-        "to_user_id": {"$in": target_ids}
-    }).to_list(50)
-    their_glances = await db.glances.find({
-        "from_user_id": {"$in": target_ids},
-        "to_user_id": viewer_id
-    }).to_list(50)
-    
-    my_glance_targets = {g["to_user_id"] for g in my_glances}
-    their_glance_sources = {g["from_user_id"] for g in their_glances}
-    
-    is_premium = current_user.get("is_premium", False)
-    mutual_peek_duration = 0.75 if is_premium else 0.25
-    
     statuses = {}
     for target_id in target_ids:
         user_data = user_settings.get(target_id, {})
@@ -2669,24 +2557,17 @@ async def get_peek_status_batch(
         
         peek_record = peek_map.get(target_id, {})
         has_peeked = peek_record.get("has_peeked", False)
-        has_mutual_peeked = peek_record.get("has_mutual_peeked", False)
-        
-        is_mutual_glance = target_id in my_glance_targets and target_id in their_glance_sources
         
         can_peek = allow_peek and not has_peeked
-        can_mutual_peek = is_mutual_glance and not has_mutual_peeked
         
         statuses[target_id] = {
             "allow_peek": allow_peek,
             "has_peeked": has_peeked,
-            "has_mutual_peeked": has_mutual_peeked,
             "can_peek": can_peek,
-            "can_mutual_peek": can_mutual_peek,
-            "is_mutual_glance": is_mutual_glance,
-            "show_border": can_peek and allow_peek,
+            "show_border": can_peek,
             "show_as": show_as,
-            "peek_duration": 0.2,
-            "mutual_peek_duration": mutual_peek_duration
+            "peek_duration": 0.2
         }
     
     return {"statuses": statuses}
+

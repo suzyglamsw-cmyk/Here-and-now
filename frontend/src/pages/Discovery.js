@@ -471,15 +471,13 @@ const Discovery = () => {
   };
 
   // Handle peek completion - update local peek status
-  const handlePeekComplete = (targetId, wasMutualPeek) => {
+  const handlePeekComplete = (targetId) => {
     setPeekStatuses(prev => ({
       ...prev,
       [targetId]: {
         ...prev[targetId],
-        has_peeked: wasMutualPeek ? prev[targetId]?.has_peeked : true,
-        has_mutual_peeked: wasMutualPeek ? true : prev[targetId]?.has_mutual_peeked,
-        can_peek: wasMutualPeek ? prev[targetId]?.can_peek : false,
-        can_mutual_peek: wasMutualPeek ? false : prev[targetId]?.can_mutual_peek,
+        has_peeked: true,
+        can_peek: false,
         show_border: false
       }
     }));
@@ -728,9 +726,8 @@ const Discovery = () => {
                     key={person.id}
                     user={person}
                     peekStatus={peekStatuses[person.id]}
-                    isMutualConnection={person.is_connection_accepted}
-                    viewerIsPremium={user?.is_premium}
                     onPeekComplete={handlePeekComplete}
+                    context="not_here"
                     isMatched={person.is_connection_accepted}
                     revealState={person.reveal_state}
                     onGlance={handleGlance}
@@ -747,7 +744,6 @@ const Discovery = () => {
                       chatRequest: sendingChatRequest === person.id
                     }}
                     globalPendingRef={confirmHintRef}
-                    context="not_here"
                     venueId="not-here"
                   />
                 )

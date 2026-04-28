@@ -16,47 +16,51 @@ Building a real-time, location-based social connection app called "Here & Now" w
 ## Peek Feature (Added Apr 2025)
 
 ### Overview
-Peek is a brief visual glimpse of an unblurred photo. It is tap-triggered, one-time only, and does NOT modify any blur/reveal logic.
+Peek is a brief visual glimpse (0.15-0.25s) of an unblurred photo (or silhouette flip). It is:
+- Tap-triggered (not automatic)
+- One-time only per viewer-target pair
+- Controlled ONLY by target's `allow_peek` setting
+- Does NOT modify blur logic, reveal logic, or any other system
 
 ### Scope
-- **Enabled on:** Here Now venue cards, Not Here discovery cards, Mutual Connection cards
-- **NOT on:** Matches list, Chat, Full profile views, any other surface
+- **Enabled on:** Here Now venue cards, Not Here discovery cards
+- **NOT on:** Matches list, Chat, Full profile views, Expanded profiles, any other surface
 
 ### Behavior
-1. **Default State:** Card shows gender-colored border (Pink=#FF2D8D female, Blue=#3A7BFF male) indicating "flippable"
-2. **First Tap → Peek:** Brief glimpse (0.15-0.25s regular, 0.2-1.0s mutual), returns to blurred, border disappears
-3. **Second Tap → Profile:** Opens expanded profile (still blurred per existing logic)
 
-### Mutual Peek
-- Available when both users have glanced at each other
-- Free users: 0.2-0.3 seconds
-- Premium users: 0.5-1.0 seconds
-- One-time only
+| `allow_peek` | `hide_photo_in_venues` | Here Now | Not Here |
+|--------------|------------------------|----------|----------|
+| ON | OFF | Blur → Clear peek | Blur → Clear peek |
+| ON | ON | Silhouette → Silhouette flip | Blur → Clear peek |
+| OFF | any | No peek, Tap 1 → Profile | No peek, Tap 1 → Profile |
+
+### Tap Sequence
+1. **Default State:** Card shows gender-colored border (Pink=#FF2D8D female, Blue=#3A7BFF male) if peekable
+2. **First Tap → Peek:** Brief glimpse (0.15-0.25s), returns to blurred/silhouette, border disappears
+3. **Second Tap → Profile:** Opens expanded profile (still blurred per existing logic)
 
 ### User Toggle
 - **Location:** Settings → Privacy & Visibility
 - **Toggle:** "Allow Peek on my photos"
-- ON: Border shown, Peek allowed
-- OFF: No border, no Peek (first tap opens profile directly)
-- Mutual Peek still works even if OFF (mutual consent)
+- ON: Border shown, Peek allowed on Here Now + Not Here
+- OFF: No border, no Peek anywhere, first tap opens Profile
 
 ### Backend Endpoints
-- `POST /api/peek/{target_id}` - Record regular peek
-- `POST /api/peek/mutual/{target_id}` - Record mutual peek
+- `POST /api/peek/{target_id}` - Record peek
 - `GET /api/peek/status/{target_id}` - Get peek status for one user
 - `GET /api/peek/batch?user_ids=...` - Get peek status for multiple users
 
 ### Database
 - Collection: `peeks`
-- Schema: `{ viewer_id, target_id, has_peeked, has_mutual_peeked, created_at }`
+- Schema: `{ viewer_id, target_id, has_peeked, peeked_at, created_at }`
 
 ### Files Modified
-- `/app/backend/routes/connections.py` - Added peek endpoints
+- `/app/backend/routes/connections.py` - Peek endpoints
 - `/app/backend/routes/dependencies.py` - Added allow_peek to UserProfile
 - `/app/backend/routes/auth.py` - Added allow_peek to user registration
-- `/app/frontend/src/components/PeekableCard.js` - New wrapper component
-- `/app/frontend/src/pages/WhosHere.js` - Integrated PeekableCard
-- `/app/frontend/src/pages/Discovery.js` - Integrated PeekableCard
+- `/app/frontend/src/components/PeekableCard.js` - Wrapper component with flip animation
+- `/app/frontend/src/pages/WhosHere.js` - Integrated PeekableCard for venue cards
+- `/app/frontend/src/pages/Discovery.js` - Integrated PeekableCard for Not Here cards
 - `/app/frontend/src/pages/Settings.js` - Added Privacy & Visibility toggle
 
 ## Gender-Based Name Coloring (Added Apr 2025)

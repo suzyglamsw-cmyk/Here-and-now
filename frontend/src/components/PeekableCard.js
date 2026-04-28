@@ -4,56 +4,55 @@
  * Wraps UserCard to add Peek functionality for:
  * - Here Now venue cards
  * - Not Here discovery cards
- * - Mutual Connection cards (longer peek for premium)
  * 
  * DOES NOT MODIFY:
- * - Blur logic
+ * - Blur logic (BlurredImage.js, getBlurValue())
  * - Reveal logic
  * - Any existing card behavior
  * 
- * Peek is a brief visual glimpse only.
+ * Peek is a brief visual glimpse only (0.15-0.25 seconds).
+ * Controlled by target user's allow_peek setting.
+ * 
+ * Special case: hide_photo_in_venues = true (Here Now only)
+ * - Shows silhouette as base image
+ * - Peek flips the silhouette (not clear photo)
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { UserCard } from "./UserCard";
 import axios from "axios";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
-// Configure axios defaults
-axios.defaults.withCredentials = true;
-if (typeof window !== 'undefined') {
-  const token = localStorage.getItem("token");
-  if (token) {
-    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-  }
-}
-
-// Peek durations (in milliseconds)
-const REGULAR_PEEK_DURATION = 200; // 0.15-0.25s -> 200ms
-const MUTUAL_PEEK_DURATION_FREE = 250; // 0.2-0.3s -> 250ms
-const MUTUAL_PEEK_DURATION_PREMIUM = 750; // 0.5-1.0s -> 750ms
+// Peek duration (in milliseconds): 0.15-0.25s -> 200ms
+const PEEK_DURATION = 200;
 
 export const PeekableCard = ({
   user,
-  peekStatus, // { can_peek, can_mutual_peek, has_peeked, show_border, show_as }
-  isMutualConnection = false,
-  viewerIsPremium = false,
+  peekStatus, // { can_peek, has_peeked, show_border, allow_peek, show_as }
   onPeekComplete,
+  context = "venue", // "venue" for Here Now, "not_here" for Not Here
   // All other UserCard props passed through
   ...cardProps
 }) => {
   const [isPeeking, setIsPeeking] = useState(false);
   const [hasPeekedLocal, setHasPeekedLocal] = useState(peekStatus?.has_peeked || false);
-  const [hasMutualPeekedLocal, setHasMutualPeekedLocal] = useState(peekStatus?.has_mutual_peeked || false);
+  
+  // Update local state when peekStatus changes (e.g., on refresh)
+  useEffect(() => {
+    setHasPeekedLocal(peekStatus?.has_peeked || false);
+  }, [peekStatus?.has_peeked]);
+  
+  // Determine if peek is enabled for this target
+  const allowPeek = peekStatus?.allow_peek !== false; // Default true if undefined
   
   // Determine if card should show gender border (peekable state)
-  const showBorder = peekStatus?.can_peek && peekStatus?.allow_peek && !hasPeekedLocal;
-  const showMutualBorder = isMutualConnection && peekStatus?.can_mutual_peek && !hasMutualPeekedLocal;
+  // Border shown only if: allow_peek=true AND can_peek=true (not already peeked)
+  const showBorder = allowPeek && peekStatus?.can_peek && !hasPeekedLocal;
   
   // Get border color based on gender
   const getBorderColor = () => {
-    if (!showBorder && !showMutualBorder) return "transparent";
+    if (!showBorder) return "transparent";
     const gender = user?.show_as || peekStatus?.show_as;
     if (gender === "female") return "#FF2D8D"; // Pink
     if (gender === "male") return "#3A7BFF"; // Blue
@@ -65,82 +64,68 @@ export const PeekableCard = ({
     // If currently peeking, ignore clicks
     if (isPeeking) {
       e.stopPropagation();
+      e.preventDefault();
       return;
     }
     
-    // Determine if this is a peek or navigate action
-    const canRegularPeek = showBorder && !hasPeekedLocal;
-    const canMutualPeek = showMutualBorder && !hasMutualPeekedLocal;
+    // If peek is not enabled or already peeked, let click propagate to UserCard
+    if (!allowPeek || hasPeekedLocal || !peekStatus?.can_peek) {
+      // Click will propagate to UserCard which handles navigation to profile
+      return;
+    }
     
-    if (canRegularPeek || canMutualPeek) {
-      // First tap = Peek
-      e.stopPropagation();
-      e.preventDefault();
+    // First tap = Peek
+    e.stopPropagation();
+    e.preventDefault();
+    
+    try {
+      // Record peek on backend
+      await axios.post(`${API}/api/peek/${user.id}`);
       
-      try {
-        // Record peek on backend
-        const endpoint = canMutualPeek 
-          ? `${API}/api/peek/mutual/${user.id}`
-          : `${API}/api/peek/${user.id}`;
-        
-        await axios.post(endpoint);
-        
-        // Determine peek duration
-        let duration = REGULAR_PEEK_DURATION;
-        if (canMutualPeek) {
-          duration = viewerIsPremium ? MUTUAL_PEEK_DURATION_PREMIUM : MUTUAL_PEEK_DURATION_FREE;
-        }
-        
-        // Start peek animation
-        setIsPeeking(true);
-        
-        // End peek after duration
-        setTimeout(() => {
-          setIsPeeking(false);
-          if (canMutualPeek) {
-            setHasMutualPeekedLocal(true);
-          } else {
-            setHasPeekedLocal(true);
-          }
-          onPeekComplete?.(user.id, canMutualPeek);
-        }, duration);
-        
-      } catch (error) {
-        console.error("Peek failed:", error);
-        // If peek already used, update local state
-        if (error.response?.status === 400) {
-          if (canMutualPeek) {
-            setHasMutualPeekedLocal(true);
-          } else {
-            setHasPeekedLocal(true);
-          }
-        }
+      // Start peek animation
+      setIsPeeking(true);
+      
+      // End peek after duration
+      setTimeout(() => {
+        setIsPeeking(false);
+        setHasPeekedLocal(true);
+        onPeekComplete?.(user.id);
+      }, PEEK_DURATION);
+      
+    } catch (error) {
+      console.error("Peek failed:", error);
+      // If peek already used (400) or disabled (403), update local state
+      if (error.response?.status === 400 || error.response?.status === 403) {
+        setHasPeekedLocal(true);
       }
     }
-    // If not peekable, let the click propagate to UserCard's onClick (profile navigation)
-  }, [isPeeking, showBorder, showMutualBorder, hasPeekedLocal, hasMutualPeekedLocal, user?.id, viewerIsPremium, onPeekComplete]);
+  }, [isPeeking, allowPeek, hasPeekedLocal, peekStatus?.can_peek, user?.id, onPeekComplete]);
   
   // Border style for peekable state
-  const borderStyle = (showBorder || showMutualBorder) ? {
+  const borderStyle = showBorder ? {
     boxShadow: `0 0 0 3px ${getBorderColor()}`,
     transition: "box-shadow 0.3s ease"
   } : {};
   
   // During peek: temporarily remove blur by adding a class
-  // The actual unblur is handled via CSS transform on the image
   const peekClass = isPeeking ? "peeking" : "";
+  
+  // Determine if this is a silhouette peek (Here Now + hide_photo_in_venues)
+  const isSilhouettePeek = context === "venue" && user?.hide_photo_in_venues === true;
   
   return (
     <div 
-      className={`peekable-card-wrapper ${peekClass}`}
+      className={`peekable-card-wrapper ${peekClass} ${isSilhouettePeek && isPeeking ? "silhouette-peek" : ""}`}
       style={borderStyle}
       onClick={handleCardClick}
     >
       <UserCard
         user={user}
         {...cardProps}
-        // Override photo state during peek to show clear
+        context={context}
+        // Pass peek state to UserCard for potential styling
         _isPeeking={isPeeking}
+        _isSilhouettePeek={isSilhouettePeek}
       />
       
       {/* CSS for peek animation */}
@@ -151,10 +136,22 @@ export const PeekableCard = ({
           position: relative;
         }
         
-        .peekable-card-wrapper.peeking img {
+        /* Regular peek: remove blur to show clear photo */
+        .peekable-card-wrapper.peeking:not(.silhouette-peek) img {
           filter: none !important;
           transform: scale(1) !important;
           transition: filter 0.1s ease-out, transform 0.1s ease-out;
+        }
+        
+        /* Silhouette peek: just do a subtle "flip" animation on the silhouette */
+        .peekable-card-wrapper.silhouette-peek img {
+          animation: silhouette-flip 0.2s ease-in-out;
+        }
+        
+        @keyframes silhouette-flip {
+          0% { transform: scale(1) rotateY(0deg); }
+          50% { transform: scale(1.02) rotateY(10deg); }
+          100% { transform: scale(1) rotateY(0deg); }
         }
         
         .peekable-card-wrapper:not(.peeking) img {
