@@ -4525,14 +4525,14 @@ async def get_people_at_venue(
 
 @api_router.get("/discovery/not-here", response_model=List[WhoIsHereUser])
 async def get_people_not_here(
-    radius: str = "0-10",  # "0-10" or "10-25" miles
+    radius: str = "0-10",  # "0-10", "10-25", or "25-50" miles
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Get people nearby within 0-25 mile radius (Not Here mode).
+    Get people nearby within specified radius (Not Here mode).
     Shows all visible users within range who are NOT at a venue.
     Only shows users with presence_status = "not_here" (or no presence set).
-    Radius options: 0-10 miles, 10-25 miles
+    Radius options: 0-10 miles, 10-25 miles, 25-50 miles
     """
     # Check if current user has a profile photo
     current_user_photos = current_user.get("photos", []) or []

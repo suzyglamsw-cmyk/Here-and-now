@@ -37,6 +37,7 @@ const ICEBREAKER_MESSAGES = [
 const RADIUS_OPTIONS = [
   { value: "0-10", label: "0–10 miles" },
   { value: "10-25", label: "10–25 miles" },
+  { value: "25-50", label: "25–50 miles" },
 ];
 
 // Filter options
