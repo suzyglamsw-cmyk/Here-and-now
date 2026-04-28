@@ -305,22 +305,23 @@ export const UserCard = ({
         )}
         
         {/* Name overlay */}
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent px-3 pb-4 pt-8">
-          {/* Name + Age - color-coded by gender (bold, exact hex) */}
-          <p 
-            className="text-base font-bold truncate leading-tight"
-            style={{ 
-              color: user.show_as === "male" ? "#3A7BFF" : 
-                     user.show_as === "female" ? "#FF2D8D" : "#FFFFFF" 
-            }}
-          >
-            {displayName}
-          </p>
-          
-          {/* Intent badge - left-aligned, full text, below name */}
-          {user.intent && (
-            <div className="mt-2">
-              <span className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-semibold ${
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent px-3 pb-4 pt-10">
+          {/* Name + Intent row - name left, intent badge right */}
+          <div className="flex items-baseline justify-between gap-2 flex-wrap">
+            {/* Name + Age - color-coded by gender */}
+            <p 
+              className="text-base font-bold truncate leading-tight min-w-0"
+              style={{ 
+                color: user.show_as === "male" ? "#3A7BFF" : 
+                       user.show_as === "female" ? "#FF2D8D" : "#FFFFFF" 
+              }}
+            >
+              {displayName}
+            </p>
+            
+            {/* Intent badge - right aligned */}
+            {user.intent && (
+              <span className={`flex-shrink-0 px-2 py-0.5 rounded-full text-[9px] font-semibold ${
                 user.intent === "dating" ? "bg-pink-500/40 text-pink-200" :
                 user.intent === "friends" ? "bg-emerald-500/40 text-emerald-200" :
                 "bg-purple-500/40 text-purple-200"
@@ -329,10 +330,10 @@ export const UserCard = ({
                  user.intent === "friends" ? "Friends" : 
                  user.intent === "open_to_both" ? "Open to both" : ""}
               </span>
-            </div>
-          )}
+            )}
+          </div>
           
-          {/* Presence Note - below intent badge */}
+          {/* Presence Note - below name row */}
           {user.presence_note && (
             <p className="text-slate-300 text-[11px] mt-2 truncate leading-snug">{user.presence_note}</p>
           )}
