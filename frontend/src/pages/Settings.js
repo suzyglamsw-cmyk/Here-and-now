@@ -41,6 +41,10 @@ const Settings = () => {
   const [viewersLoading, setViewersLoading] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
   
+  // Privacy settings
+  const [allowPeek, setAllowPeek] = useState(user?.allow_peek !== false); // Default true
+  const [peekSaving, setPeekSaving] = useState(false);
+  
   // Blocked users state
   const [blockedUsers, setBlockedUsers] = useState([]);
   const [blockedLoading, setBlockedLoading] = useState(false);
@@ -166,6 +170,23 @@ const Settings = () => {
       console.error("Push unsubscribe error:", error);
     } finally {
       setPushLoading(false);
+    }
+  };
+
+  // Handle Peek toggle
+  const handleAllowPeekChange = async (checked) => {
+    setPeekSaving(true);
+    setAllowPeek(checked);
+    try {
+      await axios.put(`${API}/auth/profile`, { allow_peek: checked });
+      updateUser({ ...user, allow_peek: checked });
+      toast.success(checked ? "Peek enabled on your photos" : "Peek disabled on your photos");
+    } catch (error) {
+      console.error("Failed to update peek setting:", error);
+      setAllowPeek(!checked); // Revert on error
+      toast.error("Failed to update setting");
+    } finally {
+      setPeekSaving(false);
     }
   };
 
@@ -371,7 +392,43 @@ const Settings = () => {
           </p>
         </div>
 
-        {/* 4. Notifications Section */}
+        {/* 4. Privacy & Visibility Section */}
+        <div className="glass rounded-2xl p-6 mb-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
+              <Eye className="w-5 h-5 text-purple-400" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-white">Privacy & Visibility</h2>
+              <p className="text-slate-400 text-sm">Control how others see you</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {/* Allow Peek Toggle */}
+            <div className="flex items-center justify-between p-4 rounded-xl bg-white/5">
+              <div className="flex-1 mr-4">
+                <p className="text-white font-medium">Allow Peek on my photos</p>
+                <p className="text-slate-400 text-sm">
+                  Let others briefly glimpse your unblurred photo before viewing your profile. 
+                  Mutual connections can still peek even if this is off.
+                </p>
+              </div>
+              {peekSaving ? (
+                <Loader2 className="w-5 h-5 text-purple-400 animate-spin" />
+              ) : (
+                <Switch
+                  data-testid="allow-peek-toggle"
+                  checked={allowPeek}
+                  onCheckedChange={handleAllowPeekChange}
+                  disabled={peekSaving}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* 6. Notifications Section */}
         <div className="glass rounded-2xl p-6 mb-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center">
@@ -448,7 +505,7 @@ const Settings = () => {
           )}
         </div>
 
-        {/* 5. Safety Section - Blocked Users */}
+        {/* 7. Safety Section - Blocked Users */}
         <div className="glass rounded-2xl p-6 mb-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
@@ -523,7 +580,7 @@ const Settings = () => {
           </div>
         </div>
 
-        {/* 6. Legal Section */}
+        {/* 8. Legal Section */}
         <div className="glass rounded-2xl p-6 mb-6">
           <button
             data-testid="legal-link"
@@ -543,7 +600,7 @@ const Settings = () => {
           </button>
         </div>
 
-        {/* 7. Developer Section - Only visible for suzyglam.sw@googlemail.com */}
+        {/* 9. Developer Section - Only visible for suzyglam.sw@googlemail.com */}
         {user?.email === "suzyglam.sw@googlemail.com" && (
           <div className="glass rounded-2xl p-6 mb-6">
             <h2 className="text-xl font-semibold text-white mb-4">Developer</h2>
@@ -586,7 +643,7 @@ const Settings = () => {
           </div>
         )}
 
-        {/* 8. Account Section */}
+        {/* 10. Account Section */}
         <div className="glass rounded-2xl p-6">
           <h2 className="text-xl font-semibold text-white mb-6">Account</h2>
 

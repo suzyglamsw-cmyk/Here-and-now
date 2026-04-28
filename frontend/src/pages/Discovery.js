@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import axios from "axios";
 import Layout from "../components/Layout";
 import { UserCard, SelfCard } from "../components/UserCard";
+import PeekableCard from "../components/PeekableCard";
 import { NotForNowSheet } from "../components/NotForNowSheet";
 import { getErrorMessage } from "../utils/errorUtils";
 import { useConfirmHintGlobal } from "../components/ConfirmHint";
@@ -78,6 +79,7 @@ const Discovery = () => {
   const [mode, setMode] = useState(getMode());
   const [radius, setRadius] = useState("0-10");
   const [people, setPeople] = useState([]);
+  const [peekStatuses, setPeekStatuses] = useState({}); // Peek status for each user
   const [loading, setLoading] = useState(false);
   
   // Location state
@@ -338,6 +340,17 @@ const Discovery = () => {
       }
 
       setPeople(fetchedPeople);
+      
+      // Fetch peek statuses for non-self users
+      const otherUserIds = fetchedPeople.filter(p => !p.is_self).map(p => p.id);
+      if (otherUserIds.length > 0) {
+        try {
+          const peekResponse = await axios.get(`${API}/peek/batch?user_ids=${otherUserIds.join(",")}`);
+          setPeekStatuses(peekResponse.data?.statuses || {});
+        } catch (peekError) {
+          console.warn("Failed to fetch peek statuses:", peekError);
+        }
+      }
     } catch (error) {
       console.error("Failed to load people:", error);
       setPeople([]);
@@ -455,6 +468,21 @@ const Discovery = () => {
     } finally {
       setNotForNowUser(null);
     }
+  };
+
+  // Handle peek completion - update local peek status
+  const handlePeekComplete = (targetId, wasMutualPeek) => {
+    setPeekStatuses(prev => ({
+      ...prev,
+      [targetId]: {
+        ...prev[targetId],
+        has_peeked: wasMutualPeek ? prev[targetId]?.has_peeked : true,
+        has_mutual_peeked: wasMutualPeek ? true : prev[targetId]?.has_mutual_peeked,
+        can_peek: wasMutualPeek ? prev[targetId]?.can_peek : false,
+        can_mutual_peek: wasMutualPeek ? false : prev[targetId]?.can_mutual_peek,
+        show_border: false
+      }
+    }));
   };
 
   // Determine photo state for a user
@@ -696,9 +724,13 @@ const Discovery = () => {
                     context="not_here"
                   />
                 ) : (
-                  <UserCard
+                  <PeekableCard
                     key={person.id}
                     user={person}
+                    peekStatus={peekStatuses[person.id]}
+                    isMutualConnection={person.is_connection_accepted}
+                    viewerIsPremium={user?.is_premium}
+                    onPeekComplete={handlePeekComplete}
                     isMatched={person.is_connection_accepted}
                     revealState={person.reveal_state}
                     onGlance={handleGlance}

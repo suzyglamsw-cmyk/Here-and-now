@@ -90,6 +90,7 @@ async def register(data: UserCreate):
         "celebrity_crush": "",
         "shy_indicator": False,
         "voice_intro_url": "",
+        "allow_peek": True,  # Allow others to peek at photos (default: true)
         "reports_count": 0,
         "blocks_received_count": 0,
         "lat": None,

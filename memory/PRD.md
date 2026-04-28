@@ -13,6 +13,52 @@ Building a real-time, location-based social connection app called "Here & Now" w
 - **Frontend:** React, TailwindCSS, Shadcn UI
 - **3rd Party:** Stripe, Google Maps Platform, OpenAI Whisper & Vision (Emergent LLM Key)
 
+## Peek Feature (Added Apr 2025)
+
+### Overview
+Peek is a brief visual glimpse of an unblurred photo. It is tap-triggered, one-time only, and does NOT modify any blur/reveal logic.
+
+### Scope
+- **Enabled on:** Here Now venue cards, Not Here discovery cards, Mutual Connection cards
+- **NOT on:** Matches list, Chat, Full profile views, any other surface
+
+### Behavior
+1. **Default State:** Card shows gender-colored border (Pink=#FF2D8D female, Blue=#3A7BFF male) indicating "flippable"
+2. **First Tap → Peek:** Brief glimpse (0.15-0.25s regular, 0.2-1.0s mutual), returns to blurred, border disappears
+3. **Second Tap → Profile:** Opens expanded profile (still blurred per existing logic)
+
+### Mutual Peek
+- Available when both users have glanced at each other
+- Free users: 0.2-0.3 seconds
+- Premium users: 0.5-1.0 seconds
+- One-time only
+
+### User Toggle
+- **Location:** Settings → Privacy & Visibility
+- **Toggle:** "Allow Peek on my photos"
+- ON: Border shown, Peek allowed
+- OFF: No border, no Peek (first tap opens profile directly)
+- Mutual Peek still works even if OFF (mutual consent)
+
+### Backend Endpoints
+- `POST /api/peek/{target_id}` - Record regular peek
+- `POST /api/peek/mutual/{target_id}` - Record mutual peek
+- `GET /api/peek/status/{target_id}` - Get peek status for one user
+- `GET /api/peek/batch?user_ids=...` - Get peek status for multiple users
+
+### Database
+- Collection: `peeks`
+- Schema: `{ viewer_id, target_id, has_peeked, has_mutual_peeked, created_at }`
+
+### Files Modified
+- `/app/backend/routes/connections.py` - Added peek endpoints
+- `/app/backend/routes/dependencies.py` - Added allow_peek to UserProfile
+- `/app/backend/routes/auth.py` - Added allow_peek to user registration
+- `/app/frontend/src/components/PeekableCard.js` - New wrapper component
+- `/app/frontend/src/pages/WhosHere.js` - Integrated PeekableCard
+- `/app/frontend/src/pages/Discovery.js` - Integrated PeekableCard
+- `/app/frontend/src/pages/Settings.js` - Added Privacy & Visibility toggle
+
 ## Gender-Based Name Coloring (Added Apr 2025)
 
 ### Design

@@ -330,6 +330,8 @@ class UserProfile(BaseModel):
     show_as: Optional[str] = ""  # "male" or "female" - gender appearance
     rainbow: Optional[bool] = False  # LGBTQ+ visibility flag
     open_to_all: Optional[bool] = False  # Open to everyone (overrides rainbow separation)
+    # Privacy settings
+    allow_peek: Optional[bool] = True  # Allow others to peek at photos
     # Lifestyle fields (optional)
     lifestyle_vibe: Optional[str] = ""
     lifestyle_travel: Optional[str] = ""
