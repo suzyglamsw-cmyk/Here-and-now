@@ -59,24 +59,20 @@ export const PeekableCard = ({
   
   // Get clear photo URL for peek
   const getClearPhotoUrl = () => {
-    // Photos array contains photo IDs - need to construct full URL
+    // Use first photo from photos array, or avatar_url as fallback
+    let url = "";
     if (user?.photos && user.photos.length > 0 && user.photos[0]) {
-      const photoId = user.photos[0];
-      // If it's already a full URL, use it directly
-      if (photoId.startsWith('http') || photoId.startsWith('/')) {
-        return photoId;
-      }
-      // Otherwise construct the photo serve URL (without thumb=true for clear photo)
-      return `${API}/api/photos/serve/${photoId}`;
+      url = user.photos[0];
+    } else {
+      url = user?.avatar_url || user?.photo_url || "";
     }
-    // Fallback to avatar_url (also might be an ID)
-    if (user?.avatar_url) {
-      if (user.avatar_url.startsWith('http') || user.avatar_url.startsWith('/')) {
-        return user.avatar_url;
-      }
-      return `${API}/api/photos/serve/${user.avatar_url}`;
+    
+    // Replace blur=true with blur=false to get clear photo
+    if (url && url.includes('blur=true')) {
+      url = url.replace('blur=true', 'blur=false');
     }
-    return user?.photo_url || "";
+    
+    return url;
   };
   
   // Handle card tap
