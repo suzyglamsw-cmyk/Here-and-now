@@ -38,6 +38,7 @@ export const PeekableCard = ({
 }) => {
   const navigate = useNavigate();
   const [isScanning, setIsScanning] = useState(false);
+  const [imageReady, setImageReady] = useState(false);
   const [hasPeekedLocal, setHasPeekedLocal] = useState(peekStatus?.has_peeked || false);
   const cardRef = useRef(null);
   
@@ -136,6 +137,18 @@ export const PeekableCard = ({
     return url;
   };
   
+  const clearPhotoUrl = getClearPhotoUrl();
+  const blurredPhotoUrl = getBlurredPhotoUrl();
+  
+  // Preload the clear image when peek is available
+  useEffect(() => {
+    if (canPeek && clearPhotoUrl) {
+      const img = new Image();
+      img.onload = () => setImageReady(true);
+      img.src = clearPhotoUrl;
+    }
+  }, [canPeek, clearPhotoUrl]);
+  
   // Handle card tap
   const handleCardClick = useCallback(async (e) => {
     e.stopPropagation();
@@ -150,15 +163,26 @@ export const PeekableCard = ({
       return;
     }
     
-    // Start scanner-bar peek
+    // Start scanner-bar peek - only if image is ready
     try {
       await axios.post(`${API}/api/peek/${user.id}`);
+      
+      // If image not ready yet, wait for it (max 500ms)
+      if (!imageReady) {
+        const img = new Image();
+        img.src = clearPhotoUrl;
+        await new Promise((resolve) => {
+          img.onload = resolve;
+          setTimeout(resolve, 500); // Max wait 500ms
+        });
+      }
       
       setIsScanning(true);
       
       // End scan after duration
       setTimeout(() => {
         setIsScanning(false);
+        setImageReady(false); // Reset for next time
         setHasPeekedLocal(true);
         onPeekComplete?.(user.id);
       }, SCAN_DURATION);
@@ -170,11 +194,9 @@ export const PeekableCard = ({
         navigate(`/profile/${user.id}`);
       }
     }
-  }, [isScanning, canPeek, user?.id, navigate, onPeekComplete]);
+  }, [isScanning, canPeek, user?.id, navigate, onPeekComplete, imageReady, clearPhotoUrl]);
   
   const borderColor = getBorderColor();
-  const clearPhotoUrl = getClearPhotoUrl();
-  const blurredPhotoUrl = getBlurredPhotoUrl();
   
   return (
     <div 
