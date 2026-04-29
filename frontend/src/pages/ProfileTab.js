@@ -113,6 +113,7 @@ const Profile = () => {
   const { user, updateUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [formInitialized, setFormInitialized] = useState(false); // Track if formData is loaded from user
   const [uploadingPhoto, setUploadingPhoto] = useState(null);
   const [recordingVoice, setRecordingVoice] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -187,6 +188,7 @@ const Profile = () => {
         // Food Mood
         food_mood: user.food_mood || "",
       });
+      setFormInitialized(true); // Mark form as initialized from user data
       // Fetch privacy settings
       fetchPrivacySettings();
       // Fetch profile viewers if premium
@@ -325,12 +327,13 @@ const Profile = () => {
   };
 
   // Auto-save function for optional fields (Lifestyle, Food Mood)
+  // Only sends the specific field being updated, NOT the entire formData
   const handleAutoSave = async (fieldUpdate) => {
+    // Don't auto-save if form isn't initialized yet
+    if (!formInitialized) return;
+    
     try {
-      const response = await axios.put(`${API}/auth/profile`, {
-        ...formData,
-        ...fieldUpdate,
-      });
+      const response = await axios.put(`${API}/auth/profile`, fieldUpdate);
       updateUser(response.data);
       // Silent save - no toast for auto-save
     } catch (error) {
@@ -340,6 +343,12 @@ const Profile = () => {
   };
 
   const handleSave = async () => {
+    // Prevent save if form hasn't been initialized from user data yet
+    if (!formInitialized) {
+      toast.error("Please wait for your profile to load before saving.");
+      return;
+    }
+    
     // Validation only runs on explicit Save button press
     // Photos are auto-saved independently, so we only validate text fields here
     
@@ -820,7 +829,7 @@ const Profile = () => {
             {/* Right: Save button */}
             <Button
               onClick={handleSave}
-              disabled={saving}
+              disabled={saving || !formInitialized}
               className="px-6 h-11 rounded-full font-medium shadow-lg shadow-purple-500/20 transition-all hover:shadow-purple-500/30 hover:scale-105"
               style={{ background: 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)' }}
               data-testid="save-profile-btn"
