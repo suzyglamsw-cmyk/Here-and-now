@@ -1,15 +1,19 @@
 /**
- * PeekableCard Component
+ * PeekableCard Component - Scanner Bar Peek
  * 
- * Wraps UserCard to add Peek functionality for:
- * - Here Now venue cards
- * - Not Here discovery cards
+ * Wraps UserCard to add scanner-bar Peek functionality for:
+ * - Here Now venue cards (unless hide_photo_in_venues = true)
+ * - Not Here discovery cards (always enabled)
  * 
- * Peek shows the CLEAR profile photo briefly inside the small card.
- * Does NOT touch blur logic at all - peek is a separate visual moment.
+ * NOT available for:
+ * - Mutual connections (is_connection_accepted = true)
+ * - Here Now when hide_photo_in_venues = true
  * 
- * 1st tap: Show clear photo overlay for 0.15-0.25s inside the card
- * 2nd tap: Navigate to expanded profile (blur logic unchanged)
+ * Scanner bar animation:
+ * - 2000ms duration
+ * - 20% bar height
+ * - Slower through middle 40% (eye/mouth zone)
+ * - Only bar area is clear, rest stays blurred
  */
 
 import { useState, useCallback, useEffect } from "react";
@@ -19,31 +23,41 @@ import axios from "axios";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
-// Peek duration (in milliseconds): 0.325s
-const PEEK_DURATION = 325;
+// Scanner animation duration
+const SCAN_DURATION = 2000; // 2 seconds
 
 export const PeekableCard = ({
   user,
   peekStatus, // { can_peek, has_peeked, show_border, allow_peek, show_as }
   onPeekComplete,
   context = "venue", // "venue" for Here Now, "not_here" for Not Here
+  isMatched = false, // is_connection_accepted - mutual connection
   // All other UserCard props passed through
   ...cardProps
 }) => {
   const navigate = useNavigate();
-  const [isPeeking, setIsPeeking] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
   const [hasPeekedLocal, setHasPeekedLocal] = useState(peekStatus?.has_peeked || false);
   
-  // Update local state when peekStatus changes (e.g., on refresh)
+  // Update local state when peekStatus changes
   useEffect(() => {
     setHasPeekedLocal(peekStatus?.has_peeked || false);
   }, [peekStatus?.has_peeked]);
   
   // Determine if peek is enabled for this target
-  const allowPeek = peekStatus?.allow_peek !== false; // Default true if undefined
+  const allowPeek = peekStatus?.allow_peek !== false;
   
-  // Determine if card can be peeked (first tap = peek)
-  const canPeek = allowPeek && !hasPeekedLocal && peekStatus?.can_peek !== false;
+  // Check if user hides photo in venues (affects Here Now only)
+  const hideInVenues = user?.hide_photo_in_venues === true;
+  
+  // Peek is disabled for:
+  // 1. Mutual connections (isMatched = true)
+  // 2. Here Now when hide_photo_in_venues = true
+  const isMutual = isMatched || user?.is_connection_accepted;
+  const peekDisabledForContext = isMutual || (context === "venue" && hideInVenues);
+  
+  // Can peek if: allowed, not already peeked, not disabled for this context
+  const canPeek = allowPeek && !hasPeekedLocal && !peekDisabledForContext && peekStatus?.can_peek !== false;
   
   // Show gender border only if peekable
   const showBorder = canPeek;
@@ -52,18 +66,35 @@ export const PeekableCard = ({
   const getBorderColor = () => {
     if (!showBorder) return "transparent";
     const gender = user?.show_as || peekStatus?.show_as;
-    if (gender === "female") return "#FF2D8D"; // Pink
-    if (gender === "male") return "#3A7BFF"; // Blue
-    return "#8B5CF6"; // Purple fallback
+    if (gender === "female") return "#FF2D8D";
+    if (gender === "male") return "#3A7BFF";
+    return "#8B5CF6";
   };
   
-  // Get clear photo URL for peek
-  const getClearPhotoUrl = () => {
-    // Use first photo from photos array, or avatar_url as fallback
+  // Get photo URL for peek
+  const getPhotoUrl = () => {
     if (user?.photos && user.photos.length > 0 && user.photos[0]) {
       return user.photos[0];
     }
     return user?.avatar_url || user?.photo_url || "";
+  };
+  
+  // Get clear photo URL (without blur param)
+  const getClearPhotoUrl = () => {
+    let url = getPhotoUrl();
+    if (url && url.includes('blur=true')) {
+      url = url.replace('blur=true', 'blur=false');
+    }
+    return url;
+  };
+  
+  // Get blurred photo URL
+  const getBlurredPhotoUrl = () => {
+    let url = getPhotoUrl();
+    if (url && !url.includes('blur=')) {
+      url = url + (url.includes('?') ? '&' : '?') + 'blur=true';
+    }
+    return url;
   };
   
   // Handle card tap
@@ -71,44 +102,40 @@ export const PeekableCard = ({
     e.stopPropagation();
     e.preventDefault();
     
-    // If currently peeking, ignore clicks
-    if (isPeeking) {
-      return;
-    }
+    // If scanning, ignore clicks
+    if (isScanning) return;
     
-    // If peek not enabled or already peeked -> navigate to profile
+    // If peek not available, navigate to profile
     if (!canPeek) {
       navigate(`/profile/${user.id}`);
       return;
     }
     
-    // First tap = Peek (show clear photo briefly)
+    // Start scanner-bar peek
     try {
-      // Record peek on backend
       await axios.post(`${API}/api/peek/${user.id}`);
       
-      // Start peek - show clear photo
-      setIsPeeking(true);
+      setIsScanning(true);
       
-      // End peek after duration
+      // End scan after duration
       setTimeout(() => {
-        setIsPeeking(false);
+        setIsScanning(false);
         setHasPeekedLocal(true);
         onPeekComplete?.(user.id);
-      }, PEEK_DURATION);
+      }, SCAN_DURATION);
       
     } catch (error) {
       console.error("Peek failed:", error);
-      // If peek already used (400) or disabled (403), mark as peeked and navigate
       if (error.response?.status === 400 || error.response?.status === 403) {
         setHasPeekedLocal(true);
         navigate(`/profile/${user.id}`);
       }
     }
-  }, [isPeeking, canPeek, user?.id, navigate, onPeekComplete]);
+  }, [isScanning, canPeek, user?.id, navigate, onPeekComplete]);
   
   const borderColor = getBorderColor();
   const clearPhotoUrl = getClearPhotoUrl();
+  const blurredPhotoUrl = getBlurredPhotoUrl();
   
   return (
     <div 
@@ -123,17 +150,19 @@ export const PeekableCard = ({
       }}
       onClick={handleCardClick}
     >
-      {/* The normal UserCard (blurred per existing logic) - click disabled */}
+      {/* The normal UserCard - click disabled */}
       <UserCard
         user={user}
         {...cardProps}
         context={context}
+        isMatched={isMatched}
         disableClick={true}
       />
       
-      {/* Peek overlay - clear photo shown briefly on top */}
-      {isPeeking && clearPhotoUrl && (
+      {/* Scanner-bar Peek overlay */}
+      {isScanning && clearPhotoUrl && (
         <div
+          className="scanner-peek-overlay"
           style={{
             position: "absolute",
             top: 0,
@@ -145,18 +174,105 @@ export const PeekableCard = ({
             overflow: "hidden"
           }}
         >
+          {/* Blurred background layer */}
           <img
-            src={clearPhotoUrl}
-            alt="Peek"
+            src={blurredPhotoUrl}
+            alt=""
+            className="scanner-blurred-layer"
             style={{
+              position: "absolute",
               width: "100%",
               height: "100%",
               objectFit: "cover",
-              objectPosition: "center"
+              objectPosition: "center",
+              filter: "blur(12px)",
+              transform: "scale(1.1)"
+            }}
+          />
+          
+          {/* Clear image with animated clip mask */}
+          <div
+            className="scanner-clear-layer"
+            style={{
+              position: "absolute",
+              width: "100%",
+              height: "100%",
+              clipPath: "inset(var(--scan-top) 0 var(--scan-bottom) 0)",
+              animation: "scannerMove 2s ease-in-out forwards"
+            }}
+          >
+            <img
+              src={clearPhotoUrl}
+              alt=""
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                objectPosition: "center"
+              }}
+            />
+          </div>
+          
+          {/* Scanner bar indicator line */}
+          <div
+            className="scanner-bar-line"
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              height: "2px",
+              background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent)",
+              boxShadow: "0 0 10px rgba(255,255,255,0.5)",
+              animation: "scannerLineMove 2s ease-in-out forwards"
             }}
           />
         </div>
       )}
+      
+      {/* Scanner animation keyframes */}
+      <style>{`
+        @keyframes scannerMove {
+          0% {
+            --scan-top: 0%;
+            --scan-bottom: 80%;
+          }
+          20% {
+            --scan-top: 10%;
+            --scan-bottom: 70%;
+          }
+          /* Slower through middle 40% (30%-70% of image = eye/mouth zone) */
+          40% {
+            --scan-top: 25%;
+            --scan-bottom: 55%;
+          }
+          60% {
+            --scan-top: 45%;
+            --scan-bottom: 35%;
+          }
+          80% {
+            --scan-top: 65%;
+            --scan-bottom: 15%;
+          }
+          100% {
+            --scan-top: 80%;
+            --scan-bottom: 0%;
+          }
+        }
+        
+        @keyframes scannerLineMove {
+          0% { top: 10%; }
+          20% { top: 20%; }
+          40% { top: 35%; }
+          60% { top: 55%; }
+          80% { top: 75%; }
+          100% { top: 90%; }
+        }
+        
+        .scanner-clear-layer {
+          --scan-top: 0%;
+          --scan-bottom: 80%;
+        }
+      `}</style>
     </div>
   );
 };
