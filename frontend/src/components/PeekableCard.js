@@ -190,40 +190,55 @@ export const PeekableCard = ({
             }}
           />
           
-          {/* Clear image with animated clip mask */}
+          {/* Clear image with thin line clip mask */}
           <div
             className="scanner-clear-layer"
             style={{
               position: "absolute",
               width: "100%",
               height: "100%",
-              clipPath: "inset(var(--scan-top) 0 var(--scan-bottom) 0)",
-              animation: "scannerMove 2s ease-in-out forwards"
+              overflow: "hidden"
             }}
           >
-            <img
-              src={clearPhotoUrl}
-              alt=""
+            <div
+              className="scanner-line-mask"
               style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                objectPosition: "center"
+                position: "absolute",
+                left: 0,
+                right: 0,
+                height: "4px",
+                overflow: "hidden",
+                animation: "scannerSlide 2s linear forwards"
               }}
-            />
+            >
+              <img
+                src={clearPhotoUrl}
+                alt=""
+                className="scanner-clear-img"
+                style={{
+                  position: "absolute",
+                  left: 0,
+                  width: "100%",
+                  height: "auto",
+                  minHeight: "100%",
+                  objectFit: "cover",
+                  objectPosition: "center top"
+                }}
+              />
+            </div>
           </div>
           
-          {/* Scanner bar indicator line */}
+          {/* Scanner bar glow line */}
           <div
-            className="scanner-bar-line"
+            className="scanner-glow-line"
             style={{
               position: "absolute",
               left: 0,
               right: 0,
-              height: "2px",
-              background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent)",
-              boxShadow: "0 0 10px rgba(255,255,255,0.5)",
-              animation: "scannerLineMove 2s ease-in-out forwards"
+              height: "4px",
+              background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.9) 20%, rgba(255,255,255,1) 50%, rgba(255,255,255,0.9) 80%, transparent 100%)",
+              boxShadow: "0 0 8px 2px rgba(255,255,255,0.6)",
+              animation: "scannerSlide 2s linear forwards"
             }}
           />
         </div>
@@ -231,46 +246,29 @@ export const PeekableCard = ({
       
       {/* Scanner animation keyframes */}
       <style>{`
-        @keyframes scannerMove {
-          0% {
-            --scan-top: 0%;
-            --scan-bottom: 80%;
-          }
-          20% {
-            --scan-top: 10%;
-            --scan-bottom: 70%;
-          }
-          /* Slower through middle 40% (30%-70% of image = eye/mouth zone) */
-          40% {
-            --scan-top: 25%;
-            --scan-bottom: 55%;
-          }
-          60% {
-            --scan-top: 45%;
-            --scan-bottom: 35%;
-          }
-          80% {
-            --scan-top: 65%;
-            --scan-bottom: 15%;
-          }
-          100% {
-            --scan-top: 80%;
-            --scan-bottom: 0%;
-          }
+        @keyframes scannerSlide {
+          0% { top: 0%; }
+          100% { top: 100%; }
         }
         
-        @keyframes scannerLineMove {
-          0% { top: 10%; }
-          20% { top: 20%; }
-          40% { top: 35%; }
-          60% { top: 55%; }
-          80% { top: 75%; }
-          100% { top: 90%; }
+        .scanner-line-mask {
+          top: 0%;
         }
         
-        .scanner-clear-layer {
-          --scan-top: 0%;
-          --scan-bottom: 80%;
+        .scanner-line-mask .scanner-clear-img {
+          /* Image stays fixed, mask moves over it */
+          top: 0;
+          transform-origin: top center;
+        }
+        
+        /* Keep image position synced with mask movement */
+        @keyframes imgOffset {
+          0% { transform: translateY(0%); }
+          100% { transform: translateY(-100%); }
+        }
+        
+        .scanner-line-mask .scanner-clear-img {
+          animation: imgOffset 2s linear forwards;
         }
       `}</style>
     </div>
