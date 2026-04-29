@@ -47,17 +47,21 @@ def check_photo_recency(image_data: bytes) -> dict:
     """
     Check if photo meets recency requirements based on EXIF metadata.
     Returns: {"valid": bool, "reason": str or None}
+    
+    LENIENT MODE: Missing EXIF is allowed (common for Facebook/social media images).
+    Only reject if EXIF exists AND proves the photo is > 18 months old.
     """
     exif = extract_exif_data(image_data)
     
-    # Check if EXIF exists
+    # Missing EXIF is OK - can't verify age, so allow it
     if not exif:
-        return {"valid": False, "reason": "missing_exif"}
+        return {"valid": True, "reason": "no_exif_allowed"}
     
     # Check for DateTimeOriginal
     date_original = exif.get("DateTimeOriginal") or exif.get("DateTime")
     if not date_original:
-        return {"valid": False, "reason": "missing_date"}
+        # No date in EXIF - can't verify, allow it
+        return {"valid": True, "reason": "no_date_allowed"}
     
     # Parse the date
     try:
@@ -65,54 +69,63 @@ def check_photo_recency(image_data: bytes) -> dict:
         if isinstance(date_original, str):
             photo_date = datetime.strptime(date_original, "%Y:%m:%d %H:%M:%S")
         else:
-            return {"valid": False, "reason": "invalid_date_format"}
+            # Invalid format - can't verify, allow it
+            return {"valid": True, "reason": "unparseable_date_allowed"}
         
         # Check if photo is older than 18 months
         age_limit = datetime.now() - timedelta(days=MAX_PHOTO_AGE_DAYS)
         if photo_date < age_limit:
+            # EXIF proves photo is too old - reject
             return {"valid": False, "reason": "too_old"}
         
         return {"valid": True, "reason": None}
     except Exception as e:
         logger.warning(f"Failed to parse EXIF date: {e}")
-        return {"valid": False, "reason": "invalid_date_format"}
+        # Can't parse date - allow it
+        return {"valid": True, "reason": "date_parse_error_allowed"}
 
 
 def check_is_screenshot(image_data: bytes) -> bool:
     """
     Check if image appears to be a screenshot based on EXIF and image properties.
     Returns True if it's likely a screenshot.
+    
+    LENIENT MODE: Facebook and social media images often lack camera metadata,
+    so we only flag as screenshot if there's positive evidence (software field).
     """
     exif = extract_exif_data(image_data)
     
-    # Check software field for screenshot indicators
+    # Check software field for screenshot indicators - this is strong evidence
     software = exif.get("Software", "").lower()
-    screenshot_indicators = ["screenshot", "snipping", "capture", "screen"]
+    screenshot_indicators = ["screenshot", "snipping", "capture", "screen grab"]
     if any(indicator in software for indicator in screenshot_indicators):
         return True
     
-    # Check for typical screenshot dimensions (iPhone, Android)
-    try:
-        img = Image.open(BytesIO(image_data))
-        width, height = img.size
-        
-        # Common iOS screenshot aspect ratios
-        ios_ratios = [
-            (1170, 2532), (1284, 2778), (1242, 2688),  # iPhone 12/13/14 Pro
-            (1125, 2436), (828, 1792), (750, 1334),    # iPhone X/XR/8
-            (1179, 2556), (1290, 2796),                 # iPhone 15 Pro
-        ]
-        
-        for w, h in ios_ratios:
-            if (width == w and height == h) or (width == h and height == w):
-                # Could be screenshot - check for no camera metadata
-                if not exif.get("Make") and not exif.get("Model"):
+    # For dimension-based detection, require BOTH matching dimensions AND
+    # screenshot software indicators. Missing camera metadata alone is NOT enough
+    # because Facebook/social media strips this data.
+    
+    # Only flag as screenshot if software field contains OS-level hints
+    os_screenshot_hints = ["ios", "android", "windows", "macos", "snip"]
+    if any(hint in software for hint in os_screenshot_hints):
+        try:
+            img = Image.open(BytesIO(image_data))
+            width, height = img.size
+            
+            # Common iOS screenshot aspect ratios
+            ios_ratios = [
+                (1170, 2532), (1284, 2778), (1242, 2688),
+                (1125, 2436), (828, 1792), (750, 1334),
+                (1179, 2556), (1290, 2796),
+            ]
+            
+            for w, h in ios_ratios:
+                if (width == w and height == h) or (width == h and height == w):
                     return True
-        
-        return False
-    except Exception as e:
-        logger.warning(f"Failed to check screenshot: {e}")
-        return False
+        except Exception:
+            pass
+    
+    return False
 
 
 async def analyze_photo_with_ai(image_data: bytes, is_main_photo: bool) -> dict:
@@ -315,6 +328,45 @@ Be strict about face detection - the face must be clearly visible, not obscured 
             return {"valid": False, "error": SAFETY_ERROR, "details": {"error": str(e)}}
 
 
+def validate_image_file(image_data: bytes) -> dict:
+    """
+    Validate that the file is a valid image (JPEG/PNG) and readable.
+    This runs BEFORE any EXIF or AI checks.
+    
+    Returns: {"valid": bool, "error": str or None, "format": str or None}
+    """
+    try:
+        # Check minimum size (at least 1KB)
+        if len(image_data) < 1024:
+            return {"valid": False, "error": "File too small", "format": None}
+        
+        # Check maximum size (10MB)
+        if len(image_data) > 10 * 1024 * 1024:
+            return {"valid": False, "error": "File too large (max 10MB)", "format": None}
+        
+        # Try to open with PIL
+        img = Image.open(BytesIO(image_data))
+        
+        # Verify it's a supported format
+        img_format = img.format.upper() if img.format else None
+        if img_format not in ["JPEG", "JPG", "PNG", "WEBP"]:
+            return {"valid": False, "error": f"Unsupported format: {img_format}", "format": img_format}
+        
+        # Verify image can be fully loaded (catches truncated files)
+        img.load()
+        
+        # Check minimum dimensions (at least 100x100)
+        width, height = img.size
+        if width < 100 or height < 100:
+            return {"valid": False, "error": "Image too small (min 100x100)", "format": img_format}
+        
+        return {"valid": True, "error": None, "format": img_format}
+        
+    except Exception as e:
+        logger.warning(f"Image file validation failed: {e}")
+        return {"valid": False, "error": "Invalid or corrupted image file", "format": None}
+
+
 async def validate_photo(image_data: bytes, is_main_photo: bool) -> dict:
     """
     Main validation function that applies all rules.
@@ -326,49 +378,50 @@ async def validate_photo(image_data: bytes, is_main_photo: bool) -> dict:
     Returns:
         {"valid": bool, "error": str or None}
         
-    FAIL CLOSED: Any unexpected error results in rejection with appropriate error message.
-    
-    TEMPORARY WORKAROUND: AI validation disabled due to Universal Key balance issue.
-    Only EXIF recency and screenshot checks are active for main photos.
-    Secondary photos pass through without AI safety checks.
-    TODO: Re-enable AI validation when Universal Key balance is restored.
+    Validation order:
+    1. File validation (is it a valid JPEG/PNG?)
+    2. EXIF recency check (lenient - only reject if provably > 18 months)
+    3. Screenshot detection (lenient - only with positive evidence)
+    4. AI analysis (currently disabled)
     """
     try:
-        # For main photo, check recency and screenshot first (faster checks)
+        # STEP 1: Validate the file is a readable image
+        file_check = validate_image_file(image_data)
+        if not file_check["valid"]:
+            logger.warning(f"File validation failed: {file_check['error']}")
+            return {"valid": False, "error": file_check["error"]}
+        
+        # For main photo, apply additional checks
         if is_main_photo:
-            # Check EXIF recency
+            # STEP 2: Check EXIF recency (lenient - missing EXIF is OK)
             try:
                 recency = check_photo_recency(image_data)
                 if not recency["valid"]:
+                    # Only fails if EXIF proves photo is > 18 months old
+                    logger.info(f"Photo rejected - EXIF shows too old: {recency['reason']}")
                     return {"valid": False, "error": MAIN_PHOTO_ERROR}
             except Exception as e:
-                print(f"PHOTO VALIDATION ERROR: EXIF RECENCY CHECK: {e}")
-                logger.warning(f"EXIF recency check failed: {e}")
-                return {"valid": False, "error": MAIN_PHOTO_ERROR}
+                # Error in recency check - allow through (lenient)
+                logger.warning(f"EXIF recency check error (allowing): {e}")
             
-            # Check if screenshot
+            # STEP 3: Check if screenshot (lenient - needs positive evidence)
             try:
                 if check_is_screenshot(image_data):
+                    logger.info("Photo rejected - detected as screenshot")
                     return {"valid": False, "error": MAIN_PHOTO_ERROR}
             except Exception as e:
-                print(f"PHOTO VALIDATION ERROR: SCREENSHOT CHECK: {e}")
-                logger.warning(f"Screenshot check failed: {e}")
-                return {"valid": False, "error": MAIN_PHOTO_ERROR}
+                # Error in screenshot check - allow through (lenient)
+                logger.warning(f"Screenshot check error (allowing): {e}")
         
-        # TEMPORARY WORKAROUND: AI validation disabled
-        # AI-based analysis (safety for all, face/content for main) - DISABLED
+        # STEP 4: AI validation (currently disabled)
         # ai_result = await analyze_photo_with_ai(image_data, is_main_photo)
         # if not ai_result["valid"]:
         #     return {"valid": False, "error": ai_result["error"]}
-        logger.info("TEMPORARY: AI validation skipped - Universal Key balance issue")
+        logger.info("Photo validation passed (AI check disabled)")
         
         return {"valid": True, "error": None}
         
     except Exception as e:
-        # Master catch-all - FAIL CLOSED
-        print(f"PHOTO VALIDATION ERROR: UNEXPECTED IN MAIN VALIDATION: {e}")
-        logger.error(f"Photo validation failed unexpectedly: {e}")
-        if is_main_photo:
-            return {"valid": False, "error": MAIN_PHOTO_ERROR}
-        else:
-            return {"valid": False, "error": SAFETY_ERROR}
+        # Master catch-all - be lenient for unexpected errors
+        logger.error(f"Photo validation unexpected error (allowing): {e}")
+        return {"valid": True, "error": None}
