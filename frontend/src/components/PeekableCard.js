@@ -79,20 +79,34 @@ export const PeekableCard = ({
     return user?.avatar_url || user?.photo_url || "";
   };
   
-  // Get clear photo URL (without blur param)
+  // Get clear photo URL (force blur=false)
   const getClearPhotoUrl = () => {
     let url = getPhotoUrl();
-    if (url && url.includes('blur=true')) {
-      url = url.replace('blur=true', 'blur=false');
+    if (!url) return "";
+    
+    // Remove any existing blur parameter and add blur=false
+    if (url.includes('?')) {
+      // Has query params - remove blur if exists, add blur=false
+      url = url.replace(/[?&]blur=(true|false)/g, '');
+      url = url + '&blur=false';
+    } else {
+      // No query params - add blur=false
+      url = url + '?blur=false';
     }
     return url;
   };
   
-  // Get blurred photo URL
+  // Get blurred photo URL (force blur=true)
   const getBlurredPhotoUrl = () => {
     let url = getPhotoUrl();
-    if (url && !url.includes('blur=')) {
-      url = url + (url.includes('?') ? '&' : '?') + 'blur=true';
+    if (!url) return "";
+    
+    // Remove any existing blur parameter and add blur=true
+    if (url.includes('?')) {
+      url = url.replace(/[?&]blur=(true|false)/g, '');
+      url = url + '&blur=true';
+    } else {
+      url = url + '?blur=true';
     }
     return url;
   };
