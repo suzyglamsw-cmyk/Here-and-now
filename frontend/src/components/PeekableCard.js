@@ -1,7 +1,7 @@
 /**
- * PeekableCard Component - Soft Polygonal Iris Peek v4
+ * PeekableCard Component - Elegant Iris Peek v5
  * 
- * 6-8 sided polygon with feathered edges, rotation, and gentle fade
+ * Smooth, refined iris reveal with gentle expansion
  */
 
 import { useState, useCallback, useEffect, useRef } from "react";
@@ -10,8 +10,8 @@ import { UserCard } from "./UserCard";
 import axios from "axios";
 
 const API = process.env.REACT_APP_BACKEND_URL;
-const EXPAND_DURATION = 400; // 350-450ms expansion
-const FADE_DURATION = 250;   // 200-300ms fade out
+const EXPAND_DURATION = 500;
+const FADE_DURATION = 300;
 const TOTAL_DURATION = EXPAND_DURATION + FADE_DURATION;
 
 export const PeekableCard = ({
@@ -72,7 +72,6 @@ export const PeekableCard = ({
   const clearUrl = addBlurParam(getPhotoUrl(), false);
   const blurUrl = addBlurParam(getPhotoUrl(), true);
   
-  // Preload clear image
   useEffect(() => {
     if (canPeek && clearUrl) {
       const img = new Image();
@@ -113,9 +112,6 @@ export const PeekableCard = ({
   
   const uid = user?.id?.replace(/-/g, '') || 'default';
   
-  // 8-sided polygon (octagon) - slightly irregular for organic feel
-  const polygonShape = "polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)";
-  
   return (
     <div 
       ref={cardRef}
@@ -148,7 +144,7 @@ export const PeekableCard = ({
             overflow: "hidden",
             pointerEvents: "none"
           }}>
-            {/* Blurred background - always visible */}
+            {/* Blurred base layer */}
             <img
               src={blurUrl}
               alt=""
@@ -163,56 +159,9 @@ export const PeekableCard = ({
               }}
             />
             
-            {/* Polygon mask container - positioned above center (35% from top) */}
+            {/* Clear reveal layer with elegant iris */}
             <div
-              className={`poly-container-${uid}`}
-              style={{
-                position: "absolute",
-                top: "35%",
-                left: "50%",
-                width: "120px",
-                height: "120px",
-                transform: "translate(-50%, -50%) scale(0.05) rotate(0deg)",
-                transformOrigin: "center center"
-              }}
-            >
-              {/* Inner polygon with feathered edges */}
-              <div
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  clipPath: polygonShape,
-                  borderRadius: "8px",
-                  overflow: "hidden",
-                  /* Feathered edge using radial gradient mask */
-                  WebkitMaskImage: "radial-gradient(ellipse 50% 50% at 50% 50%, black 50%, transparent 100%)",
-                  maskImage: "radial-gradient(ellipse 50% 50% at 50% 50%, black 50%, transparent 100%)"
-                }}
-              >
-                {/* Clear image - no blur */}
-                <img
-                  src={clearUrl}
-                  alt=""
-                  style={{
-                    position: "absolute",
-                    top: "-35%",
-                    left: "-50%",
-                    width: "calc(100vw)",
-                    height: "calc(100vh)",
-                    maxWidth: "none",
-                    objectFit: "cover",
-                    objectPosition: "center 35%",
-                    filter: "none",
-                    WebkitFilter: "none",
-                    transform: "scale(2)"
-                  }}
-                />
-              </div>
-            </div>
-            
-            {/* Separate clear image properly positioned */}
-            <div
-              className={`poly-iris-${uid}`}
+              className={`iris-reveal-${uid}`}
               style={{
                 position: "absolute",
                 inset: 0,
@@ -222,6 +171,7 @@ export const PeekableCard = ({
               <img
                 src={clearUrl}
                 alt=""
+                className={`iris-img-${uid}`}
                 style={{
                   position: "absolute",
                   inset: 0,
@@ -229,61 +179,113 @@ export const PeekableCard = ({
                   height: "100%",
                   objectFit: "cover",
                   filter: "none",
-                  WebkitFilter: "none",
-                  /* Polygon clip + feathered radial mask combined */
-                  clipPath: polygonShape,
-                  WebkitMaskImage: "radial-gradient(ellipse 60px 60px at 50% 35%, black 40%, transparent 100%)",
-                  maskImage: "radial-gradient(ellipse 60px 60px at 50% 35%, black 40%, transparent 100%)",
-                  WebkitMaskSize: "100% 100%",
-                  maskSize: "100% 100%",
-                  transform: "rotate(0deg)",
-                  transformOrigin: "50% 35%"
+                  WebkitFilter: "none"
                 }}
               />
             </div>
           </div>
           
           <style>{`
-            .poly-iris-${uid} {
-              animation: polyReveal-${uid} ${TOTAL_DURATION}ms ease-out forwards;
+            .iris-reveal-${uid} {
+              animation: irisFade-${uid} ${TOTAL_DURATION}ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
             }
             
-            .poly-iris-${uid} img {
-              animation: polyMask-${uid} ${TOTAL_DURATION}ms ease-out forwards;
+            .iris-img-${uid} {
+              -webkit-mask-image: radial-gradient(
+                circle 0px at 50% 33%,
+                rgba(0,0,0,1) 0%,
+                rgba(0,0,0,0.8) 40%,
+                rgba(0,0,0,0) 100%
+              );
+              mask-image: radial-gradient(
+                circle 0px at 50% 33%,
+                rgba(0,0,0,1) 0%,
+                rgba(0,0,0,0.8) 40%,
+                rgba(0,0,0,0) 100%
+              );
+              animation: irisExpand-${uid} ${TOTAL_DURATION}ms cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
             }
             
-            @keyframes polyReveal-${uid} {
+            @keyframes irisExpand-${uid} {
               0% {
-                opacity: 1;
+                -webkit-mask-image: radial-gradient(
+                  circle 0px at 50% 33%,
+                  rgba(0,0,0,1) 0%,
+                  rgba(0,0,0,0.6) 50%,
+                  rgba(0,0,0,0) 100%
+                );
+                mask-image: radial-gradient(
+                  circle 0px at 50% 33%,
+                  rgba(0,0,0,1) 0%,
+                  rgba(0,0,0,0.6) 50%,
+                  rgba(0,0,0,0) 100%
+                );
               }
-              ${(EXPAND_DURATION / TOTAL_DURATION * 100).toFixed(0)}% {
+              15% {
+                -webkit-mask-image: radial-gradient(
+                  circle 8px at 50% 33%,
+                  rgba(0,0,0,1) 0%,
+                  rgba(0,0,0,0.6) 50%,
+                  rgba(0,0,0,0) 100%
+                );
+                mask-image: radial-gradient(
+                  circle 8px at 50% 33%,
+                  rgba(0,0,0,1) 0%,
+                  rgba(0,0,0,0.6) 50%,
+                  rgba(0,0,0,0) 100%
+                );
+              }
+              40% {
+                -webkit-mask-image: radial-gradient(
+                  circle 35px at 50% 33%,
+                  rgba(0,0,0,1) 0%,
+                  rgba(0,0,0,0.6) 50%,
+                  rgba(0,0,0,0) 100%
+                );
+                mask-image: radial-gradient(
+                  circle 35px at 50% 33%,
+                  rgba(0,0,0,1) 0%,
+                  rgba(0,0,0,0.6) 50%,
+                  rgba(0,0,0,0) 100%
+                );
+              }
+              62% {
+                -webkit-mask-image: radial-gradient(
+                  circle 55px at 50% 33%,
+                  rgba(0,0,0,1) 0%,
+                  rgba(0,0,0,0.5) 50%,
+                  rgba(0,0,0,0) 100%
+                );
+                mask-image: radial-gradient(
+                  circle 55px at 50% 33%,
+                  rgba(0,0,0,1) 0%,
+                  rgba(0,0,0,0.5) 50%,
+                  rgba(0,0,0,0) 100%
+                );
+              }
+              100% {
+                -webkit-mask-image: radial-gradient(
+                  circle 55px at 50% 33%,
+                  rgba(0,0,0,1) 0%,
+                  rgba(0,0,0,0.5) 50%,
+                  rgba(0,0,0,0) 100%
+                );
+                mask-image: radial-gradient(
+                  circle 55px at 50% 33%,
+                  rgba(0,0,0,1) 0%,
+                  rgba(0,0,0,0.5) 50%,
+                  rgba(0,0,0,0) 100%
+                );
+              }
+            }
+            
+            @keyframes irisFade-${uid} {
+              0%, 60% {
                 opacity: 1;
               }
               100% {
                 opacity: 0;
               }
-            }
-            
-            @keyframes polyMask-${uid} {
-              0% {
-                -webkit-mask-image: radial-gradient(ellipse 5px 5px at 50% 35%, black 40%, transparent 100%);
-                mask-image: radial-gradient(ellipse 5px 5px at 50% 35%, black 40%, transparent 100%);
-                transform: rotate(0deg);
-              }
-              ${(EXPAND_DURATION / TOTAL_DURATION * 100).toFixed(0)}% {
-                -webkit-mask-image: radial-gradient(ellipse 60px 60px at 50% 35%, black 40%, transparent 100%);
-                mask-image: radial-gradient(ellipse 60px 60px at 50% 35%, black 40%, transparent 100%);
-                transform: rotate(8deg);
-              }
-              100% {
-                -webkit-mask-image: radial-gradient(ellipse 60px 60px at 50% 35%, black 40%, transparent 100%);
-                mask-image: radial-gradient(ellipse 60px 60px at 50% 35%, black 40%, transparent 100%);
-                transform: rotate(8deg);
-              }
-            }
-            
-            .poly-container-${uid} {
-              display: none;
             }
           `}</style>
         </>
