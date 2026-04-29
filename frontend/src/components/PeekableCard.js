@@ -81,12 +81,29 @@ export const PeekableCard = ({
     return "#8B5CF6";
   };
   
-  // Get photo URL for peek
+  // Get photo URL for peek - normalize to full path
   const getPhotoUrl = () => {
+    let photoId = null;
+    
+    // Try photos array first
     if (user?.photos && user.photos.length > 0 && user.photos[0]) {
-      return user.photos[0];
+      photoId = user.photos[0];
+    } else if (user?.avatar_url) {
+      // avatar_url might be full path or just ID
+      photoId = user.avatar_url;
+    } else if (user?.photo_url) {
+      photoId = user.photo_url;
     }
-    return user?.avatar_url || user?.photo_url || "";
+    
+    if (!photoId) return "";
+    
+    // If already a full path, return as-is
+    if (photoId.startsWith('/api/') || photoId.startsWith('http')) {
+      return photoId;
+    }
+    
+    // Otherwise, construct the full path
+    return `/api/photos/serve/${photoId}`;
   };
   
   // Get clear photo URL (force blur=false)
@@ -95,7 +112,6 @@ export const PeekableCard = ({
     if (!url) return "";
     
     // Parse and rebuild URL with blur=false
-    // Handle both ?blur=X and &blur=X patterns
     if (url.includes('blur=')) {
       // Replace existing blur parameter value
       url = url.replace(/blur=(true|false)/g, 'blur=false');
@@ -206,7 +222,7 @@ export const PeekableCard = ({
             overflow: "hidden"
           }}
         >
-          {/* BOTTOM LAYER: Blurred image - always visible */}
+          {/* LAYER 1: Blurred image - full card, always visible as base */}
           <img
             src={blurredPhotoUrl}
             alt=""
@@ -220,12 +236,11 @@ export const PeekableCard = ({
               objectPosition: "center",
               zIndex: 1,
               filter: "blur(12px)",
-              transform: "scale(1.1)"
+              transform: "scale(1.05)"
             }}
           />
           
-          {/* TOP LAYER: Moving window with clear image inside */}
-          {/* Window moves from top:0 to top:(cardHeight - SCANNER_HEIGHT)px */}
+          {/* LAYER 2: Moving scanner window - clips the clear image */}
           <div
             className="scanner-window-animated"
             style={{
@@ -235,11 +250,11 @@ export const PeekableCard = ({
               height: `${SCANNER_HEIGHT}px`,
               zIndex: 2,
               overflow: "hidden",
-              /* Animation handled by CSS class with CSS variables */
               "--window-travel": `${cardHeight - SCANNER_HEIGHT}px`
             }}
           >
-            {/* Clear image - height matches full card, positioned to stay visually static */}
+            {/* Clear image positioned to align with the card background */}
+            {/* As window moves down by Y, image moves up by Y to show same region */}
             <img
               src={clearPhotoUrl}
               alt=""
@@ -253,13 +268,12 @@ export const PeekableCard = ({
                 objectPosition: "center",
                 filter: "none",
                 WebkitFilter: "none",
-                /* Animation handled by CSS class with CSS variables */
                 "--image-travel": `-${cardHeight - SCANNER_HEIGHT}px`
               }}
             />
           </div>
           
-          {/* Scanner glow line - synced with window */}
+          {/* LAYER 3: Scanner glow line effect */}
           <div
             className="scanner-glow-animated"
             style={{
@@ -268,8 +282,8 @@ export const PeekableCard = ({
               right: 0,
               height: `${SCANNER_HEIGHT}px`,
               zIndex: 3,
-              background: "linear-gradient(180deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0.15) 100%)",
-              boxShadow: "0 0 6px rgba(255,255,255,0.4)",
+              background: "linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0.1) 100%)",
+              boxShadow: "0 0 8px rgba(255,255,255,0.5)",
               pointerEvents: "none",
               "--window-travel": `${cardHeight - SCANNER_HEIGHT}px`
             }}
