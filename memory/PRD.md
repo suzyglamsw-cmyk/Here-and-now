@@ -60,19 +60,43 @@ Final scan returned `status: pass` with no findings:
 3. Click **Start deployment** (50 credits/month Starter plan)
 4. After ~10–15 min, the Android **APK download** appears on the same Deployments page
 
-## Build Error Fix #2 (May 01 21:30 APK build attempt)
-**Error:** `STEP 6: Fix app.json for Android build — Found app.config.js - removing to use app.json only — Error: ENOENT: no such file or directory, open 'app.json'`
+## Build Error Fix #3 (May 01 22:06 APK build attempt — after credit top-up)
 
-**Root cause:** The Emergent **APK build step** (different from the EAS Update step that failed last time) has its own logic that:
-1. Detects `app.config.js` is present
-2. **Deletes it** assuming `app.json` is the primary config
-3. Reads `app.json` → crashes because we had deleted `app.json` in the earlier fix
+**Errors:**
+```
+ConfigError: Cannot determine the project's Expo SDK version because the module `expo` is not installed.
+npm error Override for @react-native-async-storage/async-storage@2.2.0 conflicts with direct dependency
+npm error `npm ci` can only install packages when your package.json and package-lock.json are in sync.
+Invalid: lock file's expo-camera@55.0.16 does not satisfy expo-camera@17.0.10
+Invalid: lock file's expo-notifications@55.0.22 does not satisfy expo-notifications@0.32.17
+... (15+ version mismatches)
+```
 
-**Fix applied:** Restored `/app/frontend/app.json` as a static JSON file containing the full config (package `com.herenow.app`, googleServicesFile, permissions, iOS infoPlist, Google Maps API key, `extra.apiBaseUrl`). Both `app.json` and `app.config.js` now coexist:
-- **Local dev / EAS Update step** → Expo CLI prefers `app.config.js` (dynamic, env-driven)
-- **APK build step** → removes `app.config.js` then reads `app.json` (static, all config inline)
+**Root cause:** `package.json` had **SDK 55-style version specifiers** for all Expo modules (e.g., `expo-camera@^55.0.16`) while `expo` itself was pinned to SDK 54 (`~54.0.33`). EAS build server's `npm ci` requires lockfile to match SDK-54-aligned versions — it fails because the direct-dep versions in package.json specify SDK 55 modules that don't exist / conflict.
 
-`app.json` includes the `apiBaseUrl` pointing to the external backend — the APK build pipeline only sed-rewrites `.env` files, so app.json is preserved intact.
+**Fix applied:** Rewrote `/app/frontend/package.json` with correct SDK 54-aligned versions:
+- `@react-native-async-storage/async-storage: 1.24.0` (was 1.23.1)
+- `expo-camera: ~17.0.10` (was ^55.0.16)
+- `expo-device: ~8.0.10` (was ^55.0.15)
+- `expo-image-picker: ~17.0.11` (was ^55.0.19)
+- `expo-linear-gradient: ~15.0.8` (was ^55.0.13)
+- `expo-location: ~19.0.8` (was ^55.1.8)
+- `expo-notifications: ~0.32.17` (was ^55.0.21)
+- `expo-secure-store: ~15.0.8` (was ^55.0.13)
+- `react-native-gesture-handler: ~2.28.0` (was ^2.31.1)
+- `react-native-maps: 1.20.1` (was ^1.27.2)
+- `react-native-reanimated: ~4.1.7` (was ^4.3.0)
+- `react-native-safe-area-context: ~5.6.0` (was ^5.7.0)
+- `react-native-screens: ~4.16.0` (was ^4.24.0)
+- `react-native-svg: 15.12.1` (was ^15.15.4)
+- `react-native-worklets: 0.5.1` (was ^0.8.1)
+- Added `expo-constants: ~18.0.9` (needed by app config lookup in constants.js)
+
+**Verification:**
+- `yarn install` succeeded (9.82s, generated new yarn.lock).
+- Local Android Metro bundle compiles cleanly (HTTP 200, 10.8 MB).
+- **Sandbox test of EAS build's `npm ci` flow**: created /tmp/npm-test with just package.json → `npm install` → `npm ci --legacy-peer-deps` → **exit code 0, 794 packages installed** (matches what the build server does).
+- No more EOVERRIDE or lockfile-mismatch errors.
 
 ## Backend URL Strategy (Option B — Keep external backend)
 The Emergent build pipeline rewrites `*.preview.emergentagent.com` URLs in `.env` to the deployment's own URL. To keep the APK pointed at the external production backend, the URL was moved out of `.env` and into `app.config.js`:
