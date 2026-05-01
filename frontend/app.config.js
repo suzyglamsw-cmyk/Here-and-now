@@ -1,7 +1,9 @@
-// app.config.js — dynamic Expo config that reads secrets from environment variables
-// (replaces app.json so Google Maps key, etc. are not hardcoded in source)
+// app.config.js — static Expo config object (NOT a function)
+// Emergent's deploy pipeline reads this with `require()` and JSON.stringifies it
+// to generate app.json at build time. Exporting a function would produce
+// `undefined` from JSON.stringify and break the build.
 
-module.exports = ({ config }) => ({
+module.exports = {
   expo: {
     name: 'Here & Now',
     slug: 'here-and-now',
@@ -51,7 +53,7 @@ module.exports = ({ config }) => ({
       googleServicesFile: './google-services.json',
       config: {
         googleMaps: {
-          // Read from env at build time — never hardcode secrets
+          // Read at build time from env var (set in /app/frontend/.env)
           apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
         },
       },
@@ -76,4 +78,4 @@ module.exports = ({ config }) => ({
       },
     },
   },
-});
+};
