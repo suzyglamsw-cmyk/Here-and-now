@@ -60,10 +60,19 @@ Final scan returned `status: pass` with no findings:
 3. Click **Start deployment** (50 credits/month Starter plan)
 4. After ~10–15 min, the Android **APK download** appears on the same Deployments page
 
-## Build Error Fix (May 01 deployment attempt)
-**Error:** `[EAS_LOG] ERROR: Failed to generate app.json from app.config.js` — `JSON.stringify` returned `undefined` because `app.config.js` exported a function `({config}) => ({...})`.
+## Build Error Fix #2 (May 01 21:30 APK build attempt)
+**Error:** `STEP 6: Fix app.json for Android build — Found app.config.js - removing to use app.json only — Error: ENOENT: no such file or directory, open 'app.json'`
 
-**Fix:** Changed `app.config.js` to export the config **object directly** (not a function). Verified locally: `JSON.stringify(require('./app.config.js'))` produces a valid 1549-byte JSON string with `apiKey` and `apiBaseUrl` correctly substituted.
+**Root cause:** The Emergent **APK build step** (different from the EAS Update step that failed last time) has its own logic that:
+1. Detects `app.config.js` is present
+2. **Deletes it** assuming `app.json` is the primary config
+3. Reads `app.json` → crashes because we had deleted `app.json` in the earlier fix
+
+**Fix applied:** Restored `/app/frontend/app.json` as a static JSON file containing the full config (package `com.herenow.app`, googleServicesFile, permissions, iOS infoPlist, Google Maps API key, `extra.apiBaseUrl`). Both `app.json` and `app.config.js` now coexist:
+- **Local dev / EAS Update step** → Expo CLI prefers `app.config.js` (dynamic, env-driven)
+- **APK build step** → removes `app.config.js` then reads `app.json` (static, all config inline)
+
+`app.json` includes the `apiBaseUrl` pointing to the external backend — the APK build pipeline only sed-rewrites `.env` files, so app.json is preserved intact.
 
 ## Backend URL Strategy (Option B — Keep external backend)
 The Emergent build pipeline rewrites `*.preview.emergentagent.com` URLs in `.env` to the deployment's own URL. To keep the APK pointed at the external production backend, the URL was moved out of `.env` and into `app.config.js`:
