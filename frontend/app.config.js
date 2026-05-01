@@ -73,6 +73,9 @@ module.exports = {
       ],
     ],
     extra: {
+      // External production backend — kept here (not in .env) so the
+      // Emergent build pipeline does NOT sed-rewrite it to the deployment URL.
+      apiBaseUrl: 'https://spontaneous-venue.preview.emergentagent.com',
       eas: {
         projectId: 'hereandnow-5c927',
       },

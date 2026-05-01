@@ -1,5 +1,10 @@
+import Constants from 'expo-constants';
+
 // API Configuration
-export const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+// API base URL is stored in app.config.js (extra.apiBaseUrl) so it survives
+// the Emergent build pipeline's sed rewrite of *.preview.emergentagent.com URLs
+// in .env files. This keeps the APK pointed at the live production backend.
+export const API_URL = Constants.expoConfig?.extra?.apiBaseUrl;
 
 // Google Maps API Key (runtime use)
 export const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
