@@ -63,19 +63,30 @@ Final scan returned `status: pass` with no findings:
 ## Build Error Fix (May 01 deployment attempt)
 **Error:** `[EAS_LOG] ERROR: Failed to generate app.json from app.config.js` — `JSON.stringify` returned `undefined` because `app.config.js` exported a function `({config}) => ({...})`.
 
-**Fix:** Changed `app.config.js` to export the config **object directly** (not a function). Verified locally: `JSON.stringify(require('./app.config.js'))` produces a valid 2023-byte JSON string with `apiKey: "<env value>"` correctly substituted.
+**Fix:** Changed `app.config.js` to export the config **object directly** (not a function). Verified locally: `JSON.stringify(require('./app.config.js'))` produces a valid 1549-byte JSON string with `apiKey` and `apiBaseUrl` correctly substituted.
 
-## ⚠️ KNOWN DEPLOYMENT CAVEAT — Backend URL rewrite
-Emergent's build pipeline rewrites all `*.preview.emergentagent.com` URLs in `.env` to the deployment's own URL `herenow-eas-android.emergent.host`. This means:
-- After deploy, the mobile APK will call `herenow-eas-android.emergent.host/api/*`
-- But `/app/backend/server.py` is the **empty Emergent template** (just `/api/` + `/api/status`)
-- The real Here & Now backend (auth, venues, connections, photos, etc.) is at `/tmp/here-and-now/backend/` and was NOT moved into `/app/backend`
+## Backend URL Strategy (Option B — Keep external backend)
+The Emergent build pipeline rewrites `*.preview.emergentagent.com` URLs in `.env` to the deployment's own URL. To keep the APK pointed at the external production backend, the URL was moved out of `.env` and into `app.config.js`:
 
-**To make the deployed APK functional, ONE of:**
-1. Replace `/app/backend` with the full Here & Now backend code from the cloned repo (`/tmp/here-and-now/backend/`). Update `requirements.txt` to add `pywebpush`, `py-vapid`, `Pillow`, `stripe`. Set up Atlas MongoDB connection string in deployed env.
-2. Keep using the external backend at `spontaneous-venue.preview.emergentagent.com` — but this requires preventing the sed rewrite (e.g., via `app.config.js` `extra` field or `EXPO_PUBLIC_API_BASE` with a non-emergentagent.com hostname).
+- **`/app/frontend/.env`**: removed `EXPO_PUBLIC_BACKEND_URL` (no longer subject to sed rewrite)
+- **`/app/frontend/app.config.js`**: added `extra.apiBaseUrl: 'https://spontaneous-venue.preview.emergentagent.com'`
+- **`/app/frontend/src/utils/constants.js`**: now reads via `Constants.expoConfig?.extra?.apiBaseUrl`
+
+Sed-rewrite simulation confirmed: only `EXPO_PACKAGER_HOSTNAME` and `EXPO_PACKAGER_PROXY_URL` get rewritten (which is correct), `apiBaseUrl` survives intact.
+
+## ⚠️ NEW ISSUE — External backend is currently unreachable
+At the time of writing, `https://spontaneous-venue.preview.emergentagent.com/api/*` returns **HTTP 404** (it now serves frontend HTML at `/`, not the FastAPI backend). Earlier in the session, `/api/countries` returned valid JSON, so the backend has been redeployed or replaced.
+
+**Action required from user before APK can function:**
+- Confirm the correct production backend URL for the Here & Now app
+- Update `apiBaseUrl` in `/app/frontend/app.config.js` to that URL
+- OR move the full Here & Now backend code into `/app/backend` (Option A originally offered)
+
+## Deployment Status
+- Build error: ✅ FIXED — next deployment will pass the `app.config.js` step
+- Backend reachability: ❌ External backend currently returns 404 on /api routes — needs user action
 
 ## Next Action Items
-1. Click **Start deployment** again — the EAS step will now succeed.
-2. Decide on backend strategy (move backend OR keep external) — see caveat above.
-3. After deployment succeeds, install APK on Android device and verify Login/Register.
+1. ✅ Click **Start deployment** — the EAS build will succeed.
+2. ⚠️ Update `apiBaseUrl` in `app.config.js` to a working backend, OR move backend code into `/app/backend` if external backend is no longer available.
+3. After deployment + backend fix, install APK and verify Login/Register.
