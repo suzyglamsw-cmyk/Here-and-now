@@ -11,39 +11,56 @@
 ## Mobile App Structure (`/app/frontend`)
 - `App.js` — Root with `GestureHandlerRootView`, `SafeAreaProvider`, `AuthProvider`, `NavigationContainer`. Registers push notifications post-auth.
 - `index.js` — `registerRootComponent(App)`.
+- `app.config.js` — **Dynamic Expo config** (replaces app.json) reading secrets from env at build time.
 - `src/navigation/AppNavigator.js` — Auth/Main stack switch + 4 bottom tabs (Discover, Connections, Messages, Profile).
 - `src/screens/auth/` — Login, Register, ForgotPassword, OnboardingGender, ProfileSetup.
 - `src/screens/main/` — Discover, Venues, WhosHere, Connections, Chat, Profile, EditProfile, Settings, UserProfile.
 - `src/utils/api.js` — axios with JWT interceptor + grouped APIs (auth, venues, discovery, connections, messages, photos, voice, settings, premium).
-- `src/utils/constants.js` — `API_URL = https://spontaneous-venue.preview.emergentagent.com`, theme tokens.
+- `src/utils/constants.js` — `API_URL` and `GOOGLE_MAPS_API_KEY` strictly from env (no fallbacks).
 - `src/context/AuthContext.js` — login/register/logout, token persistence via `expo-secure-store`.
 
 ## Build / Release Config
-- `app.json`:
+- `app.config.js`:
   - `name`: "Here & Now", `slug`: "here-and-now", `version`: 1.0.0
   - **Android `package`**: `com.herenow.app`, `versionCode`: 1
   - **iOS `bundleIdentifier`**: `com.herenow.app`
   - Permissions: CAMERA, LOCATION (fine + coarse), RECORD_AUDIO, READ/WRITE_EXTERNAL_STORAGE, VIBRATE, RECEIVE_BOOT_COMPLETED.
   - iOS `infoPlist` usage descriptions for camera, photo library, location, microphone.
   - `googleServicesFile`: `./google-services.json` (FCM).
-  - Google Maps API key embedded for `react-native-maps`.
+  - **Google Maps `apiKey` reads from `process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY`** at build time.
   - Plugins: expo-secure-store, expo-location, expo-camera, expo-image-picker, expo-av, expo-notifications.
 - `eas.json` — `preview` profile builds **Android APK**; `production` builds AAB.
 
+## Environment Variables (`/app/frontend/.env`)
+```
+EXPO_TUNNEL_SUBDOMAIN=herenow-eas-android
+EXPO_PACKAGER_HOSTNAME=https://herenow-eas-android.preview.emergentagent.com
+EXPO_PACKAGER_PROXY_URL=https://herenow-eas-android.preview.emergentagent.com
+EXPO_PUBLIC_BACKEND_URL=https://spontaneous-venue.preview.emergentagent.com
+EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=<google-maps-key>
+EXPO_USE_FAST_RESOLVER="1"
+METRO_CACHE_ROOT=/app/frontend/.metro-cache
+```
+
+## Deployment Health Check — PASS ✅
+Final scan returned `status: pass` with no findings:
+- ✅ Compilation passed (Android bundle: HTTP 200, 10.9 MB, 3244 modules)
+- ✅ All env files OK
+- ✅ Frontend & backend URLs in env only — no hardcoded secrets or URLs in source
+- ✅ CORS configured (`*`)
+- ✅ MongoDB only (Emergent-compatible)
+- ✅ Supervisor config valid (expo + backend + mongodb)
+- ✅ No ML/blockchain deps, no `dotenv override` issues
+- ✅ No blocking `.gitignore`/`.dockerignore` rules
+
 ## Build Method
-User chose **Emergent Publish button** (top-right). No EAS account/CLI needed — Emergent's hosted build pipeline reads `app.json` + `eas.json` and produces a downloadable APK signed with the correct `com.herenow.app` package ID.
-
-## Verification Done
-- Repo cloned from `https://github.com/suzyglamsw-cmyk/Here-and-now` (mobile/ folder copied to `/app/frontend`).
-- Yarn install succeeded (added `@babel/core`, `@expo/ngrok`).
-- Expo Metro bundler running stable; tunnel connected.
-- Android bundle `index.bundle?platform=android` compiled cleanly — **10.9 MB JS bundle generated, all screens (Login/Register/Discover/etc.) present**.
-- Production backend at `https://spontaneous-venue.preview.emergentagent.com` is reachable (`/api/countries` returns valid JSON).
-
-## Known Warnings (non-blocking)
-Several Expo SDK 54 dependency version mismatches were reported (e.g., `expo-camera@55` vs expected `~17.0.10`, `react-native-reanimated@4.3.0` vs `~4.1.1`). These did **not** prevent the Android bundle from compiling. Update with `npx expo install --check` if you hit runtime issues on device.
+**Emergent's hosted Mobile Deployment** (no EAS account/CLI needed):
+1. Click the cloud/Publish icon → opens Deployments page
+2. Click **Run Health Check** (already passing locally)
+3. Click **Start deployment** (50 credits/month Starter plan)
+4. After ~10–15 min, the Android **APK download** appears on the same Deployments page
 
 ## Next Action Items
-1. Click the **Publish** button (top-right in the Emergent UI) → choose **Android** → APK profile.
-2. Once the APK is generated, install on a physical Android device and verify Login/Register against the production backend.
-3. (Optional) Run `npx expo install --check` inside `/app/frontend` to align dependencies with SDK 54 if any runtime issues appear.
+1. Click **Run Health Check** in the Emergent Deployments UI → should pass now.
+2. Click **Start deployment** → builds the Android APK signed with `com.herenow.app`.
+3. Download APK and install on a physical Android device to verify Login/Register against the production backend.
