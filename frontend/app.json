@@ -1,43 +1,72 @@
 {
   "expo": {
-    "name": "frontend",
-    "slug": "frontend",
+    "name": "Here & Now",
+    "slug": "here-and-now",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "frontend",
-    "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f0a1e"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "com.herenow.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Here & Now needs camera access to take profile photos",
+        "NSPhotoLibraryUsageDescription": "Here & Now needs photo library access to select profile photos",
+        "NSLocationWhenInUseUsageDescription": "Here & Now needs your location to show nearby venues and people",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Here & Now needs your location to show nearby venues and people",
+        "NSMicrophoneUsageDescription": "Here & Now needs microphone access to record voice intros"
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#000"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0f0a1e"
       },
-      "edgeToEdgeEnabled": true
-    },
-    "web": {
-      "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "package": "com.herenow.app",
+      "versionCode": 1,
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "RECORD_AUDIO",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED"
+      ],
+      "googleServicesFile": "./google-services.json",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyAE7Aw3n7ikdIEwEPor8Oto77U5wwBD1aM"
+        }
+      }
     },
     "plugins": [
-      "expo-router",
+      "expo-secure-store",
+      "expo-location",
+      "expo-camera",
+      "expo-image-picker",
+      "expo-av",
       [
-        "expo-splash-screen",
+        "expo-notifications",
         {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#000"
+          "icon": "./assets/notification-icon.png",
+          "color": "#a855f7"
         }
-      ],
-      "expo-web-browser"
+      ]
     ],
-    "experiments": {
-      "typedRoutes": true
+    "extra": {
+      "eas": {
+        "projectId": "hereandnow-5c927"
+      }
     }
   }
 }
