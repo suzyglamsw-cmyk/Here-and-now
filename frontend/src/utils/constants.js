@@ -1,8 +1,12 @@
 // API Configuration
-export const API_URL = 'https://spontaneous-venue.preview.emergentagent.com';
+export const API_URL =
+  process.env.EXPO_PUBLIC_BACKEND_URL ||
+  'https://spontaneous-venue.preview.emergentagent.com';
 
 // Google Maps API Key
-export const GOOGLE_MAPS_API_KEY = 'AIzaSyAE7Aw3n7ikdIEwEPor8Oto77U5wwBD1aM';
+export const GOOGLE_MAPS_API_KEY =
+  process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
+  'AIzaSyAE7Aw3n7ikdIEwEPor8Oto77U5wwBD1aM';
 
 // App Constants
 export const APP_NAME = 'Here & Now';
