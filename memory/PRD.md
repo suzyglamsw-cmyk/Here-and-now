@@ -60,7 +60,22 @@ Final scan returned `status: pass` with no findings:
 3. Click **Start deployment** (50 credits/month Starter plan)
 4. After ~10–15 min, the Android **APK download** appears on the same Deployments page
 
+## Build Error Fix (May 01 deployment attempt)
+**Error:** `[EAS_LOG] ERROR: Failed to generate app.json from app.config.js` — `JSON.stringify` returned `undefined` because `app.config.js` exported a function `({config}) => ({...})`.
+
+**Fix:** Changed `app.config.js` to export the config **object directly** (not a function). Verified locally: `JSON.stringify(require('./app.config.js'))` produces a valid 2023-byte JSON string with `apiKey: "<env value>"` correctly substituted.
+
+## ⚠️ KNOWN DEPLOYMENT CAVEAT — Backend URL rewrite
+Emergent's build pipeline rewrites all `*.preview.emergentagent.com` URLs in `.env` to the deployment's own URL `herenow-eas-android.emergent.host`. This means:
+- After deploy, the mobile APK will call `herenow-eas-android.emergent.host/api/*`
+- But `/app/backend/server.py` is the **empty Emergent template** (just `/api/` + `/api/status`)
+- The real Here & Now backend (auth, venues, connections, photos, etc.) is at `/tmp/here-and-now/backend/` and was NOT moved into `/app/backend`
+
+**To make the deployed APK functional, ONE of:**
+1. Replace `/app/backend` with the full Here & Now backend code from the cloned repo (`/tmp/here-and-now/backend/`). Update `requirements.txt` to add `pywebpush`, `py-vapid`, `Pillow`, `stripe`. Set up Atlas MongoDB connection string in deployed env.
+2. Keep using the external backend at `spontaneous-venue.preview.emergentagent.com` — but this requires preventing the sed rewrite (e.g., via `app.config.js` `extra` field or `EXPO_PUBLIC_API_BASE` with a non-emergentagent.com hostname).
+
 ## Next Action Items
-1. Click **Run Health Check** in the Emergent Deployments UI → should pass now.
-2. Click **Start deployment** → builds the Android APK signed with `com.herenow.app`.
-3. Download APK and install on a physical Android device to verify Login/Register against the production backend.
+1. Click **Start deployment** again — the EAS step will now succeed.
+2. Decide on backend strategy (move backend OR keep external) — see caveat above.
+3. After deployment succeeds, install APK on Android device and verify Login/Register.
