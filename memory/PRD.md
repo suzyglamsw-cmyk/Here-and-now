@@ -60,7 +60,35 @@ Final scan returned `status: pass` with no findings:
 3. Click **Start deployment** (50 credits/month Starter plan)
 4. After ~10–15 min, the Android **APK download** appears on the same Deployments page
 
-## Build Error Fix #3 (May 01 22:06 APK build attempt — after credit top-up)
+## APK Startup Crash Fix (May 01 — APK built successfully but crashed on open)
+
+**Symptom:** APK installs, opens briefly, then immediately closes.
+
+**Three root causes identified & fixed:**
+
+### 1. Babel plugin for Reanimated 4.x (most likely culprit)
+- **Was:** `plugins: ['react-native-reanimated/plugin']` — this plugin was **removed in Reanimated 4.x**
+- **Fix:** `plugins: ['react-native-worklets/plugin']` — the new required plugin
+- Without this, every `useSharedValue` / `useAnimatedStyle` call throws a worklet-transform error at runtime → app crashes on any screen using animations.
+
+### 2. expo-notifications 0.32.x API breaking change
+- **Was:** `shouldShowAlert: true` in `setNotificationHandler` — **removed in expo-notifications 0.29+**
+- **Fix:** `shouldShowBanner: true, shouldShowList: true` — the new API
+- This code runs at module load time (when `App.js` imports `pushNotifications.js`), so a type error here crashes the app immediately.
+
+### 3. Safety fallback for API_URL
+- **Was:** `API_URL = Constants.expoConfig?.extra?.apiBaseUrl` (undefined in some release-build scenarios)
+- **Fix:** Try `expoConfig` → `manifest` → `manifest2` → hardcoded production URL. Axios gets a valid baseURL no matter what.
+
+### Files changed
+- `/app/frontend/babel.config.js`
+- `/app/frontend/src/utils/pushNotifications.js` (setNotificationHandler API)
+- `/app/frontend/src/utils/constants.js` (robust API_URL)
+
+### Verification
+- Cleared `.metro-cache` and restarted Expo (babel changes require cache clear).
+- Android bundle re-compiled cleanly: HTTP 200, 10.8 MB.
+- No babel errors about missing plugins.
 
 **Errors:**
 ```

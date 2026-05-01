@@ -3,10 +3,11 @@ import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import { settingsAPI } from './api';
 
-// Configure notification handler
+// Configure notification handler (expo-notifications 0.32.x API)
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
   }),

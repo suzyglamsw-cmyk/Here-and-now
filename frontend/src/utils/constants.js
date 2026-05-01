@@ -1,10 +1,15 @@
 import Constants from 'expo-constants';
 
 // API Configuration
-// API base URL is stored in app.config.js (extra.apiBaseUrl) so it survives
-// the Emergent build pipeline's sed rewrite of *.preview.emergentagent.com URLs
-// in .env files. This keeps the APK pointed at the live production backend.
-export const API_URL = Constants.expoConfig?.extra?.apiBaseUrl;
+// Try multiple sources to be resilient across dev/release builds:
+// 1. expo-constants extra (from app.json extra.apiBaseUrl at build time)
+// 2. Hardcoded fallback (so app never crashes with undefined baseURL)
+const PROD_API_URL = 'https://spontaneous-venue.preview.emergentagent.com';
+export const API_URL =
+  Constants.expoConfig?.extra?.apiBaseUrl ||
+  Constants.manifest?.extra?.apiBaseUrl ||
+  Constants.manifest2?.extra?.expoClient?.extra?.apiBaseUrl ||
+  PROD_API_URL;
 
 // Google Maps API Key (runtime use)
 export const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
