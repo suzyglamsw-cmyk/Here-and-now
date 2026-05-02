@@ -7,7 +7,7 @@ module.exports = {
   expo: {
     name: 'Here & Now',
     slug: 'here-and-now',
-    version: '1.0.2',
+    version: '1.0.3',
     orientation: 'portrait',
     newArchEnabled: true,
     icon: './assets/icon.png',
@@ -40,7 +40,7 @@ module.exports = {
         backgroundColor: '#0f0a1e',
       },
       package: 'com.herenow.app',
-      versionCode: 3,
+      versionCode: 4,
       permissions: [
         'CAMERA',
         'READ_EXTERNAL_STORAGE',
@@ -76,7 +76,7 @@ module.exports = {
     extra: {
       // External production backend — kept here (not in .env) so the
       // Emergent build pipeline does NOT sed-rewrite it to the deployment URL.
-      apiBaseUrl: 'https://spontaneous-venue.preview.emergentagent.com',
+      apiBaseUrl: 'https://herenow-eas-android.emergent.host',
       eas: {
         projectId: 'hereandnow-5c927',
       },
