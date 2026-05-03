@@ -4,7 +4,7 @@ import Constants from 'expo-constants';
 // Try multiple sources to be resilient across dev/release builds:
 // 1. expo-constants extra (from app.json extra.apiBaseUrl at build time)
 // 2. Hardcoded fallback (so app never crashes with undefined baseURL)
-const PROD_API_URL = 'https://spontaneous-venue.preview.emergentagent.com';
+const PROD_API_URL = 'https://herenow-eas-android.emergent.host';
 export const API_URL =
   Constants.expoConfig?.extra?.apiBaseUrl ||
   Constants.manifest?.extra?.apiBaseUrl ||

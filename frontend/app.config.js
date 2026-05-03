@@ -7,9 +7,9 @@ module.exports = {
   expo: {
     name: 'Here & Now',
     slug: 'here-and-now',
-    version: '1.0.3',
+    version: '1.0.4',
     orientation: 'portrait',
-    newArchEnabled: true,
+    newArchEnabled: false,
     icon: './assets/icon.png',
     userInterfaceStyle: 'dark',
     splash: {
@@ -40,7 +40,7 @@ module.exports = {
         backgroundColor: '#0f0a1e',
       },
       package: 'com.herenow.app',
-      versionCode: 4,
+      versionCode: 5,
       permissions: [
         'CAMERA',
         'READ_EXTERNAL_STORAGE',
