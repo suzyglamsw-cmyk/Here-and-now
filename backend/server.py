@@ -515,6 +515,25 @@ app = FastAPI(title="Here & Now API")
 api_router = APIRouter(prefix="/api")
 security = HTTPBearer()
 
+# ---------------------------------------------------------------------------
+# Public health endpoints (unauthenticated) — required for Kubernetes /
+# Google Cloud Load Balancer health probes hitting the pod from the cluster
+# IP (e.g. 34.117.x.x). Without these, probes hit auth-protected routes and
+# get 403 → pods are marked unhealthy and the deployment fails.
+# ---------------------------------------------------------------------------
+@app.get("/", include_in_schema=False)
+async def root_health():
+    return {"status": "ok", "service": "here-and-now-api"}
+
+@app.get("/healthz", include_in_schema=False)
+async def healthz():
+    return {"status": "ok"}
+
+@app.get("/api/health", include_in_schema=False)
+@app.get("/api", include_in_schema=False)
+async def api_health():
+    return {"status": "ok", "service": "here-and-now-api"}
+
 # WebSocket Connection Manager
 class ConnectionManager:
     def __init__(self):
