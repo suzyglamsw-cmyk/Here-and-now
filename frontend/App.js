@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DarkTheme as NavDarkTheme } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -53,8 +53,10 @@ function AppContent() {
     <NavigationContainer
       ref={navigationRef}
       theme={{
+        ...NavDarkTheme,
         dark: true,
         colors: {
+          ...NavDarkTheme.colors,
           primary: COLORS.primary,
           background: COLORS.background,
           card: COLORS.backgroundLight,
