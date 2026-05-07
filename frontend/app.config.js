@@ -73,6 +73,12 @@ module.exports = {
         },
       ],
     ],
+    platforms: ['ios', 'android', 'web'],
+    web: {
+      bundler: 'metro',
+      output: 'single',
+      favicon: './assets/icon.png',
+    },
     extra: {
       // External production backend — kept here (not in .env) so the
       // Emergent build pipeline does NOT sed-rewrite it to the deployment URL.

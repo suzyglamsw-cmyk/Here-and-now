@@ -1,0 +1,10 @@
+import React from 'react';
+import { View, Text } from 'react-native';
+const MapView = (props) => React.createElement(View, { style: [{ backgroundColor: '#1a1a2e', alignItems: 'center', justifyContent: 'center', minHeight: 200 }, props.style] }, React.createElement(Text, { style: { color: '#888' } }, 'Map (native only)'));
+MapView.Marker = (props) => null;
+MapView.Callout = (props) => null;
+MapView.Circle = (props) => null;
+MapView.Polyline = (props) => null;
+MapView.Polygon = (props) => null;
+export default MapView;
+export { MapView };
