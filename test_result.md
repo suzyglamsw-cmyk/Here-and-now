@@ -101,3 +101,48 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: |
+  Pixel-match port of the user's web full-stack UI (fullstackhere-and-now repo) to React Native.
+  Convert: Splash, Landing/Onboarding intro, Login, Register, ForgotPassword,
+  OnboardingGender, ProfileSetup, and HowItWorksTutorial screens. Match fonts (Outfit/Manrope),
+  gradients, glow, spacing, and copy exactly.
+
+frontend:
+  - task: "Auth UI pixel-match port (Splash, Landing, Login, Register, ForgotPassword, OnboardingGender, ProfileSetup, HowItWorksTutorial)"
+    implemented: true
+    working: true
+    file: "frontend/src/screens/auth/*.js, frontend/src/screens/HowItWorksTutorialScreen.js, frontend/src/navigation/AppNavigator.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: |
+          Implemented full pixel-match port of the web auth & onboarding flow:
+          - SplashScreen (animated pulse logo, 2.5s timer → Landing)
+          - LandingScreen (hero, How-it-works features grid, CTA, footer)
+          - LoginScreen (glass card, gradient logo, password toggle)
+          - RegisterScreen (3-step: Age Verification → Form → Gender selection)
+          - ForgotPasswordScreen (request → check email → optional dev-mode reset)
+          - OnboardingGenderScreen (post-auth gender selection)
+          - ProfileSetupScreen (3-step wizard with bottom-sheet pickers, interest chips)
+          - HowItWorksTutorialScreen (7 step cards with stylised cartoon avatars + blur overlays)
+          Loaded Outfit + Manrope Google Fonts in App.js for typographic match.
+          Added HeroGradient component (LinearGradient layering to approximate radial CSS gradient).
+          Added GlassCard, FormInput, FormTextarea, GradientButton, WhiteButton, SolidButton,
+          GhostButton primitives in components/ui.
+          AppNavigator updated: Splash → Landing → (Login | Register | ForgotPassword) and a
+          global HowItWorksTutorial screen mounted in both AuthStack and ProfileStack so it can be
+          accessed from Settings later.
+          Verified via web preview screenshots — all flows render correctly with gradients, glow,
+          and pixel-match typography. Em-dashes and bullet chars rendered correctly after fixing
+          JSX text/attribute escape semantics.
+
+agent_communication:
+  - agent: "main"
+    message: |
+      Phase 1 (Auth + Onboarding pixel-match) complete. Awaiting user review on APK.
+      Phase 2 (main tabs: Discovery, WhosHere, Venues, Chat) NOT started.
+      No backend changes in this session — all work is frontend UI port.

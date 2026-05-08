@@ -187,3 +187,4 @@ credentials.json
 *.pem
 *.key
 .credentials
+frontend/.git/objects/pack/pack-0ddefefac92440c9ee6aef958f4339e5317e5da3.pack
