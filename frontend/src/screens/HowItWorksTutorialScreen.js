@@ -3,6 +3,9 @@ import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Ellipse, Rect, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
 import { ArrowLeft, Eye, EyeOff, Users, Heart, Sparkles, MapPin, Camera } from 'lucide-react-native';
+import { Platform } from 'react-native';
+import MaskedView from '@react-native-masked-view/masked-view';
+import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, FONTS, RADIUS } from '../utils/theme';
 
 // Cartoon-ish silhouette in lieu of /avatarA.png and /avatarB.png from web build.
@@ -67,9 +70,26 @@ function SilhouetteVisual() {
   );
 }
 
-// GradientText: solid purple approximation of web's gradient-to-r text
+// GradientText: Web's `bg-gradient-to-r from-[#A66CFF] via-[#C77DFF] to-[#FF70A6] bg-clip-text`
+// Native uses MaskedView; web falls back to solid lavender for clean rendering.
 function GradientText({ children, style }) {
-  return <Text style={[style, { color: '#C77DFF' }]}>{children}</Text>;
+  if (Platform.OS === 'web') {
+    return <Text style={[style, { color: '#C77DFF' }]}>{children}</Text>;
+  }
+  const flat = StyleSheet.flatten(style) || {};
+  const fontSize = flat.fontSize || 16;
+  return (
+    <MaskedView maskElement={<Text style={[style, { backgroundColor: 'transparent' }]}>{children}</Text>}>
+      <LinearGradient
+        colors={['#A66CFF', '#C77DFF', '#FF70A6']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={{ height: fontSize * 1.6 }}
+      >
+        <Text style={[style, { opacity: 0 }]}>{children}</Text>
+      </LinearGradient>
+    </MaskedView>
+  );
 }
 
 function StepCard({ number, title, description, icon: Icon, children }) {

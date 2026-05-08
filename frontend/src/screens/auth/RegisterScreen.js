@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Alert, Pressable } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Alert, Pressable, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Shield, User as UserIcon, Heart, Check } from 'lucide-react-native';
+import { ArrowLeft, Shield, User as UserIcon, Heart, Check, Calendar } from 'lucide-react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import HeroGradient from '../../components/HeroGradient';
 import { Logo, LogoIcon } from '../../components/Logo';
 import { GlassCard, FormInput, GradientButton, GhostButton } from '../../components/ui';
@@ -38,6 +39,11 @@ export default function RegisterScreen({ navigation }) {
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  // Default the date picker to 25 years ago so adults see a useful starting point.
+  const defaultDob = (() => { const d = new Date(); d.setFullYear(d.getFullYear() - 25); return d; })();
+  const maxDob = (() => { const d = new Date(); d.setFullYear(d.getFullYear() - 18); return d; })();
+  const [dobDate, setDobDate] = useState(null);
   const [form, setForm] = useState({ email: '', password: '', display_name: '', date_of_birth: '', show_as: '' });
 
   const nameValidation = form.display_name ? validateName(form.display_name) : { valid: true, error: null };
@@ -157,14 +163,73 @@ export default function RegisterScreen({ navigation }) {
                     helper="Just to make sure there are no typos."
                     error={confirmPassword && form.password !== confirmPassword ? "These don't match yet." : null}
                   />
-                  <FormInput
-                    label="Date of Birth"
-                    value={form.date_of_birth}
-                    onChangeText={(v) => setForm({ ...form, date_of_birth: v })}
-                    placeholder="YYYY-MM-DD"
-                    keyboardType="numbers-and-punctuation"
-                    helper="You must be 18 or older. Your age will be shown, but not your DOB."
-                  />
+                  {/* Date of Birth — native date picker (iOS spinner / Android dialog) */}
+                  <View style={{ gap: 8 }}>
+                    <Text style={styles.dobLabel}>Date of Birth</Text>
+                    <Pressable
+                      onPress={() => setShowDatePicker(true)}
+                      style={({ pressed }) => [styles.dobInput, pressed && { backgroundColor: COLORS.inputBgFocus }]}
+                    >
+                      <Calendar size={18} color={COLORS.textSecondary} />
+                      <Text style={[styles.dobValue, !form.date_of_birth && { color: COLORS.textPlaceholder }]}>
+                        {form.date_of_birth || 'Select your date of birth'}
+                      </Text>
+                    </Pressable>
+                    <Text style={styles.dobHelper}>You must be 18 or older. Your age will be shown, but not your DOB.</Text>
+                  </View>
+
+                  {showDatePicker && (
+                    Platform.OS === 'ios' ? (
+                      <Modal transparent animationType="slide" visible={showDatePicker} onRequestClose={() => setShowDatePicker(false)}>
+                        <Pressable style={styles.modalBackdrop} onPress={() => setShowDatePicker(false)}>
+                          <Pressable style={styles.modalSheet} onPress={(e) => e.stopPropagation()}>
+                            <View style={styles.modalHeader}>
+                              <Pressable onPress={() => setShowDatePicker(false)} hitSlop={10}>
+                                <Text style={styles.modalCancel}>Cancel</Text>
+                              </Pressable>
+                              <Text style={styles.modalTitle}>Date of Birth</Text>
+                              <Pressable
+                                onPress={() => {
+                                  const picked = dobDate || defaultDob;
+                                  const iso = picked.toISOString().split('T')[0];
+                                  setForm({ ...form, date_of_birth: iso });
+                                  setShowDatePicker(false);
+                                }}
+                                hitSlop={10}
+                              >
+                                <Text style={styles.modalDone}>Done</Text>
+                              </Pressable>
+                            </View>
+                            <DateTimePicker
+                              value={dobDate || defaultDob}
+                              mode="date"
+                              display="spinner"
+                              maximumDate={maxDob}
+                              minimumDate={new Date(1925, 0, 1)}
+                              themeVariant="dark"
+                              onChange={(event, selected) => { if (selected) setDobDate(selected); }}
+                              style={{ backgroundColor: COLORS.backgroundLight }}
+                            />
+                          </Pressable>
+                        </Pressable>
+                      </Modal>
+                    ) : (
+                      <DateTimePicker
+                        value={dobDate || defaultDob}
+                        mode="date"
+                        display="default"
+                        maximumDate={maxDob}
+                        minimumDate={new Date(1925, 0, 1)}
+                        onChange={(event, selected) => {
+                          setShowDatePicker(false);
+                          if (event.type === 'set' && selected) {
+                            setDobDate(selected);
+                            setForm({ ...form, date_of_birth: selected.toISOString().split('T')[0] });
+                          }
+                        }}
+                      />
+                    )
+                  )}
 
                   <GradientButton label="Continue" onPress={handleSubmitForm} disabled={!nameValidation.valid} />
                 </View>
@@ -258,4 +323,15 @@ const styles = StyleSheet.create({
   footRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
   footText: { color: COLORS.textSecondary, fontFamily: FONTS.body },
   linkAccent: { color: COLORS.primaryLight, fontFamily: FONTS.bodySemibold },
+  // DOB picker styles
+  dobLabel: { color: COLORS.textLabel, fontSize: 14, fontFamily: FONTS.bodyMedium },
+  dobInput: { height: 48, backgroundColor: COLORS.inputBg, borderRadius: RADIUS.lg, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  dobValue: { color: COLORS.text, fontSize: 16, fontFamily: FONTS.body },
+  dobHelper: { fontSize: 12, color: COLORS.textPlaceholder, fontFamily: FONTS.body },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+  modalSheet: { backgroundColor: COLORS.backgroundLight, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 24 },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  modalTitle: { color: COLORS.text, fontSize: 16, fontFamily: FONTS.bodySemibold },
+  modalCancel: { color: COLORS.textSecondary, fontFamily: FONTS.bodyMedium, fontSize: 15 },
+  modalDone: { color: COLORS.primaryLight, fontFamily: FONTS.bodySemibold, fontSize: 15 },
 });

@@ -139,10 +139,21 @@ frontend:
           Verified via web preview screenshots — all flows render correctly with gradients, glow,
           and pixel-match typography. Em-dashes and bullet chars rendered correctly after fixing
           JSX text/attribute escape semantics.
+      - working: true
+        agent: "main"
+        comment: |
+          Phase 1 polish: installed @react-native-community/datetimepicker@8.4.4 (DOB now uses
+          iOS spinner / Android native dialog) and @react-native-masked-view/masked-view@0.3.2
+          (Logo now uses a true purple→pink animated shimmer via alpha-mask on native). Web
+          preview uses a Platform.OS=='web' fallback to solid lavender so screenshots stay clean.
+          Plugin '@react-native-community/datetimepicker' added to app.config.js.
+          Both libs installed via `npx expo install` so they match SDK 54.
 
 agent_communication:
   - agent: "main"
     message: |
-      Phase 1 (Auth + Onboarding pixel-match) complete. Awaiting user review on APK.
-      Phase 2 (main tabs: Discovery, WhosHere, Venues, Chat) NOT started.
+      Phase 1 + polish (datetimepicker DOB + masked-view shimmer logo) complete. Awaiting user
+      review on freshly built APK. Phase 2 (main tabs) NOT started.
       No backend changes in this session — all work is frontend UI port.
+      EAS guardrails respected: babel.config.js untouched (worklets stay disabled),
+      .env files untouched, no version downgrades of EAS-stable packages.

@@ -65,6 +65,7 @@ module.exports = {
       'expo-camera',
       'expo-image-picker',
       'expo-av',
+      '@react-native-community/datetimepicker',
       [
         'expo-notifications',
         {
