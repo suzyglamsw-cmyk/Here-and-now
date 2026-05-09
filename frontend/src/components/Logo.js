@@ -25,9 +25,9 @@ const ClockO = ({ size = 20, color = '#C084FC' }) => (
   </Svg>
 );
 
-// Approximate width of one character at given fontSize for Outfit-Bold.
-// Multiplier ~0.62 works well for sans-serif bold display weights.
-const charWidth = (text, fontSize) => Math.ceil(text.length * fontSize * 0.62);
+// Approximate width of one character at given fontSize for a bold display weight.
+// Tighter multiplier removes excess whitespace at the right edge of the SVG.
+const charWidth = (text, fontSize) => Math.ceil(text.length * fontSize * 0.58);
 
 const SIZES = {
   small: 16,
@@ -90,9 +90,7 @@ export function Logo({ size = 'default' }) {
   return (
     <View style={styles.row}>
       <SvgGradientText fontSize={fontSize} gradientId={`hn-grad-1-${size}`} animProgress={anim}>Here & N</SvgGradientText>
-      <View style={{ width: 4 }} />
-      <ClockO size={fontSize * 0.95} />
-      <View style={{ width: 4 }} />
+      <ClockO size={fontSize * 1.05} />
       <SvgGradientText fontSize={fontSize} gradientId={`hn-grad-2-${size}`} animProgress={anim}>w</SvgGradientText>
     </View>
   );

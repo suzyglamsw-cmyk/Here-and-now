@@ -311,10 +311,13 @@ async def update_profile(data: UserProfile, current_user: dict = Depends(get_cur
                 logger.warning(f"Could not validate main photo on profile save: {e}")
                 # Allow save if validation fails due to technical issues (photo was already validated on upload)
     else:
-        # If photos not being updated, check existing photos in database
+        # If photos not being updated, check existing photos in database.
+        # Skip this check during onboarding (user hasn't completed setup yet) so they
+        # can save their gender/show_as before being taken to the photo upload screen.
         existing_photos = current_user.get("photos", [])
         valid_existing_photos = [p for p in existing_photos if p and p.strip()]
-        if len(valid_existing_photos) < 1:
+        is_onboarding = not current_user.get("profile_complete", False)
+        if len(valid_existing_photos) < 1 and not is_onboarding:
             raise HTTPException(status_code=400, detail="Please add at least one profile photo to continue.")
     
     # DOB is NOT editable via profile update - remove if present
