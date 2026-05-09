@@ -1,5 +1,5 @@
 import axios from 'axios';
-import * as SecureStore from 'expo-secure-store';
+import { secureGet, secureDelete } from './secureStorage';
 import { API_URL } from './constants';
 
 // Create axios instance
@@ -11,11 +11,11 @@ const api = axios.create({
   },
 });
 
-// Request interceptor to add auth token
+// Request interceptor to add auth token (cross-platform: SecureStore on native, AsyncStorage on web)
 api.interceptors.request.use(
   async (config) => {
     try {
-      const token = await SecureStore.getItemAsync('authToken');
+      const token = await secureGet('authToken');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -35,7 +35,7 @@ api.interceptors.response.use(
   async (error) => {
     if (error.response?.status === 401) {
       // Token expired - clear storage
-      await SecureStore.deleteItemAsync('authToken');
+      try { await secureDelete('authToken'); } catch (e) { /* ignore */ }
       // Navigation to login will be handled by AuthContext
     }
     return Promise.reject(error);
@@ -46,7 +46,7 @@ api.interceptors.response.use(
 export const authAPI = {
   login: (email, password) => api.post('/api/auth/login', { email, password }),
   register: (data) => api.post('/api/auth/register', data),
-  me: () => api.get('/api/auth/me'),
+  me: (config) => api.get('/api/auth/me', config),
   updateProfile: (data) => api.put('/api/auth/profile', data),
   forgotPassword: (email) => api.post('/api/auth/forgot-password', { email }),
   resetPassword: (token, password) => api.post('/api/auth/reset-password', { token, new_password: password }),

@@ -45,13 +45,30 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await authAPI.login(email, password);
-      const { token: newToken, ...userData } = response.data;
-      
+      // Backend returns either { token, ...flatUser } or { token, user: {...} }.
+      // Either way, the login response is *partial* (missing show_as, profile_complete,
+      // presence_note, etc.). We immediately re-fetch via /api/auth/me to get the
+      // complete user object so AppNavigator can route correctly.
+      const { token: newToken } = response.data;
+
       await secureSet('authToken', newToken);
       setToken(newToken);
-      setUser(userData);
+
+      try {
+        // Pass the token explicitly to avoid any race condition with AsyncStorage on web.
+        const meRes = await authAPI.me({ headers: { Authorization: `Bearer ${newToken}` } });
+        console.log('[AuthContext.login] /me show_as=', meRes.data?.show_as, 'profile_complete=', meRes.data?.profile_complete);
+        setUser(meRes.data);
+      } catch (meErr) {
+        console.log('[AuthContext.login] /me FAILED', meErr?.message);
+        // Fall back to whatever login returned if /me fails for any reason.
+        const { user: nestedUser, ...flatUser } = response.data;
+        // eslint-disable-next-line no-unused-vars
+        const { token: _t, ...rest } = flatUser;
+        setUser(nestedUser || rest);
+      }
+
       setIsAuthenticated(true);
-      
       return { success: true };
     } catch (error) {
       const message = error.response?.data?.detail || 'Login failed';
@@ -62,13 +79,22 @@ export const AuthProvider = ({ children }) => {
   const register = async (data) => {
     try {
       const response = await authAPI.register(data);
-      const { token: newToken, ...userData } = response.data;
-      
+      const { token: newToken } = response.data;
+
       await secureSet('authToken', newToken);
       setToken(newToken);
-      setUser(userData);
+
+      try {
+        const meRes = await authAPI.me({ headers: { Authorization: `Bearer ${newToken}` } });
+        setUser(meRes.data);
+      } catch (meErr) {
+        const { user: nestedUser, ...flatUser } = response.data;
+        // eslint-disable-next-line no-unused-vars
+        const { token: _t, ...rest } = flatUser;
+        setUser(nestedUser || rest);
+      }
+
       setIsAuthenticated(true);
-      
       return { success: true };
     } catch (error) {
       const message = error.response?.data?.detail || 'Registration failed';

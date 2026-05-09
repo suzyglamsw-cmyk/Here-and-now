@@ -122,6 +122,8 @@ const AppNavigator = () => {
   const needsOnboarding = isAuthenticated && user && !user.show_as;
   const needsProfileSetup = isAuthenticated && user && user.show_as && !user.profile_complete;
 
+  console.log('[AppNavigator]', { isAuthenticated, hasUser: !!user, show_as: user?.show_as, profile_complete: user?.profile_complete, needsOnboarding, needsProfileSetup: !!needsProfileSetup });
+
   return (
     <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: COLORS.background } }}>
       {!isAuthenticated ? (
