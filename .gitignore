@@ -83,3 +83,12 @@ memory/test_credentials.md
 # Mobile development
 android-sdk/
 frontend/.git/objects/pack/pack-0ddefefac92440c9ee6aef958f4339e5317e5da3.pack
+-e 
+# Environment and credential files
+.env
+.env.*
+*.env
+credentials.json
+*.pem
+*.key
+.credentials
