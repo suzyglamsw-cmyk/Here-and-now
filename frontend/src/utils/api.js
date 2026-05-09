@@ -49,7 +49,7 @@ export const authAPI = {
   me: () => api.get('/api/auth/me'),
   updateProfile: (data) => api.put('/api/auth/profile', data),
   forgotPassword: (email) => api.post('/api/auth/forgot-password', { email }),
-  resetPassword: (token, password) => api.post('/api/auth/reset-password', { token, password }),
+  resetPassword: (token, password) => api.post('/api/auth/reset-password', { token, new_password: password }),
 };
 
 // Venues API
