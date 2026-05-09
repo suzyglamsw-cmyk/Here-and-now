@@ -109,7 +109,7 @@ const ProfilePreview = ({ visible, onClose, formData = {}, user = null }) => {
       }
       const audioUrl = formData.voice_intro_url?.startsWith('http')
         ? formData.voice_intro_url
-        : `${API_URL}${formData.voice_intro_url?.replace('/api/', '/api/') || ''}`;
+        : `${API_URL}${formData.voice_intro_url || ''}`;
       if (!audioUrl) return;
       if (previewAudioRef.current) {
         await previewAudioRef.current.unloadAsync().catch(() => {});
@@ -198,12 +198,15 @@ const ProfilePreview = ({ visible, onClose, formData = {}, user = null }) => {
   };
 
   // Lifestyle / Food Mood / About sections — visible in all 3 states
-  const LifestyleSection = () => {
+  // `narrow` prop matches the web's `max-w-xs mx-auto` layout used in
+  // CONNECTED state (and unmatched-Based-In). When false (default) the
+  // card is full-width as in REVEALED state.
+  const LifestyleSection = ({ narrow = false } = {}) => {
     if (!(formData.lifestyle_vibe || formData.lifestyle_travel || formData.lifestyle_going_out)) {
       return null;
     }
     return (
-      <View style={styles.softCard}>
+      <View style={[styles.softCard, narrow && styles.softCardNarrow]}>
         <Text style={styles.softCardLabel}>LIFESTYLE</Text>
         <View style={{ gap: 8 }}>
           {formData.lifestyle_vibe ? (
@@ -229,10 +232,10 @@ const ProfilePreview = ({ visible, onClose, formData = {}, user = null }) => {
     );
   };
 
-  const FoodMoodSection = () => {
+  const FoodMoodSection = ({ narrow = false } = {}) => {
     if (!formData.food_mood) return null;
     return (
-      <View style={styles.softCard}>
+      <View style={[styles.softCard, narrow && styles.softCardNarrow]}>
         <Text style={styles.softCardLabel}>FOOD MOOD</Text>
         <View>
           <Text style={styles.softCardSubKey}>In the kitchen?</Text>
@@ -242,10 +245,10 @@ const ProfilePreview = ({ visible, onClose, formData = {}, user = null }) => {
     );
   };
 
-  const BasedInSection = () => {
+  const BasedInSection = ({ narrow = false } = {}) => {
     if (!(formData.home_country || formData.home_area)) return null;
     return (
-      <View style={styles.softCard}>
+      <View style={[styles.softCard, narrow && styles.softCardNarrow]}>
         <Text style={styles.softCardLabel}>BASED IN</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <MapPin size={16} color="#2dd4bf" />
@@ -453,7 +456,7 @@ const ProfilePreview = ({ visible, onClose, formData = {}, user = null }) => {
 
               <Text style={styles.smallDim}>No reveal button visible before matching</Text>
 
-              <BasedInSection />
+              <BasedInSection narrow />
             </View>
           ) : null}
 
@@ -468,8 +471,8 @@ const ProfilePreview = ({ visible, onClose, formData = {}, user = null }) => {
 
               {renderInitialOnlyPhotoCard(50 /* medium blur ≈ 6px */)}
 
-              <LifestyleSection />
-              <FoodMoodSection />
+              <LifestyleSection narrow />
+              <FoodMoodSection narrow />
 
               {formData.bio ? (
                 <View style={[styles.softCard, styles.softCardNarrow]}>
@@ -498,7 +501,7 @@ const ProfilePreview = ({ visible, onClose, formData = {}, user = null }) => {
                 </Text>
               </View>
 
-              <BasedInSection />
+              <BasedInSection narrow />
             </View>
           ) : null}
 
