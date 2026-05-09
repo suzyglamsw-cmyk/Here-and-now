@@ -508,26 +508,9 @@ const EditProfileScreen = ({ navigation, route }) => {
   const mainPhoto = formData.photos[0];
   const canGoBack = !isFirstTime && navigation.canGoBack();
 
-  // ---- Success / "Go to Discovery" view (firstTime onboarding only) ----
-  if (saveSuccess && isFirstTime) {
-    return (
-      <SafeAreaView style={s.container} edges={['top']}>
-        <View style={s.successWrap}>
-          <View style={s.successIconWrap}>
-            <Check size={56} color="#10b981" />
-          </View>
-          <Text style={s.successTitle}>You're all set!</Text>
-          <Text style={s.successBody}>
-            Your profile is complete. You can now discover venues and people
-            near you on Here & Now.
-          </Text>
-          <Pressable style={s.successCta} onPress={handleGoToDiscovery}>
-            <Text style={s.successCtaText}>Go to Discovery</Text>
-          </Pressable>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  // (Old full-screen success-view early-return removed — the success state is
+  // now rendered as a closable popup at the bottom of this component, so the
+  // user is never forced to leave EditProfile.)
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
@@ -955,6 +938,45 @@ const EditProfileScreen = ({ navigation, route }) => {
         user={user}
       />
 
+      {/* Save-success popup — appears after a successful "complete profile" save.
+          The user is NOT forced to click "Go to Discovery"; they can dismiss
+          this popup with the X button and continue editing their profile. */}
+      <Modal
+        visible={saveSuccess && isFirstTime}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSaveSuccess(false)}
+      >
+        <View style={s.successBackdrop}>
+          <View style={s.successCard}>
+            <Pressable
+              onPress={() => setSaveSuccess(false)}
+              style={s.successCloseBtn}
+              testID="save-success-close-btn"
+              hitSlop={12}
+            >
+              <X size={20} color="#c4b5fd" />
+            </Pressable>
+
+            <View style={s.successIconWrap}>
+              <Check size={44} color="#10b981" />
+            </View>
+            <Text style={s.successTitle}>You're all set!</Text>
+            <Text style={s.successBody}>
+              Your profile is complete. You can stay here to edit further, or
+              jump straight into Discovery.
+            </Text>
+            <Pressable
+              style={s.successCta}
+              onPress={handleGoToDiscovery}
+              testID="save-success-go-discovery-btn"
+            >
+              <Text style={s.successCtaText}>Go to Discovery</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
       {/* Blocking validation modal — replaces the unreliable Alert.alert on web */}
       <Modal
         visible={!!blockingMessage}
@@ -1202,47 +1224,74 @@ const s = StyleSheet.create({
     fontWeight: '500',
   },
 
-  // Success / "Go to Discovery" view (firstTime onboarding completion)
-  successWrap: {
+  // Success popup (closable) — appears after a successful "complete profile"
+  // save. The user can dismiss it with the X button and stay on EditProfile,
+  // or tap "Go to Discovery" to navigate.
+  successBackdrop: {
     flex: 1,
-    paddingHorizontal: 32,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  successCard: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#0f172a',
+    borderRadius: 24,
+    paddingVertical: 28,
+    paddingHorizontal: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(168, 85, 247, 0.3)',
+    alignItems: 'center',
+  },
+  successCloseBtn: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(139, 92, 246, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   successIconWrap: {
-    width: 112,
-    height: 112,
-    borderRadius: 56,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: 'rgba(16, 185, 129, 0.12)',
     borderWidth: 2,
     borderColor: 'rgba(16, 185, 129, 0.3)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 28,
+    marginBottom: 20,
+    marginTop: 4,
   },
   successTitle: {
     color: '#fff',
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: '700',
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   successBody: {
     color: 'rgba(196, 181, 253, 0.85)',
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 20,
     textAlign: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
+    paddingHorizontal: 4,
   },
   successCta: {
     backgroundColor: '#a855f7',
-    paddingVertical: 16,
-    paddingHorizontal: 48,
-    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 36,
+    borderRadius: 14,
   },
   successCtaText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
   },
 
