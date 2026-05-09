@@ -36,6 +36,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import api, { authAPI, photosAPI, settingsAPI } from '../../utils/api';
 import { API_URL } from '../../utils/constants';
+import ProfilePreview from '../../components/ProfilePreview';
 
 // ---- Constants ported verbatim from web ProfileTab.js ----
 const MAX_BIO_LENGTH = 500;
@@ -219,6 +220,8 @@ const EditProfileScreen = ({ navigation, route }) => {
   // In-app modal for blocking validation messages (replaces Alert.alert
   // which is flaky / inconsistent on react-native-web).
   const [blockingMessage, setBlockingMessage] = useState(null);
+  // Preview Profile modal toggle (renders ProfilePreview component)
+  const [showPreview, setShowPreview] = useState(false);
   const initialLoadDoneRef = useRef(false);
 
   const [formData, setFormData] = useState({
@@ -636,6 +639,17 @@ const EditProfileScreen = ({ navigation, route }) => {
                 </Text>
               </View>
             </View>
+
+            {/* Preview Profile link — opens the ProfilePreview component
+                (faithful port of web ProfileTab.js lines 1799-2478) */}
+            <Pressable
+              onPress={() => setShowPreview(true)}
+              style={s.previewLink}
+              testID="preview-profile-btn"
+            >
+              <Eye size={16} color="#c4b5fd" />
+              <Text style={s.previewLinkText}>Preview Profile</Text>
+            </Pressable>
           </View>
 
           {/* ===== Quick Controls ===== */}
@@ -933,6 +947,14 @@ const EditProfileScreen = ({ navigation, route }) => {
         </ScrollView>
       </KeyboardAvoidingView>
 
+      {/* Profile Preview modal - faithful port of web ProfileTab.js preview block */}
+      <ProfilePreview
+        visible={showPreview}
+        onClose={() => setShowPreview(false)}
+        formData={formData}
+        user={user}
+      />
+
       {/* Blocking validation modal — replaces the unreliable Alert.alert on web */}
       <Modal
         visible={!!blockingMessage}
@@ -1222,6 +1244,27 @@ const s = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+
+  // Preview Profile link (sits under photo+name section in EditProfileScreen)
+  previewLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: 'rgba(139, 92, 246, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(168, 85, 247, 0.3)',
+    marginTop: 12,
+    alignSelf: 'center',
+  },
+  previewLinkText: {
+    color: '#c4b5fd',
+    fontSize: 14,
+    fontWeight: '500',
   },
 
   // Blocking validation modal
