@@ -34,6 +34,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
 import {
   X, EyeOff, Eye, Sparkles, Crown, MapPin, MessageCircle, Heart,
@@ -288,8 +289,14 @@ const ProfilePreview = ({ visible, onClose, formData = {}, user = null }) => {
           <BlurView intensity={blurIntensity} tint="dark" style={StyleSheet.absoluteFill} />
         )
       ) : null}
-      {/* Bottom gradient (rgba(0,0,0,0.6) → transparent) */}
-      <View style={styles.bottomGradient} />
+      {/* Bottom gradient — exact analog of web's `bg-gradient-to-t from-black/60 to-transparent` */}
+      <LinearGradient
+        colors={['transparent', 'rgba(0, 0, 0, 0.6)']}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={styles.bottomGradient}
+        pointerEvents="none"
+      />
 
       <PremiumBadge />
 
@@ -326,7 +333,15 @@ const ProfilePreview = ({ visible, onClose, formData = {}, user = null }) => {
           <UserIcon size={64} color="rgba(192, 132, 252, 0.5)" />
         </View>
       )}
-      <View style={styles.bottomGradient} />
+      <View style={styles.bottomGradient}>
+        <LinearGradient
+          colors={['transparent', 'rgba(0, 0, 0, 0.6)']}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
+      </View>
 
       {hasMultiplePhotos ? (
         <>
@@ -708,8 +723,11 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: '50%',
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    // Slightly taller than 50% so the fade reaches further up and the
+    // info-overlay text remains readable against bright photos. The
+    // colour comes from <LinearGradient> itself — never set a
+    // backgroundColor here or you'll re-introduce the hard horizontal seam.
+    height: '60%',
   },
 
   // Premium badge
