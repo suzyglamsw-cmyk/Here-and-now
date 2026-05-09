@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,12 +11,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import * as Location from 'expo-location';
 import { ArrowLeft, MapPin, Users, Navigation, List, Map as MapIcon } from 'lucide-react-native';
 
 import { useAuth } from '../../context/AuthContext';
 import { venuesAPI } from '../../utils/api';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../../utils/constants';
+import PreciseLocationGate from '../../components/PreciseLocationGate';
 
 const { width } = Dimensions.get('window');
 
@@ -30,35 +30,16 @@ const VenuesScreen = ({ navigation }) => {
   const [selectedVenue, setSelectedVenue] = useState(null);
   const [currentCheckIn, setCurrentCheckIn] = useState(null);
 
-  useEffect(() => {
-    requestLocationAndFetch();
+  // Called by PreciseLocationGate once user grants precise GPS access.
+  const handleLocationReady = useCallback((coords) => {
+    setLocation(coords);
+    fetchVenues(coords);
+    checkCurrentCheckIn();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const requestLocationAndFetch = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert(
-          'Location Required',
-          'Here & Now needs your location to show nearby venues.',
-          [{ text: 'OK' }]
-        );
-        setLoading(false);
-        return;
-      }
-
-      const loc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-      setLocation(loc.coords);
-
-      await fetchVenues(loc.coords);
-      await checkCurrentCheckIn();
-    } catch (error) {
-      console.log('Location error:', error);
-      setLoading(false);
-    }
-  };
+  // Removed legacy useEffect/requestLocationAndFetch — PreciseLocationGate handles
+  // the permission flow and calls handleLocationReady once we have precise GPS.
 
   const fetchVenues = async (coords) => {
     try {
@@ -170,14 +151,17 @@ const VenuesScreen = ({ navigation }) => {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Finding nearby venues...</Text>
-      </View>
+      <PreciseLocationGate onLocationReady={handleLocationReady} loadingText="Finding nearby venues...">
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={styles.loadingText}>Finding nearby venues...</Text>
+        </View>
+      </PreciseLocationGate>
     );
   }
 
   return (
+    <PreciseLocationGate onLocationReady={handleLocationReady} loadingText="Finding nearby venues...">
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
@@ -287,6 +271,7 @@ const VenuesScreen = ({ navigation }) => {
         />
       )}
     </SafeAreaView>
+    </PreciseLocationGate>
   );
 };
 

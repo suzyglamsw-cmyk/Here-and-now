@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,17 +6,15 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as Location from 'expo-location';
 import { MapPin, Users, Globe } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAuth } from '../../context/AuthContext';
 import { venuesAPI, discoveryAPI } from '../../utils/api';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../../utils/constants';
+import PreciseLocationGate from '../../components/PreciseLocationGate';
 
 const DiscoverScreen = ({ navigation }) => {
   const { user } = useAuth();
@@ -24,38 +22,17 @@ const DiscoverScreen = ({ navigation }) => {
   const [location, setLocation] = useState(null);
   const [venues, setVenues] = useState([]);
   const [notHereUsers, setNotHereUsers] = useState([]);
+  // Wait until precise location resolves AND the first fetch lands.
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [currentCheckIn, setCurrentCheckIn] = useState(null);
 
-  useEffect(() => {
-    requestLocationAndFetch();
+  // Called by PreciseLocationGate once the user has granted *precise* GPS.
+  const handleLocationReady = useCallback((coords) => {
+    setLocation(coords);
+    fetchData(coords);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const requestLocationAndFetch = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert(
-          'Location Required',
-          'Here & Now needs your location to show nearby venues and people.',
-          [{ text: 'OK' }]
-        );
-        setLoading(false);
-        return;
-      }
-
-      const loc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-      setLocation(loc.coords);
-      
-      await fetchData(loc.coords);
-    } catch (error) {
-      console.log('Location error:', error);
-      setLoading(false);
-    }
-  };
 
   const fetchData = async (coords) => {
     if (!coords) return;
@@ -85,7 +62,8 @@ const DiscoverScreen = ({ navigation }) => {
     if (location) {
       fetchData(location);
     } else {
-      requestLocationAndFetch();
+      // Don't auto-prompt; the gate will handle it.
+      setRefreshing(false);
     }
   }, [location]);
 
@@ -118,15 +96,22 @@ const DiscoverScreen = ({ navigation }) => {
   );
 
   if (loading) {
+    // NOTE: This text is intentionally generic ("Loading discovery"), NOT
+    // "Finding nearby venues" — that copy is reserved for the dedicated
+    // Venues tab so it doesn't appear unexpectedly when the user only opens
+    // the Discover tab.
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Finding nearby venues...</Text>
-      </View>
+      <PreciseLocationGate onLocationReady={handleLocationReady} loadingText="Loading discovery...">
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={styles.loadingText}>Loading discovery...</Text>
+        </View>
+      </PreciseLocationGate>
     );
   }
 
   return (
+    <PreciseLocationGate onLocationReady={handleLocationReady} loadingText="Loading discovery...">
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
@@ -238,6 +223,7 @@ const DiscoverScreen = ({ navigation }) => {
         )}
       </ScrollView>
     </SafeAreaView>
+    </PreciseLocationGate>
   );
 };
 

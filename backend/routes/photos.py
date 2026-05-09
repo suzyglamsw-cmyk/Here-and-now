@@ -307,9 +307,10 @@ async def upload_photo(
             if storage_result.get("thumbnail_path"):
                 update_data["thumbnail_url"] = f"/api/photos/serve/{photo_id}?thumb=true"
         
-        if not current_user.get("profile_complete"):
-            update_data["profile_complete"] = True
-            update_data["is_visible"] = True
+        # NOTE: Do NOT auto-mark profile as complete on photo upload.
+        # profile_complete must only be set explicitly via PUT /api/auth/profile
+        # after the user has filled in ALL required fields (bio, presence note,
+        # lifestyle, food mood, area, seeking, intent, etc.) See EditProfileScreen.handleSave.
         
         await db.users.update_one(
             {"id": current_user["id"]},

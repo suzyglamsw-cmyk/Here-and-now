@@ -211,6 +211,14 @@ const EditProfileScreen = ({ navigation, route }) => {
   const [hidePhotoInVenues, setHidePhotoInVenues] = useState(false);
   const [privacyLoading, setPrivacyLoading] = useState(false);
   const [countries, setCountries] = useState(FALLBACK_COUNTRIES);
+  // After a SUCCESSFUL profile_complete save in firstTime mode we DO NOT
+  // immediately flip the auth navigator. Instead we render an in-page
+  // success view with a "Go to Discovery" button — the user controls when
+  // they leave onboarding.
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  // In-app modal for blocking validation messages (replaces Alert.alert
+  // which is flaky / inconsistent on react-native-web).
+  const [blockingMessage, setBlockingMessage] = useState(null);
   const initialLoadDoneRef = useRef(false);
 
   const [formData, setFormData] = useState({
@@ -276,12 +284,16 @@ const EditProfileScreen = ({ navigation, route }) => {
     } catch { /* default false */ }
   };
 
-  // Auto-save for optional fields (Lifestyle / Food Mood / shy / rainbow / open / seeking)
+  // Auto-save for optional fields (Lifestyle / Food Mood / shy / rainbow / open / seeking).
+  // CRITICAL: We only update LOCAL state with the specific field we sent — we never
+  // spread the entire backend response, otherwise a stale `profile_complete:true`
+  // could accidentally trip the AppNavigator gate and bounce the user out of
+  // onboarding. profile_complete must ONLY change on explicit Save.
   const autoSave = async (fieldUpdate) => {
     if (!formInitialized) return;
     try {
-      const res = await authAPI.updateProfile(fieldUpdate);
-      updateUser(res.data);
+      await authAPI.updateProfile(fieldUpdate);
+      updateUser(fieldUpdate); // ← only the field, not the whole user
     } catch (e) {
       // Silent fail, mirrors web behaviour
     }
@@ -389,34 +401,53 @@ const EditProfileScreen = ({ navigation, route }) => {
     }
   };
 
-  // Save (port of web validation + payload)
+  // ----- Comprehensive completion validation -----
+  // Used by handleSave (full save) AND by render() to decide whether to show
+  // the success / "Go to Discovery" view.
+  const isProfileComplete = () => {
+    const hasMainPhoto = !!(formData.photos && formData.photos[0]);
+    const hasPresenceNote = !!(formData.presence_note && formData.presence_note.trim());
+    const hasBio =
+      !!formData.bio && formData.bio.trim().length >= MIN_BIO_LENGTH;
+    const hasLifestyle =
+      !!formData.lifestyle_vibe &&
+      !!formData.lifestyle_travel &&
+      !!formData.lifestyle_going_out;
+    const hasFoodMood = !!formData.food_mood;
+    const hasArea =
+      !!formData.home_country &&
+      !!(formData.home_area && formData.home_area.trim().length >= 3);
+    const hasSeeking =
+      !!(formData.seeking && formData.seeking.length > 0);
+    const hasIntent = !!formData.intent;
+    // Visibility: user explicitly being visible OR not having toggled off
+    const isVisible = user?.is_visible !== false;
+
+    return (
+      hasMainPhoto &&
+      hasPresenceNote &&
+      hasBio &&
+      hasLifestyle &&
+      hasFoodMood &&
+      hasArea &&
+      hasSeeking &&
+      hasIntent &&
+      isVisible
+    );
+  };
+
+  // Save (port of web validation + payload) with a single hard gate covering ALL fields.
   const handleSave = async () => {
     if (!formInitialized) {
-      Alert.alert('Wait', 'Please wait for your profile to load.');
+      setBlockingMessage('Please wait for your profile to load.');
       return;
     }
-    if (!formData.bio || formData.bio.trim().length === 0) {
-      Alert.alert('Required', "Please add something about yourself in the 'About me' field.");
-      return;
-    }
-    if (formData.bio.trim().length < MIN_BIO_LENGTH) {
-      Alert.alert('Too short', 'Add a short line so people get a sense of your vibe (at least 10 characters).');
-      return;
-    }
-    if (!formData.home_country) {
-      Alert.alert('Required', 'Please select your country.');
-      return;
-    }
-    if (!formData.home_area || formData.home_area.trim().length < 3) {
-      Alert.alert('Required', 'Home area must be at least 3 characters.');
-      return;
-    }
-    if (!formData.seeking || formData.seeking.length === 0) {
-      Alert.alert('Required', "Please select who you're interested in meeting.");
-      return;
-    }
-    if (!formData.intent) {
-      Alert.alert('Required', "Please select what you're here for.");
+
+    // Single blocking message — same wording for every missing field.
+    if (!isProfileComplete()) {
+      setBlockingMessage(
+        "You're nearly there — please complete all sections of your profile to continue.",
+      );
       return;
     }
 
@@ -439,16 +470,29 @@ const EditProfileScreen = ({ navigation, route }) => {
         food_mood: formData.food_mood,
         profile_complete: true,
       });
-      updateUser({ ...res.data, profile_complete: true });
-      if (!isFirstTime && navigation.canGoBack()) {
-        navigation.goBack();
+
+      if (isFirstTime) {
+        // FIRST-TIME flow: keep the user on this screen, show success view +
+        // "Go to Discovery" button. We deliberately DO NOT call updateUser
+        // with profile_complete:true yet — that's the AppNavigator gate, and
+        // we want the user to tap the button to cross it.
+        setSaveSuccess(true);
+      } else {
+        // Editing an existing profile: update local state + go back.
+        updateUser({ ...res.data, profile_complete: true });
+        if (navigation.canGoBack()) navigation.goBack();
       }
-      // First-time: navigator re-renders to MainTabs once profile_complete=true.
     } catch (e) {
-      Alert.alert('Failed', e.response?.data?.detail || 'Could not save profile.');
+      setBlockingMessage(e.response?.data?.detail || 'Could not save profile.');
     } finally {
       setSaving(false);
     }
+  };
+
+  // Tapping "Go to Discovery" on the success view:
+  // flip the AppNavigator gate so the user is taken into MainTabs.
+  const handleGoToDiscovery = () => {
+    updateUser({ profile_complete: true });
   };
 
   const toggleSeeking = (which) => {
@@ -460,6 +504,27 @@ const EditProfileScreen = ({ navigation, route }) => {
 
   const mainPhoto = formData.photos[0];
   const canGoBack = !isFirstTime && navigation.canGoBack();
+
+  // ---- Success / "Go to Discovery" view (firstTime onboarding only) ----
+  if (saveSuccess && isFirstTime) {
+    return (
+      <SafeAreaView style={s.container} edges={['top']}>
+        <View style={s.successWrap}>
+          <View style={s.successIconWrap}>
+            <Check size={56} color="#10b981" />
+          </View>
+          <Text style={s.successTitle}>You're all set!</Text>
+          <Text style={s.successBody}>
+            Your profile is complete. You can now discover venues and people
+            near you on Here & Now.
+          </Text>
+          <Pressable style={s.successCta} onPress={handleGoToDiscovery}>
+            <Text style={s.successCtaText}>Go to Discovery</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
@@ -867,6 +932,30 @@ const EditProfileScreen = ({ navigation, route }) => {
           <View style={{ height: 24 }} />
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Blocking validation modal — replaces the unreliable Alert.alert on web */}
+      <Modal
+        visible={!!blockingMessage}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setBlockingMessage(null)}
+      >
+        <View style={s.blockingBackdrop}>
+          <View style={s.blockingCard}>
+            <View style={s.blockingIconWrap}>
+              <Heart size={28} color="#fbbf24" />
+            </View>
+            <Text style={s.blockingTitle}>You're nearly there</Text>
+            <Text style={s.blockingBody}>{blockingMessage}</Text>
+            <Pressable
+              style={s.blockingCta}
+              onPress={() => setBlockingMessage(null)}
+            >
+              <Text style={s.blockingCtaText}>Got it</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -1089,6 +1178,105 @@ const s = StyleSheet.create({
     color: '#fca5a5',
     fontSize: 14,
     fontWeight: '500',
+  },
+
+  // Success / "Go to Discovery" view (firstTime onboarding completion)
+  successWrap: {
+    flex: 1,
+    paddingHorizontal: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  successIconWrap: {
+    width: 112,
+    height: 112,
+    borderRadius: 56,
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    borderWidth: 2,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 28,
+  },
+  successTitle: {
+    color: '#fff',
+    fontSize: 26,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  successBody: {
+    color: 'rgba(196, 181, 253, 0.85)',
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: 'center',
+    marginBottom: 32,
+  },
+  successCta: {
+    backgroundColor: '#a855f7',
+    paddingVertical: 16,
+    paddingHorizontal: 48,
+    borderRadius: 16,
+  },
+  successCtaText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+
+  // Blocking validation modal
+  blockingBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  blockingCard: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#0f172a',
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(168, 85, 247, 0.3)',
+    alignItems: 'center',
+  },
+  blockingIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(251, 191, 36, 0.15)',
+    borderWidth: 2,
+    borderColor: 'rgba(251, 191, 36, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  blockingTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  blockingBody: {
+    color: 'rgba(196, 181, 253, 0.85)',
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    marginBottom: 22,
+  },
+  blockingCta: {
+    backgroundColor: '#a855f7',
+    paddingVertical: 12,
+    paddingHorizontal: 36,
+    borderRadius: 12,
+  },
+  blockingCtaText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 

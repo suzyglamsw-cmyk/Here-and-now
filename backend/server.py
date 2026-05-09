@@ -1682,10 +1682,10 @@ async def upload_photo(
         if slot == 0:
             update_data["avatar_url"] = photo_id
         
-        # Mark profile as complete and visible when user uploads their first photo
-        if not current_user.get("profile_complete"):
-            update_data["profile_complete"] = True
-            update_data["is_visible"] = True
+        # NOTE: Do NOT auto-mark profile as complete on photo upload (legacy behavior).
+        # profile_complete must only be set explicitly via PUT /api/auth/profile after
+        # the user has filled in ALL required fields. Photos alone are insufficient.
+        # Kept block intentionally removed for v1.0.11+.
         
         await db.users.update_one(
             {"id": current_user["id"]},
