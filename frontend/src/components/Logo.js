@@ -25,9 +25,9 @@ const ClockO = ({ size = 20, color = '#C084FC' }) => (
   </Svg>
 );
 
-// Approximate width of one character at given fontSize for a bold display weight.
-// Tighter multiplier removes excess whitespace at the right edge of the SVG.
-const charWidth = (text, fontSize) => Math.ceil(text.length * fontSize * 0.58);
+// Approximate width of one character at given fontSize. The minimum keeps short
+// fragments like "w" from getting clipped at the right edge of the SVG canvas.
+const charWidth = (text, fontSize) => Math.max(Math.ceil(text.length * fontSize * 0.62), Math.ceil(fontSize * 0.95));
 
 const SIZES = {
   small: 16,
