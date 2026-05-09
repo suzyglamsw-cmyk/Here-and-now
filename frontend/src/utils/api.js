@@ -105,11 +105,15 @@ export const messagesAPI = {
 };
 
 // Photos API
+// IMPORTANT: Do NOT set Content-Type manually for FormData uploads.
+// Browsers (web preview) need to auto-set the multipart boundary; manually setting
+// 'multipart/form-data' without a boundary causes the request to be malformed.
+// Axios/fetch/RN handle the header automatically when given a FormData body.
 export const photosAPI = {
   upload: (formData) => api.post('/api/photos/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+    transformRequest: (data) => data, // prevent axios from JSON-stringifying FormData
   }),
-  delete: (photoId) => api.delete(`/api/photos/${photoId}`),
+  delete: (slot) => api.delete(`/api/photos/${slot}`),
   getUrl: (photoId, blur = true) => `${API_URL}/api/photos/serve/${photoId}?blur=${blur}`,
 };
 

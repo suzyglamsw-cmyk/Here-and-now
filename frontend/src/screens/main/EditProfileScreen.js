@@ -202,7 +202,7 @@ function SectionHeader({ icon: Icon, title, subtitle, gradient = ['rgba(168,85,2
 
 // ---- Main component ----
 const EditProfileScreen = ({ navigation, route }) => {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, logout } = useAuth();
   const isFirstTime = route?.params?.firstTime === true;
 
   const [saving, setSaving] = useState(false);
@@ -310,12 +310,17 @@ const EditProfileScreen = ({ navigation, route }) => {
     }
   };
 
-  // Photo upload via expo-image-picker → multipart upload (web does this with MediaRecorder/file input)
+  // Photo upload via expo-image-picker → multipart upload.
+  // CRITICAL: web and native need different FormData payloads.
+  //  - native (RN): can append { uri, name, type } pseudo-File object
+  //  - web:        must fetch the blob: URI, convert to a real Blob, then append
   const handlePhotoPick = async (slot) => {
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      Alert.alert('Permission needed', 'Please allow photo library access in Settings.');
-      return;
+    if (Platform.OS !== 'web') {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Permission needed', 'Please allow photo library access in Settings.');
+        return;
+      }
     }
     const res = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -332,24 +337,38 @@ const EditProfileScreen = ({ navigation, route }) => {
 
     setUploadingPhoto(slot);
     const fd = new FormData();
-    fd.append('file', {
-      uri: asset.uri,
-      name: asset.fileName || `photo-${slot}.jpg`,
-      type: asset.mimeType || 'image/jpeg',
-    });
-    fd.append('slot', String(slot));
+    const fileName = asset.fileName || `photo-${slot}.jpg`;
+    const mimeType = asset.mimeType || 'image/jpeg';
 
     try {
+      if (Platform.OS === 'web') {
+        // On web, asset.uri is typically a blob: URL - fetch it to get the real Blob
+        const blobRes = await fetch(asset.uri);
+        const blob = await blobRes.blob();
+        // The 3rd argument (filename) is critical so the server sees content_type
+        const file = new File([blob], fileName, { type: blob.type || mimeType });
+        fd.append('file', file);
+      } else {
+        // React Native multipart trick - this object is recognized by the RN FormData polyfill
+        fd.append('file', {
+          uri: asset.uri,
+          name: fileName,
+          type: mimeType,
+        });
+      }
+      fd.append('slot', String(slot));
+
       const response = await photosAPI.upload(fd);
       const updatedPhotos = response.data.photos || [...formData.photos];
       while (updatedPhotos.length < 3) updatedPhotos.push('');
       setFormData((p) => ({ ...p, photos: updatedPhotos.slice(0, 3) }));
       updateUser({
         photos: updatedPhotos,
-        avatar_url: slot === 0 ? response.data.url : user?.avatar_url,
+        avatar_url: slot === 0 ? (response.data.photo_id || response.data.url) : user?.avatar_url,
       });
     } catch (err) {
-      Alert.alert('Upload failed', err.response?.data?.detail || 'Please try again.');
+      console.log('[photo upload] failed:', err?.message, err?.response?.data);
+      Alert.alert('Upload failed', err.response?.data?.detail || err?.message || 'Please try again.');
     } finally {
       setUploadingPhoto(null);
     }
@@ -831,6 +850,21 @@ const EditProfileScreen = ({ navigation, route }) => {
           </View>
 
           <View style={{ height: 32 }} />
+
+          {/* Sign out (only useful during onboarding when there's no bottom nav yet) */}
+          <Pressable
+            onPress={() => {
+              Alert.alert('Sign out', 'Are you sure you want to sign out?', [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Sign out', style: 'destructive', onPress: () => logout() },
+              ]);
+            }}
+            style={s.signOutBtn}
+          >
+            <Text style={s.signOutText}>Sign out</Text>
+          </Pressable>
+
+          <View style={{ height: 24 }} />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -1039,6 +1073,22 @@ const s = StyleSheet.create({
     height: 1,
     backgroundColor: 'rgba(168, 85, 247, 0.2)',
     marginVertical: 4,
+  },
+
+  // Sign out button (visible during onboarding only because there's no nav bar yet)
+  signOutBtn: {
+    alignSelf: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 28,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(248, 113, 113, 0.4)',
+    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+  },
+  signOutText: {
+    color: '#fca5a5',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 
