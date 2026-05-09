@@ -285,7 +285,7 @@ const ProfilePreview = ({ visible, onClose, formData = {}, user = null }) => {
             ]}
           />
         ) : (
-          <BlurView intensity={blurIntensity} tint="dark" style={StyleSheet.absoluteFill} />
+          <BlurView intensity={blurIntensity} tint="default" style={StyleSheet.absoluteFill} />
         )
       ) : null}
       {/* No bottom gradient/overlay — preserves the photo as-is per design */}
