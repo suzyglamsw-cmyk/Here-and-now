@@ -2791,6 +2791,71 @@ async def admin_block_user(user_id: str, current_user: dict = Depends(get_curren
     await db.users.update_one({"id": user_id}, {"$set": {"is_banned": True}})
     return {"message": "User banned"}
 
+
+@api_router.post("/admin/purge-test-users")
+async def admin_purge_test_users(current_user: dict = Depends(get_current_user)):
+    """
+    Delete ALL users (and their related data) EXCEPT the admin account.
+    For test-flow resets only. Admin-only.
+    Returns counts of deleted records per collection.
+    """
+    if current_user.get("email") != ADMIN_EMAIL:
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    # Collect all non-admin user IDs
+    user_filter = {"email": {"$ne": ADMIN_EMAIL}}
+    cursor = db.users.find(user_filter, {"id": 1, "_id": 0})
+    user_ids = [u["id"] async for u in cursor]
+
+    if not user_ids:
+        return {"message": "No non-admin users found to purge", "deleted": {}}
+
+    deleted = {}
+
+    # Helper: delete docs from a collection where any of the given fields contain a target user_id.
+    async def purge(coll_name: str, fields: list):
+        if not hasattr(db, coll_name):
+            return
+        collection = getattr(db, coll_name)
+        filt = {"$or": [{f: {"$in": user_ids}} for f in fields]}
+        try:
+            res = await collection.delete_many(filt)
+            deleted[coll_name] = res.deleted_count
+        except Exception as e:
+            deleted[coll_name] = f"error: {e}"
+
+    # Wipe related data for the purged users.
+    await purge("photos", ["user_id", "owner_id"])
+    await purge("voice_intros", ["user_id"])
+    await purge("glances", ["from_user_id", "to_user_id"])
+    await purge("icebreakers", ["from_user_id", "to_user_id"])
+    await purge("chat_requests", ["from_user_id", "to_user_id"])
+    await purge("messages", ["sender_id", "recipient_id", "from_user_id", "to_user_id"])
+    await purge("conversations", ["user1_id", "user2_id", "participants"])
+    await purge("connections", ["user1_id", "user2_id"])
+    await purge("hidden_users", ["user_id", "hidden_user_id"])
+    await purge("blocks", ["blocker_id", "blocked_id"])
+    await purge("reports", ["reporter_id", "reported_user_id"])
+    await purge("notifications", ["user_id"])
+    await purge("venue_checkins", ["user_id"])
+    await purge("presence", ["user_id"])
+    await purge("password_resets", ["user_id"])
+    await purge("reveals", ["from_user_id", "to_user_id"])
+    await purge("profile_views", ["viewer_id", "viewed_id"])
+    await purge("token_transactions", ["user_id"])
+    await purge("subscriptions", ["user_id"])
+
+    # Finally, delete the user records themselves.
+    res = await db.users.delete_many(user_filter)
+    deleted["users"] = res.deleted_count
+
+    return {
+        "message": f"Purged {res.deleted_count} non-admin users and related data",
+        "admin_preserved": ADMIN_EMAIL,
+        "deleted": deleted,
+    }
+
+
 # ============================================
 # Premium - Profile Viewers  
 # Note: Moved to consolidated endpoint at /profile/viewers (after get_user_profile)

@@ -34,7 +34,38 @@ import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../../utils/constant
 const SettingsScreen = ({ navigation }) => {
   const { user, logout } = useAuth();
   const [deleting, setDeleting] = useState(false);
+  const [purging, setPurging] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(true);
+
+  const isAdmin = user?.email === 'suzyglam.sw@googlemail.com';
+
+  const handlePurgeTestUsers = () => {
+    Alert.alert(
+      'Reset test users',
+      "This will DELETE every user account on the server EXCEPT yours, plus all of their photos, messages, glances, etc. Are you sure?",
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Yes, purge',
+          style: 'destructive',
+          onPress: async () => {
+            setPurging(true);
+            try {
+              const response = await api.post('/api/admin/purge-test-users');
+              const deleted = response.data?.deleted || {};
+              const totalUsers = deleted.users || 0;
+              Alert.alert('Done', `Deleted ${totalUsers} test users.\nYour account is preserved.`);
+            } catch (e) {
+              const msg = e.response?.data?.detail || e.message || 'Unknown error';
+              Alert.alert('Failed', msg);
+            } finally {
+              setPurging(false);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const handleLogout = () => {
     Alert.alert(
@@ -262,6 +293,25 @@ const SettingsScreen = ({ navigation }) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account</Text>
           <View style={styles.sectionContent}>
+            {isAdmin && (
+              <TouchableOpacity
+                style={[styles.accountButton, { borderColor: COLORS.warning }]}
+                onPress={handlePurgeTestUsers}
+                disabled={purging}
+              >
+                {purging ? (
+                  <ActivityIndicator size="small" color={COLORS.warning} />
+                ) : (
+                  <>
+                    <Trash2 color={COLORS.warning} size={20} />
+                    <Text style={[styles.accountButtonText, { color: COLORS.warning }]}>
+                      Reset Test Users (Admin)
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity
               style={styles.accountButton}
               onPress={handleLogout}
@@ -289,7 +339,7 @@ const SettingsScreen = ({ navigation }) => {
 
         {/* App Version */}
         <View style={styles.footer}>
-          <Text style={styles.versionText}>Here & Now v1.0.0</Text>
+          <Text style={styles.versionText}>Here & Now v1.0.10</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
