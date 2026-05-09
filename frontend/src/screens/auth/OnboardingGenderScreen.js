@@ -31,9 +31,8 @@ export default function OnboardingGenderScreen({ navigation }) {
   return (
     <HeroGradient>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-        <View style={{ padding: 16 }}>
-          <GhostButton icon={ArrowLeft} label="Back" onPress={() => (navigation.canGoBack() ? navigation.goBack() : null)} />
-        </View>
+        {/* No back button: user has already registered, there is no previous step to return to. */}
+        <View style={{ height: 16 }} />
 
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.logoRow}>

@@ -339,7 +339,7 @@ const SettingsScreen = ({ navigation }) => {
 
         {/* App Version */}
         <View style={styles.footer}>
-          <Text style={styles.versionText}>Here & Now v1.0.10</Text>
+          <Text style={styles.versionText}>Here & Now v1.0.11</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
