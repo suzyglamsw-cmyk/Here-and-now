@@ -23,8 +23,16 @@ const validateName = (name) => {
 };
 
 const validateDob = (s) => {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return { valid: false, msg: 'Use format YYYY-MM-DD' };
-  const dob = new Date(s);
+  // Accepts UK format dd/mm/yyyy (display) or ISO yyyy-mm-dd (legacy).
+  let dob;
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
+    const [dd, mm, yyyy] = s.split('/').map(Number);
+    dob = new Date(yyyy, mm - 1, dd);
+  } else if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    dob = new Date(s);
+  } else {
+    return { valid: false, msg: 'Please pick a date of birth' };
+  }
   if (isNaN(dob.getTime())) return { valid: false, msg: 'Invalid date' };
   const today = new Date();
   let age = today.getFullYear() - dob.getFullYear();
@@ -44,7 +52,20 @@ export default function RegisterScreen({ navigation }) {
   const defaultDob = (() => { const d = new Date(); d.setFullYear(d.getFullYear() - 25); return d; })();
   const maxDob = (() => { const d = new Date(); d.setFullYear(d.getFullYear() - 18); return d; })();
   const [dobDate, setDobDate] = useState(null);
+  // Display value is UK format dd/mm/yyyy. ISO value (yyyy-mm-dd) is built at submit time.
   const [form, setForm] = useState({ email: '', password: '', display_name: '', date_of_birth: '', show_as: '' });
+
+  const formatDobUK = (d) => {
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    return `${dd}/${mm}/${d.getFullYear()}`;
+  };
+  const isoDob = (d) => {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
 
   const nameValidation = form.display_name ? validateName(form.display_name) : { valid: true, error: null };
 
@@ -69,7 +90,10 @@ export default function RegisterScreen({ navigation }) {
   const handleSubmitGender = async () => {
     if (!form.show_as) return Alert.alert('Pick one', "Please select how you'd like to appear");
     setLoading(true);
-    const res = await register(form);
+    // Always send ISO to backend regardless of UK display format.
+    const payload = { ...form };
+    if (dobDate) payload.date_of_birth = isoDob(dobDate);
+    const res = await register(payload);
     setLoading(false);
     if (!res.success) Alert.alert('Registration failed', res.error || 'Try again');
   };
@@ -191,8 +215,8 @@ export default function RegisterScreen({ navigation }) {
                               <Pressable
                                 onPress={() => {
                                   const picked = dobDate || defaultDob;
-                                  const iso = picked.toISOString().split('T')[0];
-                                  setForm({ ...form, date_of_birth: iso });
+                                  setDobDate(picked);
+                                  setForm({ ...form, date_of_birth: formatDobUK(picked) });
                                   setShowDatePicker(false);
                                 }}
                                 hitSlop={10}
@@ -224,7 +248,7 @@ export default function RegisterScreen({ navigation }) {
                           setShowDatePicker(false);
                           if (event.type === 'set' && selected) {
                             setDobDate(selected);
-                            setForm({ ...form, date_of_birth: selected.toISOString().split('T')[0] });
+                            setForm({ ...form, date_of_birth: formatDobUK(selected) });
                           }
                         }}
                       />

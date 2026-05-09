@@ -129,7 +129,13 @@ const AppNavigator = () => {
       ) : needsOnboarding ? (
         <Stack.Screen name="OnboardingGender" component={OnboardingGenderScreen} />
       ) : needsProfileSetup ? (
-        <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
+        // First-time profile setup → drop user straight on the full Edit Profile screen
+        // (replaces the old 3-step ProfileSetup wizard per user request).
+        <Stack.Screen
+          name="ProfileSetup"
+          component={EditProfileScreen}
+          initialParams={{ firstTime: true }}
+        />
       ) : (
         <Stack.Screen name="Main" component={MainTabs} />
       )}

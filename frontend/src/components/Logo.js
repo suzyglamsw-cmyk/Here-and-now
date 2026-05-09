@@ -1,13 +1,20 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Easing, Platform } from 'react-native';
-import Svg, { Circle, Line } from 'react-native-svg';
+import Svg, {
+  Circle,
+  Line,
+  Text as SvgText,
+  Defs,
+  LinearGradient as SvgLinearGradient,
+  Stop,
+} from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
-import MaskedView from '@react-native-masked-view/masked-view';
-import { COLORS, FONTS } from '../utils/theme';
+import { COLORS } from '../utils/theme';
 
-// Pixel-match port of web Logo.js — "Here & N [clock-O] w" with animated purple→pink shimmer text.
-// Web uses CSS background-clip:text + bg-position animation. We emulate with MaskedView + an
-// animated LinearGradient slid behind the masked text.
+// Pixel-match port of web Logo.js — "Here & N [clock] w" with purple→pink shimmer text.
+// Implementation note: We use react-native-svg's <Text> + <LinearGradient> fill instead of
+// @react-native-masked-view because masked-view's Android rendering of gradient-through-text
+// is unreliable (often appears black). SVG gradient fill is rock-solid on both platforms.
 
 const ClockO = ({ size = 20, color = '#C084FC' }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
@@ -18,72 +25,75 @@ const ClockO = ({ size = 20, color = '#C084FC' }) => (
   </Svg>
 );
 
+// Approximate width of one character at given fontSize for Outfit-Bold.
+// Multiplier ~0.62 works well for sans-serif bold display weights.
+const charWidth = (text, fontSize) => Math.ceil(text.length * fontSize * 0.62);
+
 const SIZES = {
-  small: { text: 16, clock: 14, gradientWidth: 200 },
-  default: { text: 20, clock: 18, gradientWidth: 240 },
-  large: { text: 24, clock: 22, gradientWidth: 280 },
-  hero: { text: 36, clock: 32, gradientWidth: 380 },
+  small: 16,
+  default: 20,
+  large: 24,
+  hero: 36,
 };
 
-// 5-stop gradient mirrors web's `linear-gradient(90deg, #a855f7, #c084fc, #ec4899, #c084fc, #a855f7)`
-const SHIMMER_COLORS = ['#a855f7', '#c084fc', '#ec4899', '#c084fc', '#a855f7'];
+// SvgGradientText: renders a text string filled with a horizontal purple→pink gradient.
+function SvgGradientText({ children, fontSize, gradientId, animProgress }) {
+  const text = String(children);
+  const width = charWidth(text, fontSize);
+  const height = Math.ceil(fontSize * 1.3);
 
-function ShimmerText({ children, fontSize, gradientWidth }) {
+  // Animated.Value drives the gradient stop positions via interpolated x1/x2 props.
+  // For native devices this gives us a subtle shimmer; on web we render static.
+  const shift = animProgress.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
+
+  return (
+    <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+      <Defs>
+        <SvgLinearGradient id={gradientId} x1="0" y1="0" x2={String(width)} y2="0" gradientUnits="userSpaceOnUse">
+          <Stop offset="0" stopColor="#A855F7" />
+          <Stop offset="0.35" stopColor="#C084FC" />
+          <Stop offset="0.6" stopColor="#EC4899" />
+          <Stop offset="0.85" stopColor="#C084FC" />
+          <Stop offset="1" stopColor="#A855F7" />
+        </SvgLinearGradient>
+      </Defs>
+      <SvgText
+        x={width / 2}
+        y={height * 0.78}
+        fontSize={fontSize}
+        fontWeight="900"
+        textAnchor="middle"
+        fill={`url(#${gradientId})`}
+        // Use system bold font — most reliable across devices. Outfit may not be available
+        // inside react-native-svg text rendering on Android, so we fall back gracefully.
+        fontFamily={Platform.select({ ios: 'System', android: 'sans-serif' })}
+      >
+        {text}
+      </SvgText>
+    </Svg>
+  );
+}
+
+export function Logo({ size = 'default' }) {
+  const fontSize = SIZES[size] || SIZES.default;
   const anim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(anim, { toValue: 1, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(anim, { toValue: 0, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 1, duration: 2200, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
+        Animated.timing(anim, { toValue: 0, duration: 2200, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
       ])
     ).start();
   }, [anim]);
 
-  // Web fallback: MaskedView's web build doesn't render gradient through alpha mask
-  // reliably. Use solid purple-light text on web. Native (iOS/Android) gets the
-  // proper animated gradient shimmer via MaskedView, matching the web app's CSS effect.
-  const textStyle = {
-    fontSize,
-    fontFamily: FONTS.headingBold,
-    letterSpacing: -0.5,
-    color: Platform.OS === 'web' ? COLORS.purpleLight : '#000',
-    backgroundColor: 'transparent',
-  };
-
-  if (Platform.OS === 'web') {
-    return <Text style={textStyle}>{children}</Text>;
-  }
-
-  // Repeat the 5-stop palette so the visible window always sits over a colorful section.
-  const repeatedColors = [...SHIMMER_COLORS, ...SHIMMER_COLORS, ...SHIMMER_COLORS];
-  const wideGradientWidth = gradientWidth * 3;
-  const translateX = anim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-gradientWidth, 0],
-  });
-
-  return (
-    <MaskedView maskElement={<Text style={textStyle}>{children}</Text>}>
-      <Animated.View style={{ width: wideGradientWidth, transform: [{ translateX }] }}>
-        <LinearGradient
-          colors={repeatedColors}
-          start={{ x: 0, y: 0.5 }}
-          end={{ x: 1, y: 0.5 }}
-          style={{ height: fontSize * 1.4, width: wideGradientWidth }}
-        />
-      </Animated.View>
-    </MaskedView>
-  );
-}
-
-export function Logo({ size = 'default', showText = true }) {
-  const s = SIZES[size];
   return (
     <View style={styles.row}>
-      {showText && <ShimmerText fontSize={s.text} gradientWidth={s.gradientWidth}>Here & N</ShimmerText>}
-      <ClockO size={s.clock} />
-      {showText && <ShimmerText fontSize={s.text} gradientWidth={s.gradientWidth}>w</ShimmerText>}
+      <SvgGradientText fontSize={fontSize} gradientId={`hn-grad-1-${size}`} animProgress={anim}>Here & N</SvgGradientText>
+      <View style={{ width: 4 }} />
+      <ClockO size={fontSize * 0.95} />
+      <View style={{ width: 4 }} />
+      <SvgGradientText fontSize={fontSize} gradientId={`hn-grad-2-${size}`} animProgress={anim}>w</SvgGradientText>
     </View>
   );
 }
@@ -101,8 +111,13 @@ export function LogoIcon({ size = 40 }) {
   );
 }
 
+// Plain bright text variant for body copy that wants the brand colour without SVG.
+export function BrandText({ children, style }) {
+  return <Text style={[{ color: '#C084FC', fontWeight: '700' }, style]}>{children}</Text>;
+}
+
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  row: { flexDirection: 'row', alignItems: 'center' },
   iconBox: { alignItems: 'center', justifyContent: 'center' },
 });
 

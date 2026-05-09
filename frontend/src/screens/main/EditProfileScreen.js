@@ -260,9 +260,16 @@ const EditProfileScreen = ({ navigation }) => {
         presence_note: formData.presence_note.trim(),
         home_area: formData.home_area.trim(),
       });
-      updateUser(response.data);
-      Alert.alert('Success', 'Profile updated!');
-      navigation.goBack();
+      const isFirstTime = navigation.getState && navigation.getState().routes?.[0]?.params?.firstTime;
+      // Mark profile as complete on first save so the app navigator switches to MainTabs.
+      updateUser({ ...response.data, profile_complete: true });
+      if (!isFirstTime) {
+        Alert.alert('Success', 'Profile updated!');
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        }
+      }
+      // For first-time, the AppNavigator re-renders to MainTabs automatically — no goBack needed.
     } catch (error) {
       Alert.alert('Error', 'Failed to save profile');
     } finally {
@@ -274,13 +281,19 @@ const EditProfileScreen = ({ navigation }) => {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <ArrowLeft color={COLORS.text} size={24} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Edit Profile</Text>
+        {navigation.canGoBack() ? (
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <ArrowLeft color={COLORS.text} size={24} />
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.backButton} />
+        )}
+        <Text style={styles.headerTitle}>
+          {navigation.canGoBack() ? 'Edit Profile' : 'Set Up Your Profile'}
+        </Text>
         <TouchableOpacity onPress={handleSave} disabled={loading}>
           {loading ? (
             <ActivityIndicator size="small" color={COLORS.primary} />

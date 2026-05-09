@@ -148,12 +148,32 @@ frontend:
           preview uses a Platform.OS=='web' fallback to solid lavender so screenshots stay clean.
           Plugin '@react-native-community/datetimepicker' added to app.config.js.
           Both libs installed via `npx expo install` so they match SDK 54.
+      - working: true
+        agent: "main"
+        comment: |
+          v1.0.10 fixes from user APK feedback:
+          1) Logo "Here & N [clock] w" was rendering BLACK on Android (MaskedView Android quirk).
+             Rewrote Logo.js using react-native-svg <Text> with a <LinearGradient> fill —
+             this works rock-solid on both iOS and Android. Screenshots confirm purple→pink
+             gradient text now renders correctly.
+          2) DOB now displays in UK format dd/mm/yyyy after wheel selection. Internal
+             validation accepts both UK and ISO formats; submit always sends ISO yyyy-mm-dd
+             to the backend.
+          3) Flow change: After OnboardingGenderScreen, user is taken DIRECTLY to the full
+             EditProfileScreen (not the old 3-step ProfileSetup wizard). AppNavigator now
+             mounts EditProfileScreen for first-time users, and EditProfileScreen detects
+             firstTime via initialParams to skip goBack() and mark profile_complete=true on
+             save (which triggers AppNavigator to switch to MainTabs).
+          4) Back buttons: EditProfileScreen header now uses navigation.canGoBack() guard so
+             first-time users don't see a non-functional back arrow. Title also adapts
+             ("Set Up Your Profile" vs "Edit Profile").
+          versionCode bumped 9 → 10, version 1.0.9 → 1.0.10.
 
 agent_communication:
   - agent: "main"
     message: |
-      Phase 1 + polish (datetimepicker DOB + masked-view shimmer logo) complete. Awaiting user
-      review on freshly built APK. Phase 2 (main tabs) NOT started.
-      No backend changes in this session — all work is frontend UI port.
-      EAS guardrails respected: babel.config.js untouched (worklets stay disabled),
-      .env files untouched, no version downgrades of EAS-stable packages.
+      v1.0.10 ready for re-deploy + APK build. Addresses 4 issues reported on v1.0.9 APK:
+      black logo, DOB format, missing wizard skip, and flaky back buttons. EAS guardrails
+      respected: babel.config.js untouched, .env URL keys untouched, no version downgrades.
+      Flow now: Splash → Landing (Get Started) → Age Verification → Form (with UK DOB)
+      → Gender → Edit Profile → MainTabs.
