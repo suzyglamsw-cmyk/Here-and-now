@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import * as SecureStore from 'expo-secure-store';
+import { secureGet, secureSet, secureDelete } from '../utils/secureStorage';
 import { authAPI } from '../utils/api';
 
 const AuthContext = createContext(null);
@@ -25,7 +25,7 @@ export const AuthProvider = ({ children }) => {
 
   const loadStoredAuth = async () => {
     try {
-      const storedToken = await SecureStore.getItemAsync('authToken');
+      const storedToken = await secureGet('authToken');
       if (storedToken) {
         setToken(storedToken);
         // Fetch user data
@@ -36,7 +36,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.log('Error loading auth:', error);
       // Clear invalid token
-      await SecureStore.deleteItemAsync('authToken');
+      try { await secureDelete('authToken'); } catch (e) { /* ignore */ }
     } finally {
       setLoading(false);
     }
@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }) => {
       const response = await authAPI.login(email, password);
       const { token: newToken, ...userData } = response.data;
       
-      await SecureStore.setItemAsync('authToken', newToken);
+      await secureSet('authToken', newToken);
       setToken(newToken);
       setUser(userData);
       setIsAuthenticated(true);
@@ -64,7 +64,7 @@ export const AuthProvider = ({ children }) => {
       const response = await authAPI.register(data);
       const { token: newToken, ...userData } = response.data;
       
-      await SecureStore.setItemAsync('authToken', newToken);
+      await secureSet('authToken', newToken);
       setToken(newToken);
       setUser(userData);
       setIsAuthenticated(true);
@@ -77,7 +77,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    await SecureStore.deleteItemAsync('authToken');
+    try { await secureDelete('authToken'); } catch (e) { /* ignore */ }
     setToken(null);
     setUser(null);
     setIsAuthenticated(false);
